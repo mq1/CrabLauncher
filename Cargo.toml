@@ -1,0 +1,24 @@
+[package]
+name = "ice-launcher"
+version = "0.1.0"
+edition = "2021"
+authors = ["Manuel Quarneti <hi@mq1.eu>"]
+repository = "https://github.com/mq1/ice-launcher"
+license = "GPL-3.0-only"
+
+[dependencies]
+druid = { git = "https://github.com/linebender/druid.git", features = ["im"] }
+isahc = { version = "1", default-features = false, features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+url = { version = "2", features = ["serde"] }
+const_format = "0.2"
+anyhow = "1"
+open = "2"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
