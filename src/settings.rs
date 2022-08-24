@@ -62,13 +62,13 @@ pub fn build_widget() -> impl Widget<AppState> {
             Flex::row()
                 .with_flex_spacer(1.)
                 .with_child(Button::new("Reset to default settings 🔄").on_click(
-                    move |_ctx, data: &mut LauncherConfig, _env| {
+                    |_ctx, data: &mut LauncherConfig, _env| {
                         *data = LauncherConfig::default();
                     },
                 ))
                 .with_default_spacer()
                 .with_child(Button::new("Save settings 📝").on_click(
-                    move |_ctx, data: &mut LauncherConfig, _env| {
+                    |_ctx, data: &mut LauncherConfig, _env| {
                         launcher_config::write(data).unwrap();
                     },
                 )),

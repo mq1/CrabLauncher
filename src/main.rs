@@ -41,7 +41,7 @@ pub struct AppState {
     config: lib::launcher_config::LauncherConfig,
     current_view: View,
     instances: Vector<(String, lib::instances::InstanceInfo)>,
-    accounts: Vector<(String, lib::accounts::Account)>,
+    accounts: Vector<(String, lib::accounts::Account, bool)>,
     news: Vector<(String, String)>,
 }
 
@@ -69,19 +69,19 @@ fn main() -> Result<()> {
 fn build_root_widget() -> impl Widget<AppState> {
     let switcher_column = Flex::column()
         .with_child(
-            Button::new("Instances").on_click(move |_ctx, data: &mut AppState, _env| {
+            Button::new("Instances").on_click(|_ctx, data: &mut AppState, _env| {
                 data.current_view = View::Instances;
             }),
         )
         .with_default_spacer()
         .with_child(
-            Button::new("Accounts").on_click(move |_ctx, data: &mut AppState, _env| {
+            Button::new("Accounts").on_click(|_ctx, data: &mut AppState, _env| {
                 data.current_view = View::Accounts;
             }),
         )
         .with_default_spacer()
         .with_child(
-            Button::new("News").on_click(move |ctx, data: &mut AppState, _env| {
+            Button::new("News").on_click(|ctx, data: &mut AppState, _env| {
                 if data.news.is_empty() {
                     let event_sink = ctx.get_external_handle();
                     thread::spawn(move || news::update_news(event_sink));
@@ -91,13 +91,13 @@ fn build_root_widget() -> impl Widget<AppState> {
         )
         .with_flex_spacer(1.)
         .with_child(
-            Button::new("Settings").on_click(move |_ctx, data: &mut AppState, _env| {
+            Button::new("Settings").on_click(|_ctx, data: &mut AppState, _env| {
                 data.current_view = View::Settings;
             }),
         )
         .with_default_spacer()
         .with_child(
-            Button::new("About").on_click(move |_ctx, data: &mut AppState, _env| {
+            Button::new("About").on_click(|_ctx, data: &mut AppState, _env| {
                 data.current_view = View::About;
             }),
         )
