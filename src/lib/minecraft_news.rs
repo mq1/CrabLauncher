@@ -1,9 +1,10 @@
 use anyhow::Result;
+use isahc::{ReadResponseExt, Request, RequestExt};
 use serde::{Deserialize, Serialize};
 use url::Url;
-use isahc::{Request, RequestExt, ReadResponseExt};
 
-const MINECRAFT_NEWS_URL: &str = "https://www.minecraft.net/content/minecraft-net/_jcr_content.articles.grid";
+const MINECRAFT_NEWS_URL: &str =
+    "https://www.minecraft.net/content/minecraft-net/_jcr_content.articles.grid";
 pub const MINECRAFT_NEWS_BASE_URL: &str = "https://www.minecraft.net";
 
 #[derive(Serialize, Deserialize)]
