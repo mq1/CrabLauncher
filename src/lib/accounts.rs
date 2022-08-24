@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{collections::HashMap, path::PathBuf, fs};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use anyhow::Result;
 use directories::ProjectDirs;
@@ -25,12 +25,42 @@ pub struct Account {
 
 #[derive(Serialize, Deserialize)]
 pub struct AccountsDocument {
+    pub active_account: String,
     pub accounts: HashMap<String, Account>,
 }
 
-pub fn list() -> Result<Vector<(String, Account)>> {
+pub fn list() -> Result<Vector<(String, Account, bool)>> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
     let document: AccountsDocument = toml::from_str(&content)?;
 
-    Ok(document.accounts.into_iter().collect())
+    let mut accounts = Vector::new();
+    for (id, account) in document.accounts.iter() {
+        accounts.push_back((id.clone(), account.clone(), id == &document.active_account));
+    }
+
+    Ok(accounts)
+}
+
+pub fn get_active() -> Result<String> {
+    let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
+    let document: AccountsDocument = toml::from_str(&content)?;
+
+    Ok(document.active_account)
+}
+
+pub fn set_active(id: &str) -> Result<()> {
+    let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
+    let mut document: AccountsDocument = toml::from_str(&content)?;
+    document.active_account = id.to_owned();
+    let content = toml::to_string(&document)?;
+    fs::write(ACCOUNTS_PATH.as_path(), content)?;
+
+    Ok(())
+}
+
+pub fn is_active(id: &str) -> Result<bool> {
+    let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
+    let document: AccountsDocument = toml::from_str(&content)?;
+
+    Ok(document.active_account == id)
 }
