@@ -1,0 +1,41 @@
+name: Deploy Ice Launcher
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          brew install create-dmg
+          cargo install cargo-bundle
+          cargo bundle --release
+          sh build-dmg.sh ${{github.ref_name}}
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: IceLauncher-${{github.ref_name}}-macos-x86_64.dmg
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          cargo build --release
+          xz "target/release/ice-launcher" > "IceLauncher-${{github.ref_name}}-linux-x86_64.xz"
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: IceLauncher-${{github.ref_name}}-linux-x86_64.tar.xz
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          cargo install cargo-bundle
+          cargo bundle --release
+          Move-Item -Path ".\target\release\bundle\Ice Launcher.msi" -Destination ".\IceLauncher-${{github.ref_name}}-windows-x86_64.msi"
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: IceLauncher-${{github.ref_name}}-windows-x86_64.msi
