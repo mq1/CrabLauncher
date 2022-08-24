@@ -37,6 +37,7 @@ enum View {
 pub struct AppState {
     current_view: View,
     instances: Vector<(String, lib::instances::InstanceInfo)>,
+    accounts: Vector<(String, lib::accounts::Account)>,
     news: Vector<(String, String)>,
 }
 
@@ -46,10 +47,12 @@ fn main() -> Result<()> {
         .window_size((800.0, 600.0));
 
     let instance_list = lib::instances::list()?;
+    let account_list = lib::accounts::list()?;
 
     let initial_state = AppState {
         current_view: View::Instances,
         instances: Vector::from(instance_list),
+        accounts: Vector::from(account_list),
         news: vector![],
     };
 
@@ -57,7 +60,7 @@ fn main() -> Result<()> {
         .log_to_console()
         .launch(initial_state)
         .expect("Launch failed");
-    
+
     Ok(())
 }
 
