@@ -54,7 +54,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         .padding(10.)
 }
 
-pub fn update_accounts(event_sink: druid::ExtEventSink) {
+fn update_accounts(event_sink: druid::ExtEventSink) {
     let accounts = accounts::list().unwrap();
 
     event_sink.add_idle_callback(move |data: &mut AppState| data.accounts = accounts);
