@@ -19,7 +19,7 @@ fn get_instance_icon(instance_type: &InstanceType) -> String {
 pub fn build_widget() -> impl Widget<AppState> {
     Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
-        .with_child(Label::new("Instances").with_text_size(32.))
+        .with_child(Label::new("🧊 Instances").with_text_size(32.))
         .with_default_spacer()
         .with_flex_child(
             Scroll::new(
@@ -33,7 +33,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                             name.to_string()
                         }))
                         .with_flex_spacer(1.)
-                        .with_child(Button::new("Launch"))
+                        .with_child(Button::new("Launch 🚀"))
                         .padding(5.)
                         .border(Color::GRAY, 1.)
                         .rounded(5.)
