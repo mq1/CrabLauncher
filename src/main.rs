@@ -38,19 +38,13 @@ fn main() {
         .title("Ice Launcher")
         .window_size((800.0, 600.0));
 
-    let launcher = AppLauncher::with_window(window);
-
-    let event_sink = launcher.get_external_handle();
-
-    thread::spawn(move || news::update_news(event_sink));
-
     let initial_state = AppState {
         current_view: View::Instances,
         instances: Vector::from(lib::instances::list().unwrap()),
         news: vector![],
     };
 
-    launcher
+    AppLauncher::with_window(window)
         .log_to_console()
         .launch(initial_state)
         .expect("Launch failed");
@@ -59,36 +53,39 @@ fn main() {
 fn build_root_widget() -> impl Widget<AppState> {
     let switcher_column = Flex::column()
         .with_child(
-            Button::new("Instances").on_click(move |_ctx, data: &mut View, _env| {
-                *data = View::Instances;
+            Button::new("Instances").on_click(move |_ctx, data: &mut AppState, _env| {
+                data.current_view = View::Instances;
             }),
         )
         .with_default_spacer()
         .with_child(
-            Button::new("Accounts").on_click(move |_ctx, data: &mut View, _env| {
-                *data = View::Accounts;
+            Button::new("Accounts").on_click(move |_ctx, data: &mut AppState, _env| {
+                data.current_view = View::Accounts;
             }),
         )
         .with_default_spacer()
         .with_child(
-            Button::new("News").on_click(move |_ctx, data: &mut View, _env| {
-                *data = View::News;
+            Button::new("News").on_click(move |ctx, data: &mut AppState, _env| {
+                if data.news.is_empty() {
+                    let event_sink = ctx.get_external_handle();
+                    thread::spawn(move || news::update_news(event_sink));
+                }
+                data.current_view = View::News;
             }),
         )
         .with_flex_spacer(1.)
         .with_child(
-            Button::new("Settings").on_click(move |_ctx, data: &mut View, _env| {
-                *data = View::Settings;
+            Button::new("Settings").on_click(move |_ctx, data: &mut AppState, _env| {
+                data.current_view = View::Settings;
             }),
         )
         .with_default_spacer()
         .with_child(
-            Button::new("About").on_click(move |_ctx, data: &mut View, _env| {
-                *data = View::About;
+            Button::new("About").on_click(move |_ctx, data: &mut AppState, _env| {
+                data.current_view = View::About;
             }),
         )
-        .padding(10.)
-        .lens(AppState::current_view);
+        .padding(10.);
 
     let view_switcher = ViewSwitcher::new(
         |data: &AppState, _env| data.current_view,
