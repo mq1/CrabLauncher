@@ -13,7 +13,7 @@ use std::thread;
 use druid::{
     im::{vector, Vector},
     widget::{Button, Flex, ViewSwitcher},
-    AppLauncher, Data, Lens, Widget, WidgetExt, WindowDesc,
+    AppLauncher, Color, Data, Lens, Widget, WidgetExt, WindowDesc,
 };
 use strum_macros::Display;
 
@@ -85,7 +85,8 @@ fn build_root_widget() -> impl Widget<AppState> {
                 data.current_view = View::About;
             }),
         )
-        .padding(10.);
+        .padding(10.)
+        .background(Color::from_hex_str("#404040").unwrap());
 
     let view_switcher = ViewSwitcher::new(
         |data: &AppState, _env| data.current_view,
