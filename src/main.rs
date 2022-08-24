@@ -35,6 +35,7 @@ enum View {
 
 #[derive(Data, Clone, Lens)]
 pub struct AppState {
+    config: lib::launcher_config::LauncherConfig,
     current_view: View,
     instances: Vector<(String, lib::instances::InstanceInfo)>,
     accounts: Vector<(String, lib::accounts::Account)>,
@@ -46,13 +47,11 @@ fn main() -> Result<()> {
         .title("Ice Launcher")
         .window_size((800.0, 600.0));
 
-    let instance_list = lib::instances::list()?;
-    let account_list = lib::accounts::list()?;
-
     let initial_state = AppState {
+        config: lib::launcher_config::read()?,
         current_view: View::Instances,
-        instances: Vector::from(instance_list),
-        accounts: Vector::from(account_list),
+        instances: lib::instances::list()?,
+        accounts: lib::accounts::list()?,
         news: vector![],
     };
 

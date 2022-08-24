@@ -1,4 +1,4 @@
-use druid::Data;
+use druid::{im::Vector, Data};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 use strum_macros::Display;
@@ -35,10 +35,10 @@ fn read_info(instance_name: &str) -> Result<InstanceInfo> {
     Ok(info)
 }
 
-pub fn list() -> Result<Vec<(String, InstanceInfo)>> {
+pub fn list() -> Result<Vector<(String, InstanceInfo)>> {
     fs::create_dir_all(INSTANCES_DIR.as_path())?;
 
-    let mut instances = Vec::new();
+    let mut instances = Vector::new();
     for entry in fs::read_dir(INSTANCES_DIR.as_path())? {
         let entry = entry?;
         let path = entry.path();
@@ -49,7 +49,7 @@ pub fn list() -> Result<Vec<(String, InstanceInfo)>> {
                 .ok_or(anyhow!("Could not convert file name to string"))?;
 
             let info = read_info(file_name)?;
-            instances.push((file_name.to_string(), info));
+            instances.push_back((file_name.to_string(), info));
         }
     }
 
