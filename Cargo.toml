@@ -25,6 +25,8 @@ open = "2"
 directories = "4"
 strum = "0.24"
 strum_macros = "0.24"
+toml = "0.5"
+lazy_static = "1"
 
 [profile.release]
 opt-level = "z"

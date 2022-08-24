@@ -10,12 +10,19 @@ mod settings;
 
 use std::thread;
 
+use anyhow::Result;
 use druid::{
     im::{vector, Vector},
     widget::{Button, Flex, ViewSwitcher},
     AppLauncher, Color, Data, Lens, Widget, WidgetExt, WindowDesc,
 };
 use strum_macros::Display;
+
+#[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
+extern crate anyhow;
 
 #[derive(PartialEq, Eq, Data, Clone, Copy, Display)]
 enum View {
@@ -29,18 +36,20 @@ enum View {
 #[derive(Data, Clone, Lens)]
 pub struct AppState {
     current_view: View,
-    instances: Vector<String>,
+    instances: Vector<(String, lib::instances::InstanceInfo)>,
     news: Vector<(String, String)>,
 }
 
-fn main() {
+fn main() -> Result<()> {
     let window = WindowDesc::new(build_root_widget())
         .title("Ice Launcher")
         .window_size((800.0, 600.0));
 
+    let instance_list = lib::instances::list()?;
+
     let initial_state = AppState {
         current_view: View::Instances,
-        instances: Vector::from(lib::instances::list().unwrap()),
+        instances: Vector::from(instance_list),
         news: vector![],
     };
 
@@ -48,6 +57,8 @@ fn main() {
         .log_to_console()
         .launch(initial_state)
         .expect("Launch failed");
+    
+    Ok(())
 }
 
 fn build_root_widget() -> impl Widget<AppState> {
