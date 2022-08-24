@@ -1,6 +1,6 @@
 use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
-    Widget, WidgetExt,
+    Color, Widget, WidgetExt,
 };
 
 use crate::{lib::minecraft_news::MINECRAFT_NEWS_BASE_URL, AppState};
@@ -21,6 +21,9 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_child(Button::new("Open").on_click(|_ctx, (_, url), _env: &_| {
                             open::that(format!("{MINECRAFT_NEWS_BASE_URL}{url}")).unwrap();
                         }))
+                        .padding(5.)
+                        .border(Color::GRAY, 1.)
+                        .rounded(5.)
                 })
                 .with_spacing(10.)
                 .lens(AppState::news),
