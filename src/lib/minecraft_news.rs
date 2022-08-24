@@ -9,7 +9,7 @@ pub const MINECRAFT_NEWS_BASE_URL: &str = "https://www.minecraft.net";
 #[derive(Serialize, Deserialize)]
 pub struct News {
     pub article_grid: Vec<ArticleGrid>,
-    pub article_count: i64,
+    pub article_count: usize,
 }
 
 #[derive(Serialize, Deserialize)]
