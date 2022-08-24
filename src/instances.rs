@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use druid::{
     widget::{Button, Flex, Label, List, Scroll},
     Widget, WidgetExt,
@@ -9,8 +7,8 @@ use crate::AppState;
 
 pub fn build_widget() -> impl Widget<AppState> {
     Flex::column()
-        .with_child(Label::new("Instances"))
-        .with_child(
+        .with_child(Label::new("Instances").with_text_size(32.))
+        .with_flex_child(
             Scroll::new(
                 List::new(|| {
                     Flex::row()
@@ -22,5 +20,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                 .lens(AppState::instances),
             )
             .vertical(),
+            1.,
         )
+        .padding(10.)
 }
