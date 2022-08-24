@@ -1,8 +1,8 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, fs};
 
 use anyhow::Result;
 use directories::ProjectDirs;
-use druid::Data;
+use druid::{im::Vector, Data};
 use serde::{Deserialize, Serialize};
 
 lazy_static! {
@@ -25,8 +25,8 @@ pub struct AccountsDocument {
     pub accounts: HashMap<String, Account>,
 }
 
-pub fn list() -> Result<Vec<(String, Account)>> {
-    let content = std::fs::read_to_string(ACCOUNTS_PATH.as_path())?;
+pub fn list() -> Result<Vector<(String, Account)>> {
+    let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
     let document: AccountsDocument = toml::from_str(&content)?;
 
     Ok(document.accounts.into_iter().collect())
