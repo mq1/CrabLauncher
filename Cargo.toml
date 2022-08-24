@@ -15,6 +15,7 @@ url = { version = "2", features = ["serde"] }
 const_format = "0.2"
 anyhow = "1"
 open = "2"
+directories = "4"
 
 [profile.release]
 opt-level = "z"

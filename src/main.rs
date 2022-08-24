@@ -18,6 +18,7 @@ use druid::{
 
 #[derive(Data, Clone, Lens)]
 pub struct AppState {
+    instances: Vector<String>,
     news: Vector<(String, String)>,
 }
 
@@ -32,7 +33,10 @@ fn main() {
 
     thread::spawn(move || news::update_news(event_sink));
 
-    let initial_state = AppState { news: vector![] };
+    let initial_state = AppState {
+        instances: Vector::from(lib::instances::list().unwrap()),
+        news: vector![]
+    };
 
     launcher
         .log_to_console()
