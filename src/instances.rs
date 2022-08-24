@@ -1,5 +1,5 @@
 use druid::{
-    widget::{Button, Flex, Label, List, Scroll},
+    widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
     Widget, WidgetExt,
 };
 
@@ -7,7 +7,9 @@ use crate::AppState;
 
 pub fn build_widget() -> impl Widget<AppState> {
     Flex::column()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(Label::new("Instances").with_text_size(32.))
+        .with_default_spacer()
         .with_flex_child(
             Scroll::new(
                 List::new(|| {
