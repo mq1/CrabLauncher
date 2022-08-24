@@ -1,8 +1,8 @@
+use const_format::formatcp;
 use druid::{
     widget::{CrossAxisAlignment, Flex, Label},
-    Widget,
+    Widget, WidgetExt,
 };
-use const_format::formatcp;
 
 use crate::AppState;
 
@@ -14,4 +14,5 @@ pub fn build_widget() -> impl Widget<AppState> {
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(Label::new(APP_VERSION))
         .with_child(Label::new(LICENSE))
+        .padding(10.)
 }

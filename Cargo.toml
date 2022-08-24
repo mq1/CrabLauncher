@@ -16,6 +16,8 @@ const_format = "0.2"
 anyhow = "1"
 open = "2"
 directories = "4"
+strum = "0.24"
+strum_macros = "0.24"
 
 [profile.release]
 opt-level = "z"
