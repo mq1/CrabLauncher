@@ -24,7 +24,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(Label::new("🧊 Instances").with_text_size(32.))
         .with_default_spacer()
-        .with_flex_child(
+        .with_child(
             Scroll::new(
                 List::new(|| {
                     Flex::row()
@@ -45,7 +45,13 @@ pub fn build_widget() -> impl Widget<AppState> {
                 .lens(AppState::instances),
             )
             .vertical(),
-            1.,
         )
+        .with_flex_spacer(1.)
+        .with_child(Flex::row().with_flex_spacer(1.).with_child(Label::new(
+            |data: &AppState, _env: &_| match &data.active_account {
+                Some(account) => format!("Active account: {}", account.1.minecraft_username),
+                None => "No active account".to_string(),
+            },
+        )))
         .padding(10.)
 }

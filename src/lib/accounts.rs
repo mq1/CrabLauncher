@@ -25,7 +25,7 @@ pub struct Account {
 
 #[derive(Serialize, Deserialize)]
 pub struct AccountsDocument {
-    pub active_account: String,
+    pub active_account: Option<String>,
     pub accounts: HashMap<String, Account>,
 }
 
@@ -35,23 +35,37 @@ pub fn list() -> Result<Vector<(String, Account, bool)>> {
 
     let mut accounts = Vector::new();
     for (id, account) in document.accounts.iter() {
-        accounts.push_back((id.clone(), account.clone(), id == &document.active_account));
+        match document.active_account {
+            Some(ref active_account) => accounts.push_back((
+                id.to_owned(),
+                account.to_owned(),
+                active_account.to_owned() == id.to_owned(),
+            )),
+            None => accounts.push_back((id.to_owned(), account.to_owned(), false)),
+        }
     }
 
     Ok(accounts)
 }
 
-pub fn get_active() -> Result<String> {
+pub fn get_active() -> Result<Option<(String, Account)>> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
-    let document: AccountsDocument = toml::from_str(&content)?;
+    let mut document: AccountsDocument = toml::from_str(&content)?;
+    let id = document.active_account;
 
-    Ok(document.active_account)
+    match id {
+        Some(id) => {
+            let account = document.accounts.remove(&id).ok_or(anyhow!("Account not found"))?;
+            Ok(Some((id, account)))
+        }
+        None => Ok(None),
+    }
 }
 
 pub fn set_active(id: &str) -> Result<()> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
-    document.active_account = id.to_owned();
+    document.active_account = Some(id.to_owned());
     let content = toml::to_string(&document)?;
     fs::write(ACCOUNTS_PATH.as_path(), content)?;
 
@@ -62,5 +76,8 @@ pub fn is_active(id: &str) -> Result<bool> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
     let document: AccountsDocument = toml::from_str(&content)?;
 
-    Ok(document.active_account == id)
+    match document.active_account {
+        Some(active_account) => Ok(active_account == id),
+        None => Ok(false),
+    }
 }
