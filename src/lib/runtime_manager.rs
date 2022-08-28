@@ -179,6 +179,16 @@ pub fn install(java_version: &i32) -> Result<()> {
     Ok(())
 }
 
+pub fn remove(runtime: &str) -> Result<()> {
+    println!("Removing {runtime}");
+
+    let runtime_path = RUNTIMES_DIR.join(runtime);
+    fs::remove_dir_all(runtime_path)?;
+
+    println!("{runtime} removed");
+    Ok(())
+}
+
 pub fn get_java_path(java_version: &str) -> Result<PathBuf> {
     let available_runtimes = fs::read_dir(RUNTIMES_DIR.as_path())?;
     let mut runtime: Option<PathBuf> = None;
