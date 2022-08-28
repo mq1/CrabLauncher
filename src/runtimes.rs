@@ -8,7 +8,7 @@ use druid::{
     Color, Widget, WidgetExt,
 };
 
-use crate::{install_runtime, AppState, View};
+use crate::{install_runtime, lib, AppState, View};
 
 pub fn build_widget() -> impl Widget<AppState> {
     Flex::column()
@@ -19,8 +19,15 @@ pub fn build_widget() -> impl Widget<AppState> {
             Scroll::new(
                 List::new(|| {
                     Flex::row()
+                        .with_child(Label::new("☕️"))
+                        .with_default_spacer()
                         .with_child(Label::new(|runtime: &String, _env: &_| runtime.to_string()))
                         .with_flex_spacer(1.)
+                        .with_child(Button::new("💣 Delete").on_click(
+                            |_ctx, runtime: &mut String, _env: &_| {
+                                lib::runtime_manager::remove(runtime).unwrap();
+                            },
+                        ))
                         .padding(5.)
                         .border(Color::GRAY, 1.)
                         .rounded(5.)
