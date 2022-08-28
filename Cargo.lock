@@ -900,7 +900,7 @@ dependencies = [
  "druid",
  "flate2",
  "isahc",
- "lazy_static",
+ "once_cell",
  "open",
  "serde",
  "serde_json",

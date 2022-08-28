@@ -4,17 +4,13 @@
 use std::{collections::HashMap, fs, path::PathBuf};
 
 use anyhow::Result;
-use directories::ProjectDirs;
 use druid::{im::Vector, Data};
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-lazy_static! {
-    static ref BASE_DIR: PathBuf = {
-        let project_dirs = ProjectDirs::from("eu", "mq1", "ice-launcher").unwrap();
-        project_dirs.config_dir().to_path_buf()
-    };
-    static ref ACCOUNTS_PATH: PathBuf = BASE_DIR.join("accounts.toml");
-}
+use super::BASE_DIR;
+
+static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"));
 
 #[derive(Serialize, Deserialize, Clone, Data)]
 pub struct Account {
@@ -55,7 +51,10 @@ pub fn get_active() -> Result<Option<(String, Account)>> {
 
     match id {
         Some(id) => {
-            let account = document.accounts.remove(&id).ok_or(anyhow!("Account not found"))?;
+            let account = document
+                .accounts
+                .remove(&id)
+                .ok_or(anyhow!("Account not found"))?;
             Ok(Some((id, account)))
         }
         None => Ok(None),
