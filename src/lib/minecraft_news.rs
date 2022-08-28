@@ -13,7 +13,7 @@ pub const MINECRAFT_NEWS_BASE_URL: &str = "https://www.minecraft.net";
 #[derive(Serialize, Deserialize)]
 pub struct News {
     pub article_grid: Vec<ArticleGrid>,
-    pub article_count: usize,
+    pub article_count: i32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -97,7 +97,7 @@ pub enum TileSize {
 }
 
 /// Get the news from minecraft.net
-pub fn fetch(page_size: Option<usize>) -> Result<News> {
+pub fn fetch(page_size: Option<i32>) -> Result<News> {
     let page_size = page_size.unwrap_or(20);
 
     let url = Url::parse_with_params(MINECRAFT_NEWS_URL, &[("pageSize", page_size.to_string())])?;
