@@ -22,9 +22,6 @@ use druid::{
 use strum_macros::Display;
 
 #[macro_use]
-extern crate lazy_static;
-
-#[macro_use]
 extern crate anyhow;
 
 #[derive(PartialEq, Eq, Data, Clone, Copy, Display)]

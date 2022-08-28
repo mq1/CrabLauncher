@@ -4,17 +4,13 @@
 use std::{fs, path::PathBuf};
 
 use anyhow::Result;
-use directories::ProjectDirs;
 use druid::{Data, Lens};
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-lazy_static! {
-    static ref BASE_DIR: PathBuf = {
-        let project_dirs = ProjectDirs::from("eu", "mq1", "ice-launcher").unwrap();
-        project_dirs.config_dir().to_path_buf()
-    };
-    static ref LAUNCHER_CONFIG_PATH: PathBuf = BASE_DIR.join("config.toml");
-}
+use super::BASE_DIR;
+
+const LAUNCHER_CONFIG_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("config.toml"));
 
 #[derive(Serialize, Deserialize, Data, Clone, Lens)]
 pub struct LauncherConfig {
@@ -42,8 +38,6 @@ pub fn write(config: &LauncherConfig) -> Result<()> {
 }
 
 pub fn read() -> Result<LauncherConfig> {
-    fs::create_dir_all(BASE_DIR.as_path())?;
-
     let content = fs::read_to_string(LAUNCHER_CONFIG_PATH.as_path())?;
     let config: LauncherConfig = toml::from_str(&content)?;
 

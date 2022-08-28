@@ -2,20 +2,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use druid::{im::Vector, Data};
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 use strum_macros::Display;
 
 use anyhow::Result;
-use directories::ProjectDirs;
 
-lazy_static! {
-    static ref BASE_DIR: PathBuf = {
-        let project_dirs = ProjectDirs::from("eu", "mq1", "ice-launcher").unwrap();
-        project_dirs.config_dir().to_path_buf()
-    };
-    static ref INSTANCES_DIR: PathBuf = BASE_DIR.join("instances");
-}
+use super::BASE_DIR;
+
+const INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("instances"));
 
 #[derive(Display, Serialize, Deserialize, Clone, Data, PartialEq, Eq)]
 pub enum InstanceType {

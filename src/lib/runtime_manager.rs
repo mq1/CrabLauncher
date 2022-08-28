@@ -7,9 +7,9 @@ use std::{
 };
 
 use anyhow::Result;
-use directories::ProjectDirs;
 use druid::im::Vector;
 use isahc::ReadResponseExt;
+use once_cell::sync::Lazy;
 use serde::Deserialize;
 use url::Url;
 
@@ -24,15 +24,11 @@ use flate2::read::GzDecoder;
 
 use crate::lib::download_file;
 
+use super::BASE_DIR;
+
 const ADOPTIUM_API_ENDPOINT: &str = "https://api.adoptium.net";
 
-lazy_static! {
-    static ref BASE_DIR: PathBuf = {
-        let project_dirs = ProjectDirs::from("eu", "mq1", "ice-launcher").unwrap();
-        project_dirs.config_dir().to_path_buf()
-    };
-    static ref RUNTIMES_DIR: PathBuf = BASE_DIR.join("runtimes");
-}
+static RUNTIMES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("runtimes"));
 
 #[derive(Deserialize)]
 pub struct AvailableReleases {
