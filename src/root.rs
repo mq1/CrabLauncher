@@ -9,7 +9,7 @@ use druid::{
 };
 
 use crate::{
-    about, accounts, install_runtime, instances, news, runtimes, settings, AppState, View,
+    about, accounts, install_runtime, instances, news, runtimes, settings, AppState, View, create_instance,
 };
 
 pub fn build_widget() -> impl Widget<AppState> {
@@ -60,6 +60,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         |data: &AppState, _env| data.current_view,
         |selector, _data, _env| match selector {
             View::Instances => Box::new(instances::build_widget()),
+            View::CreateInstance => Box::new(create_instance::build_widget()),
             View::Accounts => Box::new(accounts::build_widget()),
             View::Runtimes => Box::new(runtimes::build_widget()),
             View::InstallRuntime => Box::new(install_runtime::build_widget()),

@@ -54,3 +54,7 @@ pub fn list() -> Result<Vector<(String, InstanceInfo)>> {
 
     Ok(instances)
 }
+
+pub fn new() -> Result<()> {
+    Ok(())
+}
