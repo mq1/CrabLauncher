@@ -11,7 +11,7 @@ use once_cell::sync::Lazy;
 pub mod accounts;
 pub mod instances;
 pub mod launcher_config;
-mod minecraft_instances;
+mod minecraft_assets;
 pub mod minecraft_news;
 pub mod runtime_manager;
 
