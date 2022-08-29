@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use directories::ProjectDirs;
 use isahc::{config::RedirectPolicy, prelude::Configurable, HttpClient, ReadResponseExt};
 use once_cell::sync::Lazy;
@@ -11,9 +11,9 @@ use once_cell::sync::Lazy;
 pub mod accounts;
 pub mod instances;
 pub mod launcher_config;
+mod minecraft_instances;
 pub mod minecraft_news;
 pub mod runtime_manager;
-mod minecraft_instances;
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     let project_dirs =

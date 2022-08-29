@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::Result;
+use color_eyre::eyre::{bail, Result};
 use druid::im::Vector;
 use isahc::ReadResponseExt;
 use once_cell::sync::Lazy;
