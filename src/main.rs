@@ -14,11 +14,14 @@ mod root;
 mod runtimes;
 mod settings;
 
+use std::fs;
+
 use anyhow::Result;
 use druid::{
     im::{vector, Vector},
     AppLauncher, Data, Lens, WindowDesc,
 };
+use lib::BASE_DIR;
 use strum_macros::Display;
 
 #[macro_use]
@@ -48,6 +51,8 @@ pub struct AppState {
 }
 
 fn main() -> Result<()> {
+    fs::create_dir_all(BASE_DIR.as_path()).expect("Could not create base directory");
+
     let window = WindowDesc::new(root::build_widget())
         .title("Ice Launcher")
         .window_size((800.0, 600.0));

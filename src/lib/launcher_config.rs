@@ -38,6 +38,10 @@ pub fn write(config: &LauncherConfig) -> Result<()> {
 }
 
 pub fn read() -> Result<LauncherConfig> {
+    if !LAUNCHER_CONFIG_PATH.exists() {
+        write(&LauncherConfig::default())?;
+    }
+
     let content = fs::read_to_string(LAUNCHER_CONFIG_PATH.as_path())?;
     let config: LauncherConfig = toml::from_str(&content)?;
 
