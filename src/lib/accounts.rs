@@ -25,7 +25,27 @@ pub struct AccountsDocument {
     pub accounts: HashMap<String, Account>,
 }
 
+impl Default for AccountsDocument {
+    fn default() -> Self {
+        Self {
+            active_account: None,
+            accounts: HashMap::new(),
+        }
+    }
+}
+
+pub fn write(accounts: &AccountsDocument) -> Result<()> {
+    let content = toml::to_string(accounts)?;
+    fs::write(ACCOUNTS_PATH.as_path(), content)?;
+
+    Ok(())
+}
+
 pub fn list() -> Result<Vector<(String, Account, bool)>> {
+    if !ACCOUNTS_PATH.exists() {
+        write(&AccountsDocument::default())?;
+    }
+
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
     let document: AccountsDocument = toml::from_str(&content)?;
 
@@ -45,6 +65,10 @@ pub fn list() -> Result<Vector<(String, Account, bool)>> {
 }
 
 pub fn get_active() -> Result<Option<(String, Account)>> {
+    if !ACCOUNTS_PATH.exists() {
+        write(&AccountsDocument::default())?;
+    }
+
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
     let id = document.active_account;
@@ -72,6 +96,10 @@ pub fn set_active(id: &str) -> Result<()> {
 }
 
 pub fn is_active(id: &str) -> Result<bool> {
+    if !ACCOUNTS_PATH.exists() {
+        write(&AccountsDocument::default())?;
+    }
+
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
     let document: AccountsDocument = toml::from_str(&content)?;
 
