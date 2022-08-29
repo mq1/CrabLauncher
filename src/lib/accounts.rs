@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, fs, path::PathBuf};
 
-use anyhow::Result;
+use color_eyre::eyre::{eyre, Result};
 use druid::{im::Vector, Data};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -78,7 +78,7 @@ pub fn get_active() -> Result<Option<(String, Account)>> {
             let account = document
                 .accounts
                 .remove(&id)
-                .ok_or(anyhow!("Account not found"))?;
+                .ok_or(eyre!("Account not found"))?;
             Ok(Some((id, account)))
         }
         None => Ok(None),

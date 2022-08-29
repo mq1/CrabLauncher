@@ -6,6 +6,7 @@
 
 mod about;
 mod accounts;
+mod create_instance;
 mod install_runtime;
 mod instances;
 mod lib;
@@ -13,20 +14,16 @@ mod news;
 mod root;
 mod runtimes;
 mod settings;
-mod create_instance;
 
 use std::fs;
 
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use druid::{
     im::{vector, Vector},
     AppLauncher, Data, Lens, WindowDesc,
 };
 use lib::BASE_DIR;
 use strum_macros::Display;
-
-#[macro_use]
-extern crate anyhow;
 
 #[derive(PartialEq, Eq, Data, Clone, Copy, Display)]
 enum View {
@@ -53,6 +50,8 @@ pub struct AppState {
 }
 
 fn main() -> Result<()> {
+    color_eyre::install()?;
+
     fs::create_dir_all(BASE_DIR.as_path()).expect("Could not create base directory");
 
     let window = WindowDesc::new(root::build_widget())

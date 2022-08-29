@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 use strum_macros::Display;
 
-use anyhow::Result;
+use color_eyre::eyre::{eyre, Result};
 
 use super::BASE_DIR;
 
@@ -42,10 +42,10 @@ pub fn list() -> Result<Vector<(String, InstanceInfo)>> {
         let entry = entry?;
         let path = entry.path();
         if path.is_dir() {
-            let file_name = path.file_name().ok_or(anyhow!("Could not get file name"))?;
+            let file_name = path.file_name().ok_or(eyre!("Could not get file name"))?;
             let file_name = file_name
                 .to_str()
-                .ok_or(anyhow!("Could not convert file name to string"))?;
+                .ok_or(eyre!("Could not convert file name to string"))?;
 
             let info = read_info(file_name)?;
             instances.push_back((file_name.to_string(), info));
