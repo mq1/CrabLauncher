@@ -13,6 +13,7 @@ pub mod instances;
 pub mod launcher_config;
 pub mod minecraft_news;
 pub mod runtime_manager;
+mod minecraft_instances;
 
 static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     let project_dirs =

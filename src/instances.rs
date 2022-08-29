@@ -8,7 +8,7 @@ use druid::{
 
 use crate::{
     lib::instances::{InstanceInfo, InstanceType},
-    AppState,
+    AppState, View,
 };
 
 fn get_instance_icon(instance_type: &InstanceType) -> String {
@@ -45,6 +45,12 @@ pub fn build_widget() -> impl Widget<AppState> {
                 .lens(AppState::instances),
             )
             .vertical(),
+        )
+        .with_default_spacer()
+        .with_child(
+            Button::new("Create ✨").on_click(|_ctx, data: &mut AppState, _env| {
+                data.current_view = View::CreateInstance;
+            }),
         )
         .with_flex_spacer(1.)
         .with_child(Flex::row().with_flex_spacer(1.).with_child(Label::new(

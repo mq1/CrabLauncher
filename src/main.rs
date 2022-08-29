@@ -13,6 +13,7 @@ mod news;
 mod root;
 mod runtimes;
 mod settings;
+mod create_instance;
 
 use anyhow::Result;
 use druid::{
@@ -27,6 +28,7 @@ extern crate anyhow;
 #[derive(PartialEq, Eq, Data, Clone, Copy, Display)]
 enum View {
     Instances,
+    CreateInstance,
     Accounts,
     Runtimes,
     InstallRuntime,
