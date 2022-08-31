@@ -16,7 +16,7 @@ use super::{download_file, BASE_DIR};
 
 const ASSETS_DOWNLOAD_ENDPOINT: &str = "https://resources.download.minecraft.net";
 
-static ASSETS_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("instances"));
+static ASSETS_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("assets"));
 static INDEXES_DIR: Lazy<PathBuf> = Lazy::new(|| ASSETS_DIR.join("indexes"));
 static OBJECTS_DIR: Lazy<PathBuf> = Lazy::new(|| ASSETS_DIR.join("objects"));
 
@@ -26,7 +26,17 @@ struct Object {
     size: i32,
 }
 
+#[derive(Deserialize)]
+struct Index {
+    #[serde(rename = "objects")]
+    objects: HashMap<String, Object>,
+}
+
 pub fn install(index_url: &str) -> Result<()> {
+    fs::create_dir_all(ASSETS_DIR.as_path())?;
+    fs::create_dir_all(INDEXES_DIR.as_path())?;
+    fs::create_dir_all(OBJECTS_DIR.as_path())?;
+
     let url = Url::parse(index_url)?;
     let index_file_name = url.path_segments().unwrap().last().unwrap();
     let index_path = INDEXES_DIR.join(index_file_name);
@@ -35,10 +45,10 @@ pub fn install(index_url: &str) -> Result<()> {
 
     // parse index file
     let index = File::open(index_path)?;
-    let index: HashMap<String, Object> = serde_json::from_reader(index)?;
+    let index: Index = serde_json::from_reader(index)?;
 
     // download all objects
-    for object in index.values() {
+    for object in index.objects.values() {
         let object_path = OBJECTS_DIR.join(&object.hash[..2]).join(&object.hash);
         let object_url = format!(
             "{}/{}/{}",
