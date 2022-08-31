@@ -9,7 +9,7 @@ use strum_macros::Display;
 
 use color_eyre::eyre::{eyre, Result};
 
-use super::BASE_DIR;
+use super::{minecraft_version_manifest::Version, minecraft_version_meta, BASE_DIR};
 
 const INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("instances"));
 
@@ -55,6 +55,20 @@ pub fn list() -> Result<Vector<(String, InstanceInfo)>> {
     Ok(instances)
 }
 
-pub fn new() -> Result<()> {
+pub fn new(instance_name: &str, minecraft_version: &Version) -> Result<()> {
+    let instance_dir = INSTANCES_DIR.join(instance_name);
+    fs::create_dir_all(&instance_dir)?;
+
+    let info = InstanceInfo {
+        instance_type: InstanceType::Vanilla,
+        minecraft_version: minecraft_version.id.clone(),
+    };
+
+    let path = instance_dir.join("instance.toml");
+    let content = toml::to_string(&info)?;
+    fs::write(&path, content)?;
+
+    minecraft_version_meta::install(minecraft_version)?;
+
     Ok(())
 }
