@@ -37,7 +37,7 @@ pub fn build_widget() -> impl Widget<AppState> {
     )
     .vertical();
 
-    let either = Either::new(|data: &AppState, _env| data.news.is_empty(), loading, news);
+    let either = Either::new(|data, _env| data.news.is_empty(), loading, news);
 
     Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
