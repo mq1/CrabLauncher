@@ -16,13 +16,15 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_child(Label::new("Installing runtime..."))
         .with_default_spacer()
         .with_child(Spinner::new())
-        .align_horizontal(UnitPoint::CENTER);
+        .align_horizontal(UnitPoint::CENTER)
+        .align_vertical(UnitPoint::CENTER);
 
     let loading_runtimes = Flex::column()
         .with_child(Label::new("Fetching available runtimes..."))
         .with_default_spacer()
         .with_child(Spinner::new())
-        .align_horizontal(UnitPoint::CENTER);
+        .align_horizontal(UnitPoint::CENTER)
+        .align_vertical(UnitPoint::CENTER);
 
     let available_runtimes = Scroll::new(
         List::new(|| {
@@ -61,9 +63,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(Label::new("⬇️ Install runtime").with_text_size(32.))
         .with_default_spacer()
-        .with_flex_spacer(1.)
-        .with_child(either)
-        .with_flex_spacer(1.)
+        .with_flex_child(either, 1.)
         .padding(10.)
 }
 
@@ -84,7 +84,7 @@ fn install_runtime(event_sink: druid::ExtEventSink, runtime: &i32) {
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.installing_runtime = false;
-        data.installed_runtimes = Vector::from(lib::runtime_manager::list().unwrap());
+        data.installed_runtimes = lib::runtime_manager::list().unwrap();
         data.current_view = View::Runtimes;
     });
 }
