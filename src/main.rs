@@ -47,6 +47,7 @@ pub struct AppState {
     news: Vector<(String, String)>,
     installed_runtimes: Vector<String>,
     available_runtimes: Vector<i32>,
+    installing_runtime: bool,
 }
 
 fn main() -> Result<()> {
@@ -67,6 +68,7 @@ fn main() -> Result<()> {
         news: vector![],
         installed_runtimes: lib::runtime_manager::list()?,
         available_runtimes: vector![],
+        installing_runtime: false,
     };
 
     AppLauncher::with_window(window)
