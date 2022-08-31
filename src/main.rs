@@ -6,7 +6,7 @@
 
 mod about;
 mod accounts;
-mod create_instance;
+mod new_instance;
 mod install_runtime;
 mod instances;
 mod lib;
@@ -22,13 +22,13 @@ use druid::{
     im::{vector, Vector},
     AppLauncher, Data, Lens, WindowDesc,
 };
-use lib::BASE_DIR;
+use lib::{BASE_DIR, minecraft_version_manifest};
 use strum_macros::Display;
 
 #[derive(PartialEq, Eq, Data, Clone, Copy, Display)]
 enum View {
     Instances,
-    CreateInstance,
+    NewInstance,
     Accounts,
     Runtimes,
     InstallRuntime,
@@ -42,6 +42,10 @@ pub struct AppState {
     config: lib::launcher_config::LauncherConfig,
     current_view: View,
     instances: Vector<(String, lib::instances::InstanceInfo)>,
+    new_instance_name: String,
+    selected_version: Option<minecraft_version_manifest::Version>,
+    available_minecraft_versions: Vector<minecraft_version_manifest::Version>,
+    installing_version: bool,
     accounts: Vector<(String, lib::accounts::Account, bool)>,
     active_account: Option<(String, lib::accounts::Account)>,
     news: Vector<(String, String)>,
@@ -63,6 +67,10 @@ fn main() -> Result<()> {
         config: lib::launcher_config::read()?,
         current_view: View::Instances,
         instances: lib::instances::list()?,
+        new_instance_name: String::new(),
+        selected_version: None,
+        available_minecraft_versions: vector![],
+        installing_version: false,
         accounts: lib::accounts::list()?,
         active_account: lib::accounts::get_active()?,
         news: vector![],

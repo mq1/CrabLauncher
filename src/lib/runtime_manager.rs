@@ -167,7 +167,7 @@ pub fn install(java_version: &i32) -> Result<()> {
 
     let download_path = &RUNTIMES_DIR.join(format!("{}.{}", assets.version.semver, extension));
 
-    download_file(download_url.as_str(), download_path.to_str().unwrap())?;
+    download_file(download_url.as_str(), &download_path)?;
     extract_archive(download_path, RUNTIMES_DIR.as_path())?;
     fs::remove_file(download_path)?;
 
