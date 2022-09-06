@@ -10,7 +10,7 @@ use druid::{
 
 use crate::{
     about, accounts, install_runtime, instance_name_selection, instance_type_selection,
-    instance_version_selection, instances, news, runtimes, settings, AppState, View,
+    instance_version_selection, instances, news, runtimes, settings, AppState, View, creating_instance,
 };
 
 pub fn build_widget() -> impl Widget<AppState> {
@@ -64,6 +64,7 @@ pub fn build_widget() -> impl Widget<AppState> {
             View::InstanceTypeSelection => Box::new(instance_type_selection::build_widget()),
             View::InstanceVersionSelection => Box::new(instance_version_selection::build_widget()),
             View::InstanceNameSelection => Box::new(instance_name_selection::build_widget()),
+            View::CreatingInstance => Box::new(creating_instance::build_widget()),
             View::Accounts => Box::new(accounts::build_widget()),
             View::Runtimes => Box::new(runtimes::build_widget()),
             View::InstallRuntime => Box::new(install_runtime::build_widget()),

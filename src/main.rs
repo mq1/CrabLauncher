@@ -16,6 +16,7 @@ mod news;
 mod root;
 mod runtimes;
 mod settings;
+mod creating_instance;
 
 use std::fs;
 
@@ -33,6 +34,7 @@ enum View {
     InstanceTypeSelection,
     InstanceVersionSelection,
     InstanceNameSelection,
+    CreatingInstance,
     Accounts,
     Runtimes,
     InstallRuntime,
