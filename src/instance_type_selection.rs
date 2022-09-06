@@ -54,5 +54,6 @@ fn update_available_versions(event_sink: druid::ExtEventSink) {
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.available_minecraft_versions = available_versions;
         data.version_selection = versions;
+        data.selected_version = data.version_selection[0].0.clone();
     });
 }
