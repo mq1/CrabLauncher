@@ -4,6 +4,7 @@
 use std::thread;
 
 use druid::{
+    im::vector,
     widget::{Button, CrossAxisAlignment, Flex, Label, TextBox},
     Color, Widget, WidgetExt,
 };
@@ -53,6 +54,10 @@ fn install_version(event_sink: druid::ExtEventSink) {
             .unwrap();
 
         lib::instances::new(&data.new_instance_name, version).unwrap();
+
+        data.available_minecraft_versions = vector![];
+        data.version_selection = vector![];
+        data.selected_version = String::new();
 
         data.instances = lib::instances::list().unwrap();
         data.current_view = View::Instances;
