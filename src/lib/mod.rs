@@ -25,6 +25,11 @@ pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
 });
 
 pub fn download_file(url: &str, path: &Path) -> Result<()> {
+    if path.exists() {
+        println!("File already exists, skipping download");
+        return Ok(());
+    }
+
     let client = HttpClient::builder()
         .redirect_policy(RedirectPolicy::Limit(10))
         .build()?;

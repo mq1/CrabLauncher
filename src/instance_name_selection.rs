@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::thread;
+
 use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, TextBox},
     Color, Widget, WidgetExt,
@@ -31,10 +33,13 @@ pub fn build_widget() -> impl Widget<AppState> {
                     },
                 ))
                 .with_flex_spacer(1.)
-                .with_child(Button::new("Done ✅").on_click(|ctx, _, _| {
-                    let event_sink = ctx.get_external_handle();
-                    install_version(event_sink);
-                })),
+                .with_child(
+                    Button::new("Done ✅").on_click(|ctx, data: &mut AppState, _| {
+                        let event_sink = ctx.get_external_handle();
+                        thread::spawn(move || install_version(event_sink));
+                        data.current_view = View::CreatingInstance;
+                    }),
+                ),
         )
         .padding(10.)
 }
@@ -49,6 +54,7 @@ fn install_version(event_sink: druid::ExtEventSink) {
 
         lib::instances::new(&data.new_instance_name, version).unwrap();
 
+        data.instances = lib::instances::list().unwrap();
         data.current_view = View::Instances;
     });
 }
