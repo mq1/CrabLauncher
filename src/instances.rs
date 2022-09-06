@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::thread;
-
 use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
     Color, Widget, WidgetExt,
@@ -10,7 +8,7 @@ use druid::{
 
 use crate::{
     lib::instances::{InstanceInfo, InstanceType},
-    new_instance, AppState, View,
+    AppState, View,
 };
 
 fn get_instance_icon(instance_type: &InstanceType) -> String {
@@ -50,12 +48,8 @@ pub fn build_widget() -> impl Widget<AppState> {
         )
         .with_default_spacer()
         .with_child(
-            Button::new("New Instance ✨").on_click(|ctx, data: &mut AppState, _env| {
-                if data.available_minecraft_versions.is_empty() {
-                    let event_sink = ctx.get_external_handle();
-                    thread::spawn(move || new_instance::update_available_versions(event_sink));
-                }
-                data.current_view = View::NewInstance;
+            Button::new("New Instance ✨").on_click(|_, data: &mut AppState, _| {
+                data.current_view = View::InstanceTypeSelection;
             }),
         )
         .with_flex_spacer(1.)

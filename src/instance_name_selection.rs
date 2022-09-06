@@ -1,0 +1,54 @@
+// SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
+// SPDX-License-Identifier: GPL-3.0-only
+
+use druid::{
+    widget::{Button, CrossAxisAlignment, Flex, Label, TextBox},
+    Color, Widget, WidgetExt,
+};
+
+use crate::{lib, AppState, View};
+
+pub fn build_widget() -> impl Widget<AppState> {
+    Flex::column()
+        .cross_axis_alignment(CrossAxisAlignment::Start)
+        .with_child(Label::new("✍️ Type a name for your new instance").with_text_size(32.))
+        .with_flex_spacer(1.)
+        .with_child(
+            TextBox::new()
+                .with_placeholder("My new Instance")
+                .lens(AppState::new_instance_name)
+                .padding(5.)
+                .border(Color::GRAY, 1.)
+                .rounded(5.)
+                .expand_width(),
+        )
+        .with_flex_spacer(1.)
+        .with_child(
+            Flex::row()
+                .with_child(Button::new("< Select version 📦").on_click(
+                    |_, data: &mut AppState, _| {
+                        data.current_view = View::InstanceVersionSelection;
+                    },
+                ))
+                .with_flex_spacer(1.)
+                .with_child(Button::new("Done ✅").on_click(|ctx, _, _| {
+                    let event_sink = ctx.get_external_handle();
+                    install_version(event_sink);
+                })),
+        )
+        .padding(10.)
+}
+
+fn install_version(event_sink: druid::ExtEventSink) {
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        let version = data
+            .available_minecraft_versions
+            .iter()
+            .find(|v| v.id == data.selected_version)
+            .unwrap();
+
+        lib::instances::new(&data.new_instance_name, version).unwrap();
+
+        data.current_view = View::Instances;
+    });
+}
