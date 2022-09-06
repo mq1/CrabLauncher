@@ -19,6 +19,5 @@ pub fn build_widget() -> impl Widget<AppState> {
     Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(Label::new("🛠️ Creating instance").with_text_size(32.))
-        .with_default_spacer()
         .with_flex_child(loading, 1.)
 }
