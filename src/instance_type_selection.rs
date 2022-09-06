@@ -20,16 +20,12 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_child(Label::new("🛠️ Select the instance type").with_text_size(32.))
         .with_flex_spacer(1.)
         .with_child(
-            RadioGroup::column(vec![
-                ("🍦 Vanilla", InstanceType::Vanilla),
-                ("🧵 Fabric", InstanceType::Fabric),
-                ("🔥 Forge", InstanceType::Forge),
-            ])
-            .lens(AppState::new_instance_type)
-            .padding(5.)
-            .border(Color::GRAY, 1.)
-            .rounded(5.)
-            .expand_width(),
+            RadioGroup::column(vec![("🍦 Vanilla", InstanceType::Vanilla)])
+                .lens(AppState::new_instance_type)
+                .padding(5.)
+                .border(Color::GRAY, 1.)
+                .rounded(5.)
+                .expand_width(),
         )
         .with_flex_spacer(1.)
         .with_child(Flex::row().with_flex_spacer(1.).with_child(
