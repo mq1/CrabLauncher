@@ -4,7 +4,7 @@
 use std::thread;
 
 use druid::{
-    im::vector,
+    im::{vector, Vector},
     widget::{Button, CrossAxisAlignment, Flex, Label, RadioGroup},
     Color, Widget, WidgetExt,
 };
@@ -48,10 +48,12 @@ fn update_available_versions(event_sink: druid::ExtEventSink) {
     });
 
     let available_versions = lib::minecraft_version_manifest::fetch_versions().unwrap();
-    let versions = available_versions
+    let mut versions: Vector<(String, bool)> = available_versions
         .iter()
         .map(|v| (v.id.clone(), false))
         .collect();
+
+    versions[0].1 = true;
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.available_minecraft_versions = available_versions;
