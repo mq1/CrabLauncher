@@ -34,6 +34,14 @@ pub fn build_widget() -> impl Widget<AppState> {
                             account.minecraft_username.to_string()
                         }))
                         .with_flex_spacer(1.)
+                        .with_child(Button::new("Remove 💣").on_click(
+                            |ctx, (id, _, _): &mut (String, _, _), _| {
+                                accounts::remove(id).expect("Failed to remove account");
+                                let event_sink = ctx.get_external_handle();
+                                update_accounts(event_sink);
+                            },
+                        ))
+                        .with_default_spacer()
                         .with_child(Button::new("Select ✅").on_click(
                             |ctx, (id, _, _): &mut (String, _, _), _env| {
                                 accounts::set_active(id).expect("Failed to set active account");
