@@ -95,16 +95,12 @@ pub fn set_active(id: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn is_active(id: &str) -> Result<bool> {
-    if !ACCOUNTS_PATH.exists() {
-        write(&AccountsDocument::default())?;
-    }
-
+pub fn remove(id: &str) -> Result<()> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
-    let document: AccountsDocument = toml::from_str(&content)?;
+    let mut document: AccountsDocument = toml::from_str(&content)?;
+    document.accounts.remove(id);
+    let content = toml::to_string(&document)?;
+    fs::write(ACCOUNTS_PATH.as_path(), content)?;
 
-    match document.active_account {
-        Some(active_account) => Ok(active_account == id),
-        None => Ok(false),
-    }
+    Ok(())
 }
