@@ -6,6 +6,7 @@
 
 mod about;
 mod accounts;
+mod creating_instance;
 mod install_runtime;
 mod instance_name_selection;
 mod instance_type_selection;
@@ -16,7 +17,6 @@ mod news;
 mod root;
 mod runtimes;
 mod settings;
-mod creating_instance;
 
 use std::fs;
 
@@ -53,7 +53,10 @@ pub struct AppState {
     available_minecraft_versions: Vector<minecraft_version_manifest::Version>,
     version_selection: Vector<(String, bool)>,
     selected_version: String,
-    installing_version: bool,
+    show_releases: bool,
+    show_snapshots: bool,
+    show_old_alphas: bool,
+    show_old_betas: bool,
     accounts: Vector<(String, lib::accounts::Account, bool)>,
     active_account: Option<(String, lib::accounts::Account)>,
     news: Vector<(String, String)>,
@@ -80,7 +83,10 @@ fn main() -> Result<()> {
         available_minecraft_versions: vector![],
         version_selection: vector![],
         selected_version: String::new(),
-        installing_version: false,
+        show_releases: true,
+        show_snapshots: false,
+        show_old_alphas: false,
+        show_old_betas: false,
         accounts: lib::accounts::list()?,
         active_account: lib::accounts::get_active()?,
         news: vector![],

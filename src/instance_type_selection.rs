@@ -10,6 +10,7 @@ use druid::{
 };
 
 use crate::{
+    instance_version_selection::refresh_versions,
     lib::{self, instances::InstanceType},
     AppState, View,
 };
@@ -44,16 +45,15 @@ fn update_available_versions(event_sink: druid::ExtEventSink) {
     });
 
     let available_versions = lib::minecraft_version_manifest::fetch_versions().unwrap();
-    let mut versions: Vector<(String, bool)> = available_versions
-        .iter()
-        .map(|v| (v.id.clone(), false))
-        .collect();
-
-    versions[0].1 = true;
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.available_minecraft_versions = available_versions;
-        data.version_selection = versions;
+    });
+
+    refresh_versions(event_sink.clone());
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.version_selection[0].1 = true;
         data.selected_version = data.version_selection[0].0.clone();
     });
 }
