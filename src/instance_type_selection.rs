@@ -4,7 +4,7 @@
 use std::thread;
 
 use druid::{
-    im::{vector, Vector},
+    im::vector,
     widget::{Button, CrossAxisAlignment, Flex, Label, RadioGroup},
     Color, Widget, WidgetExt,
 };
