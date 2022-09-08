@@ -12,17 +12,23 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     download_file, minecraft_assets,
-    minecraft_libraries::{self, Library},
+    minecraft_libraries::{self, Artifact, Library},
     minecraft_version_manifest, BASE_DIR,
 };
 
 const VERSIONS_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("versions"));
 
 #[derive(Serialize, Deserialize)]
+pub struct Downloads {
+    client: Artifact,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct MinecraftVersionMeta {
     #[serde(rename = "assetIndex")]
     pub asset_index: AssetIndex,
     pub assets: String,
+    pub downloads: Downloads,
     pub libraries: Vec<Library>,
 }
 
@@ -36,6 +42,13 @@ pub struct AssetIndex {
     pub url: String,
 }
 
+fn install_client(downloads: &Downloads) -> Result<()> {
+    let client_path = VERSIONS_DIR.join(&downloads.client.path);
+    download_file(&client.url, &client_path)?;
+
+    Ok(())
+}
+
 pub fn install(version: &minecraft_version_manifest::Version) -> Result<()> {
     let version_dir = VERSIONS_DIR.join(&version.id);
     fs::create_dir_all(&version_dir)?;
@@ -47,6 +60,7 @@ pub fn install(version: &minecraft_version_manifest::Version) -> Result<()> {
 
     minecraft_assets::install(&meta.asset_index.url)?;
     minecraft_libraries::install(&meta.libraries)?;
+    install_client(&meta.downloads)?;
 
     Ok(())
 }
