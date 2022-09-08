@@ -27,7 +27,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                 }))
                 .with_flex_spacer(1.)
                 .with_child(Button::new("Open ↗️").on_click(|_ctx, (_, url), _env: &_| {
-                    open::that(format!("{MINECRAFT_NEWS_BASE_URL}{url}")).unwrap();
+                    open_article(url);
                 }))
                 .padding(5.)
                 .border(Color::GRAY, 1.)
@@ -58,4 +58,8 @@ pub fn update_news(event_sink: druid::ExtEventSink) {
             .map(|article| (article.default_tile.title, article.article_url))
             .collect();
     });
+}
+
+fn open_article(url: &String) {
+    open::that(format!("{MINECRAFT_NEWS_BASE_URL}{url}")).unwrap();
 }
