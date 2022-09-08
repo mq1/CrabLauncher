@@ -28,7 +28,7 @@ const NATIVES_STRING: &str = "natives-macos-arm64";
 const NATIVES_STRING: &str = "natives-windows";
 
 #[derive(Serialize, Deserialize)]
-struct Artifact {
+pub struct Artifact {
     path: String,
     sha1: String,
     size: i32,
