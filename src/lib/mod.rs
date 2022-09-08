@@ -16,6 +16,8 @@ pub mod minecraft_news;
 pub mod minecraft_version_manifest;
 pub mod minecraft_version_meta;
 pub mod runtime_manager;
+mod minecraft_libraries;
+mod minecraft_rules;
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     ProjectDirs::from("eu", "mq1", "ice-launcher")

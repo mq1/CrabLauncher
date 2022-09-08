@@ -10,7 +10,11 @@ use color_eyre::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use super::{download_file, minecraft_version_manifest, BASE_DIR, minecraft_assets};
+use super::{
+    download_file, minecraft_assets,
+    minecraft_libraries::{self, Library},
+    minecraft_version_manifest, BASE_DIR,
+};
 
 const VERSIONS_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("versions"));
 
@@ -19,6 +23,7 @@ pub struct MinecraftVersionMeta {
     #[serde(rename = "assetIndex")]
     pub asset_index: AssetIndex,
     pub assets: String,
+    pub libraries: Vec<Library>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -41,6 +46,7 @@ pub fn install(version: &minecraft_version_manifest::Version) -> Result<()> {
     let meta: MinecraftVersionMeta = serde_json::from_reader(file)?;
 
     minecraft_assets::install(&meta.asset_index.url)?;
+    minecraft_libraries::install(&meta.libraries)?;
 
     Ok(())
 }
