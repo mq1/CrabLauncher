@@ -20,7 +20,7 @@ const VERSIONS_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("versions"));
 
 #[derive(Serialize, Deserialize)]
 pub struct Downloads {
-    client: Artifact,
+    pub client: Artifact,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -44,7 +44,7 @@ pub struct AssetIndex {
 
 fn install_client(downloads: &Downloads) -> Result<()> {
     let client_path = VERSIONS_DIR.join(&downloads.client.path);
-    download_file(&client.url, &client_path)?;
+    download_file(&downloads.client.url, &client_path)?;
 
     Ok(())
 }

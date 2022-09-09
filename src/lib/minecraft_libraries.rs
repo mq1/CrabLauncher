@@ -29,10 +29,10 @@ const NATIVES_STRING: &str = "natives-windows";
 
 #[derive(Serialize, Deserialize)]
 pub struct Artifact {
-    path: String,
+    pub path: String,
     sha1: String,
     size: i32,
-    url: String,
+    pub url: String,
 }
 
 #[derive(Serialize, Deserialize)]
