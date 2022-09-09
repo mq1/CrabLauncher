@@ -6,10 +6,10 @@ use std::thread;
 use druid::{
     im::vector,
     widget::{Button, CrossAxisAlignment, Flex, Label, TextBox},
-    Color, Widget, WidgetExt,
+    Color, LensExt, Widget, WidgetExt,
 };
 
-use crate::{lib, AppState, View};
+use crate::{lib, AppState, NewInstanceState, View};
 
 pub fn build_widget() -> impl Widget<AppState> {
     Flex::column()
@@ -19,7 +19,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_child(
             TextBox::new()
                 .with_placeholder("My new Instance")
-                .lens(AppState::new_instance_name)
+                .lens(AppState::new_instance_state.then(NewInstanceState::instance_name))
                 .padding(5.)
                 .border(Color::GRAY, 1.)
                 .rounded(5.)
@@ -47,17 +47,10 @@ pub fn build_widget() -> impl Widget<AppState> {
 
 fn install_version(event_sink: druid::ExtEventSink) {
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        let version = data
-            .available_minecraft_versions
-            .iter()
-            .find(|v| v.id == data.selected_version)
-            .unwrap();
+        let version = data.new_instance_state.selected_version.clone().unwrap();
+        lib::instances::new(&data.new_instance_state.instance_name, &version).unwrap();
 
-        lib::instances::new(&data.new_instance_name, version).unwrap();
-
-        data.available_minecraft_versions = vector![];
-        data.version_selection = vector![];
-        data.selected_version = String::new();
+        data.new_instance_state.available_minecraft_versions = vector![];
 
         data.instances = lib::instances::list().unwrap();
         data.current_view = View::Instances;

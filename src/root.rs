@@ -10,7 +10,7 @@ use druid::{
 
 use crate::{
     about, accounts, install_runtime, instance_name_selection, instance_type_selection,
-    instance_version_selection, instances, news, runtimes, settings, AppState, View, creating_instance,
+    instance_version_selection, instances, news, runtimes, settings, AppState, View, creating_instance, loading_versions,
 };
 
 pub fn build_widget() -> impl Widget<AppState> {
@@ -59,10 +59,11 @@ pub fn build_widget() -> impl Widget<AppState> {
 
     let view_switcher = ViewSwitcher::new(
         |data: &AppState, _env| data.current_view,
-        |selector, _data, _env| match selector {
+        |selector, data, _env| match selector {
             View::Instances => Box::new(instances::build_widget()),
             View::InstanceTypeSelection => Box::new(instance_type_selection::build_widget()),
-            View::InstanceVersionSelection => Box::new(instance_version_selection::build_widget()),
+            View::LoadingVersions => Box::new(loading_versions::build_widget()),
+            View::InstanceVersionSelection => Box::new(instance_version_selection::build_widget(&data.new_instance_state.shown_minecraft_versions)),
             View::InstanceNameSelection => Box::new(instance_name_selection::build_widget()),
             View::CreatingInstance => Box::new(creating_instance::build_widget()),
             View::Accounts => Box::new(accounts::build_widget()),

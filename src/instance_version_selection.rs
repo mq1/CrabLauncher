@@ -1,86 +1,76 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::thread;
+
 use druid::{
     im::Vector,
-    widget::{Button, Checkbox, CrossAxisAlignment, Either, Flex, Label, List, Scroll, Spinner},
-    Color, UnitPoint, Widget, WidgetExt,
+    widget::{Button, Checkbox, CrossAxisAlignment, Flex, Label, RadioGroup, Scroll},
+    LensExt, Widget, WidgetExt,
 };
 
-use crate::{lib, AppState, View};
+use crate::{
+    lib::{self, minecraft_version_manifest::VersionType},
+    AppState, NewInstanceState, View,
+};
 
-pub fn build_widget() -> impl Widget<AppState> {
-    let loading_versions = Flex::column()
-        .with_child(Label::new("Fetching available versions..."))
-        .with_default_spacer()
-        .with_child(Spinner::new())
-        .align_horizontal(UnitPoint::CENTER)
-        .align_vertical(UnitPoint::CENTER);
-
-    let version_selector = Flex::row()
-        .with_flex_child(
-            Scroll::new(
-                List::new(|| {
-                    Flex::row()
-                        .with_child(Label::new(
-                            |(_, selected): &(_, bool), _env: &_| {
-                                if *selected {
-                                    "✅"
-                                } else {
-                                    "☑️"
-                                }
-                            },
-                        ))
-                        .with_default_spacer()
-                        .with_child(Label::new(|(version, _): &(String, _), _env: &_| {
-                            version.to_owned()
-                        }))
-                        .with_flex_spacer(1.)
-                        .with_child(Button::new("✅ Select").on_click(
-                            |ctx, (version, _): &mut (String, _), _env: &_| {
-                                let event_sink = ctx.get_external_handle();
-                                select_version(event_sink, version);
-                            },
-                        ))
-                        .padding(5.)
-                        .border(Color::GRAY, 1.)
-                        .rounded(5.)
-                })
-                .with_spacing(10.)
-                .lens(AppState::version_selection),
-            )
-            .vertical(),
-            1.,
-        )
-        .with_default_spacer()
-        .with_child(
-            Flex::column()
-                .with_child(Label::new("🔎 Filter"))
-                .with_default_spacer()
-                .with_child(Checkbox::new("Show releases").lens(AppState::show_releases))
-                .with_default_spacer()
-                .with_child(Checkbox::new("Show snapshots").lens(AppState::show_snapshots))
-                .with_default_spacer()
-                .with_child(Checkbox::new("Show old alphas").lens(AppState::show_old_alphas))
-                .with_default_spacer()
-                .with_child(Checkbox::new("Show old betas").lens(AppState::show_old_betas))
-                .on_click(|ctx, _, _| {
-                    let event_sink = ctx.get_external_handle();
-                    refresh_versions(event_sink);
-                }),
-        );
-
-    let either = Either::new(
-        |data, _env| data.available_minecraft_versions.is_empty(),
-        loading_versions,
-        version_selector,
-    );
-
+pub fn build_widget(
+    available_versions: &Vector<lib::minecraft_version_manifest::Version>,
+) -> impl Widget<AppState> {
     Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(Label::new("📦 Select the version").with_text_size(32.))
         .with_default_spacer()
-        .with_flex_child(either, 1.)
+        .with_flex_child(
+            Flex::row()
+                .with_flex_child(
+                    Scroll::new(
+                        RadioGroup::column(
+                            available_versions
+                                .iter()
+                                .map(|version| (version.id.clone(), Some(version.clone())))
+                                .collect::<Vector<_>>(),
+                        )
+                        .expand_width()
+                        .lens(
+                            AppState::new_instance_state.then(NewInstanceState::selected_version),
+                        ),
+                    )
+                    .vertical(),
+                    1.,
+                )
+                .with_default_spacer()
+                .with_child(
+                    Flex::column()
+                        .with_child(Label::new("🔎 Filter").with_text_size(32.))
+                        .with_default_spacer()
+                        .with_child(Checkbox::new("Show releases").lens(
+                            AppState::new_instance_state.then(NewInstanceState::show_releases),
+                        ))
+                        .with_default_spacer()
+                        .with_child(Checkbox::new("Show snapshots").lens(
+                            AppState::new_instance_state.then(NewInstanceState::show_snapshots),
+                        ))
+                        .with_default_spacer()
+                        .with_child(
+                            Checkbox::new("Show old betas").lens(
+                                AppState::new_instance_state.then(NewInstanceState::show_beta),
+                            ),
+                        )
+                        .with_default_spacer()
+                        .with_child(
+                            Checkbox::new("Show old alphas").lens(
+                                AppState::new_instance_state.then(NewInstanceState::show_alpha),
+                            ),
+                        ),
+                )
+                .on_click(|ctx, data, _| {
+                    let event_sink = ctx.get_external_handle();
+                    data.current_view = View::LoadingVersions;
+                    thread::spawn(move || refresh_shown_versions(event_sink));
+                }),
+            1.,
+        )
         .with_default_spacer()
         .with_child(
             Flex::row()
@@ -99,57 +89,20 @@ pub fn build_widget() -> impl Widget<AppState> {
         .padding(10.)
 }
 
-pub fn refresh_versions(event_sink: druid::ExtEventSink) {
+pub fn refresh_shown_versions(event_sink: druid::ExtEventSink) {
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        let versions: Vector<(String, bool)> = data
+        data.new_instance_state.shown_minecraft_versions = data
+            .new_instance_state
             .available_minecraft_versions
-            .iter()
-            .filter_map(|version| match version.version_type {
-                lib::minecraft_version_manifest::Type::Release => {
-                    if data.show_releases {
-                        Some((version.id.to_owned(), version.id == data.selected_version))
-                    } else {
-                        None
-                    }
-                }
-                lib::minecraft_version_manifest::Type::Snapshot => {
-                    if data.show_snapshots {
-                        Some((version.id.to_owned(), version.id == data.selected_version))
-                    } else {
-                        None
-                    }
-                }
-                lib::minecraft_version_manifest::Type::OldAlpha => {
-                    if data.show_old_alphas {
-                        Some((version.id.to_owned(), version.id == data.selected_version))
-                    } else {
-                        None
-                    }
-                }
-                lib::minecraft_version_manifest::Type::OldBeta => {
-                    if data.show_old_betas {
-                        Some((version.id.to_owned(), version.id == data.selected_version))
-                    } else {
-                        None
-                    }
-                }
+            .clone()
+            .into_iter()
+            .filter(|version| match version.version_type {
+                VersionType::Release => data.new_instance_state.show_releases,
+                VersionType::Snapshot => data.new_instance_state.show_snapshots,
+                VersionType::OldBeta => data.new_instance_state.show_beta,
+                VersionType::OldAlpha => data.new_instance_state.show_alpha,
             })
             .collect();
-
-        data.version_selection = versions;
-    });
-}
-
-fn select_version(event_sink: druid::ExtEventSink, version: &str) {
-    let version = version.to_owned();
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.selected_version = version.clone();
-
-        data.version_selection = data
-            .version_selection
-            .iter()
-            .map(|(v, _)| (v.to_owned(), v == &version))
-            .collect();
+        data.current_view = View::InstanceVersionSelection;
     });
 }

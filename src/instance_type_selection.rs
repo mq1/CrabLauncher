@@ -6,13 +6,13 @@ use std::thread;
 use druid::{
     im::vector,
     widget::{Button, CrossAxisAlignment, Flex, Label, RadioGroup},
-    Color, Widget, WidgetExt,
+    Color, LensExt, Widget, WidgetExt,
 };
 
 use crate::{
-    instance_version_selection::refresh_versions,
-    lib::{self, instances::InstanceType},
-    AppState, View,
+    instance_version_selection::refresh_shown_versions,
+    lib::{self, instances::InstanceType, minecraft_version_manifest::VersionType},
+    AppState, NewInstanceState, View,
 };
 
 pub fn build_widget() -> impl Widget<AppState> {
@@ -22,7 +22,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_flex_spacer(1.)
         .with_child(
             RadioGroup::column(vec![("🍦 Vanilla", InstanceType::Vanilla)])
-                .lens(AppState::new_instance_type)
+                .lens(AppState::new_instance_state.then(NewInstanceState::instance_type))
                 .padding(5.)
                 .border(Color::GRAY, 1.)
                 .rounded(5.)
@@ -33,7 +33,7 @@ pub fn build_widget() -> impl Widget<AppState> {
             Button::new("Select version 📦 >").on_click(|ctx, data: &mut AppState, _| {
                 let event_sink = ctx.get_external_handle();
                 thread::spawn(move || update_available_versions(event_sink));
-                data.current_view = View::InstanceVersionSelection;
+                data.current_view = View::LoadingVersions;
             }),
         ))
         .padding(10.)
@@ -41,19 +41,19 @@ pub fn build_widget() -> impl Widget<AppState> {
 
 fn update_available_versions(event_sink: druid::ExtEventSink) {
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.available_minecraft_versions = vector![];
+        data.new_instance_state.available_minecraft_versions = vector![];
     });
 
     let available_versions = lib::minecraft_version_manifest::fetch_versions().unwrap();
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.available_minecraft_versions = available_versions;
+        data.new_instance_state.available_minecraft_versions = available_versions;
     });
 
-    refresh_versions(event_sink.clone());
+    refresh_shown_versions(event_sink.clone());
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.version_selection[0].1 = true;
-        data.selected_version = data.version_selection[0].0.clone();
+        data.new_instance_state.selected_version =
+            Some(data.new_instance_state.shown_minecraft_versions[0].clone());
     });
 }
