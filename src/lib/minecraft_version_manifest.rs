@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use color_eyre::Result;
-use druid::{im::Vector, Data};
+use druid::{im::Vector, Data, Lens};
 use isahc::ReadResponseExt;
 use serde::{Deserialize, Serialize};
 
@@ -21,11 +21,11 @@ pub struct Latest {
     pub snapshot: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Data)]
+#[derive(Serialize, Deserialize, Clone, Data, PartialEq, Eq, Lens)]
 pub struct Version {
     pub id: String,
     #[serde(rename = "type")]
-    pub version_type: Type,
+    pub version_type: VersionType,
     pub url: String,
     pub time: String,
     #[serde(rename = "releaseTime")]
@@ -36,7 +36,7 @@ pub struct Version {
 }
 
 #[derive(Serialize, Deserialize, Clone, Data, PartialEq, Eq)]
-pub enum Type {
+pub enum VersionType {
     #[serde(rename = "old_alpha")]
     OldAlpha,
     #[serde(rename = "old_beta")]

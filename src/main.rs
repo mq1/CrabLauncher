@@ -17,6 +17,7 @@ mod news;
 mod root;
 mod runtimes;
 mod settings;
+mod loading_versions;
 
 use std::fs;
 
@@ -25,7 +26,7 @@ use druid::{
     im::{vector, Vector},
     AppLauncher, Data, Lens, WindowDesc,
 };
-use lib::{minecraft_version_manifest, BASE_DIR};
+use lib::BASE_DIR;
 use strum_macros::Display;
 
 #[derive(PartialEq, Eq, Data, Clone, Copy, Display)]
@@ -33,6 +34,7 @@ enum View {
     Instances,
     InstanceTypeSelection,
     InstanceVersionSelection,
+    LoadingVersions,
     InstanceNameSelection,
     CreatingInstance,
     Accounts,
@@ -44,19 +46,24 @@ enum View {
 }
 
 #[derive(Data, Clone, Lens)]
+pub struct NewInstanceState {
+    available_minecraft_versions: Vector<lib::minecraft_version_manifest::Version>,
+    shown_minecraft_versions: Vector<lib::minecraft_version_manifest::Version>,
+    selected_version: Option<lib::minecraft_version_manifest::Version>,
+    instance_type: lib::instances::InstanceType,
+    instance_name: String,
+    show_releases: bool,
+    show_snapshots: bool,
+    show_beta: bool,
+    show_alpha: bool,
+}
+
+#[derive(Data, Clone, Lens)]
 pub struct AppState {
     config: lib::launcher_config::LauncherConfig,
     current_view: View,
     instances: Vector<(String, lib::instances::InstanceInfo)>,
-    new_instance_type: lib::instances::InstanceType,
-    new_instance_name: String,
-    available_minecraft_versions: Vector<minecraft_version_manifest::Version>,
-    version_selection: Vector<(String, bool)>,
-    selected_version: String,
-    show_releases: bool,
-    show_snapshots: bool,
-    show_old_alphas: bool,
-    show_old_betas: bool,
+    new_instance_state: NewInstanceState,
     accounts: Vector<(String, lib::accounts::Account, bool)>,
     active_account: Option<(String, lib::accounts::Account)>,
     news: Vector<(String, String)>,
@@ -74,19 +81,23 @@ fn main() -> Result<()> {
         .title("Ice Launcher")
         .window_size((800.0, 600.0));
 
+    let new_instance_state = NewInstanceState {
+        available_minecraft_versions: vector![],
+        shown_minecraft_versions: vector![],
+        selected_version: None,
+        instance_type: lib::instances::InstanceType::Vanilla,
+        instance_name: String::new(),
+        show_releases: true,
+        show_snapshots: false,
+        show_beta: false,
+        show_alpha: false,
+    };
+
     let initial_state = AppState {
         config: lib::launcher_config::read()?,
         current_view: View::Instances,
         instances: lib::instances::list()?,
-        new_instance_type: lib::instances::InstanceType::Vanilla,
-        new_instance_name: String::new(),
-        available_minecraft_versions: vector![],
-        version_selection: vector![],
-        selected_version: String::new(),
-        show_releases: true,
-        show_snapshots: false,
-        show_old_alphas: false,
-        show_old_betas: false,
+        new_instance_state,
         accounts: lib::accounts::list()?,
         active_account: lib::accounts::get_active()?,
         news: vector![],

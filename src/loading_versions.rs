@@ -10,7 +10,7 @@ use crate::AppState;
 
 pub fn build_widget() -> impl Widget<AppState> {
     let loading = Flex::column()
-        .with_child(Label::new("Downloading files..."))
+        .with_child(Label::new("Loading versions..."))
         .with_default_spacer()
         .with_child(Spinner::new())
         .align_horizontal(UnitPoint::CENTER)
@@ -18,7 +18,7 @@ pub fn build_widget() -> impl Widget<AppState> {
 
     Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
-        .with_child(Label::new("🛠️ Creating instance").with_text_size(32.))
+        .with_child(Label::new("📦 Select the version").with_text_size(32.))
         .with_flex_child(loading, 1.)
         .padding(10.)
 }
