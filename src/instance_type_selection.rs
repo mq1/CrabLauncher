@@ -11,7 +11,7 @@ use druid::{
 
 use crate::{
     instance_version_selection::refresh_shown_versions,
-    lib::{self, instances::InstanceType, minecraft_version_manifest::VersionType},
+    lib::{self, instances::InstanceType},
     AppState, NewInstanceState, View,
 };
 

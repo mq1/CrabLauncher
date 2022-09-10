@@ -55,7 +55,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_flex_spacer(1.)
         .with_child(Flex::row().with_flex_spacer(1.).with_child(Label::new(
             |data: &AppState, _env: &_| match &data.active_account {
-                Some(account) => format!("Active account: {}", account.1.minecraft_username),
+                Some(entry) => format!("Active account: {}", entry.account.minecraft_username),
                 None => "No active account".to_string(),
             },
         )))

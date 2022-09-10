@@ -6,6 +6,8 @@ use isahc::{ReadResponseExt, Request, RequestExt};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+use super::USER_AGENT;
+
 const MINECRAFT_NEWS_URL: &str =
     "https://www.minecraft.net/content/minecraft-net/_jcr_content.articles.grid";
 pub const MINECRAFT_NEWS_BASE_URL: &str = "https://www.minecraft.net";
@@ -101,10 +103,9 @@ pub fn fetch(page_size: Option<i32>) -> Result<News> {
     let page_size = page_size.unwrap_or(20);
 
     let url = Url::parse_with_params(MINECRAFT_NEWS_URL, &[("pageSize", page_size.to_string())])?;
-    let user_agent = format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 
     let news = Request::get(url.to_string())
-        .header("user-agent", &user_agent)
+        .header("user-agent", USER_AGENT)
         .body(())?
         .send()?
         .json()?;
