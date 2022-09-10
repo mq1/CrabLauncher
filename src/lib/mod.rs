@@ -4,6 +4,7 @@
 use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::Result;
+use const_format::formatcp;
 use directories::ProjectDirs;
 use isahc::{config::RedirectPolicy, prelude::Configurable, HttpClient, ReadResponseExt};
 use once_cell::sync::Lazy;
@@ -12,12 +13,15 @@ pub mod accounts;
 pub mod instances;
 pub mod launcher_config;
 mod minecraft_assets;
+mod minecraft_libraries;
 pub mod minecraft_news;
+mod minecraft_rules;
 pub mod minecraft_version_manifest;
 pub mod minecraft_version_meta;
+pub mod msa;
 pub mod runtime_manager;
-mod minecraft_libraries;
-mod minecraft_rules;
+
+pub const USER_AGENT: &str = formatcp!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     ProjectDirs::from("eu", "mq1", "ice-launcher")

@@ -4,20 +4,16 @@
 use std::{collections::HashMap, fs, path::PathBuf};
 
 use color_eyre::eyre::{eyre, Result};
-use druid::{im::Vector, Data};
+use druid::im::Vector;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use super::BASE_DIR;
+use super::{
+    msa::{Account, AccountEntry},
+    BASE_DIR,
+};
 
 static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"));
-
-#[derive(Serialize, Deserialize, Clone, Data)]
-pub struct Account {
-    pub microsoft_refresh_token: String,
-    pub minecraft_access_token: String,
-    pub minecraft_username: String,
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct AccountsDocument {
@@ -34,14 +30,25 @@ impl Default for AccountsDocument {
     }
 }
 
-pub fn write(accounts: &AccountsDocument) -> Result<()> {
+fn write(accounts: &AccountsDocument) -> Result<()> {
     let content = toml::to_string(accounts)?;
     fs::write(ACCOUNTS_PATH.as_path(), content)?;
 
     Ok(())
 }
 
-pub fn list() -> Result<Vector<(String, Account, bool)>> {
+fn read() -> Result<AccountsDocument> {
+    if !ACCOUNTS_PATH.exists() {
+        write(&AccountsDocument::default());
+    }
+
+    let content = fs::read(ACCOUNTS_PATH.as_path())?;
+    let accounts = toml::from_slice(&content)?;
+
+    Ok(accounts)
+}
+
+pub fn list() -> Result<Vector<(AccountEntry, bool)>> {
     if !ACCOUNTS_PATH.exists() {
         write(&AccountsDocument::default())?;
     }
@@ -53,18 +60,26 @@ pub fn list() -> Result<Vector<(String, Account, bool)>> {
     for (id, account) in document.accounts.iter() {
         match document.active_account {
             Some(ref active_account) => accounts.push_back((
-                id.to_owned(),
-                account.to_owned(),
+                AccountEntry {
+                    minecraft_id: id.to_owned(),
+                    account: account.to_owned(),
+                },
                 active_account.to_owned() == id.to_owned(),
             )),
-            None => accounts.push_back((id.to_owned(), account.to_owned(), false)),
+            None => accounts.push_back((
+                AccountEntry {
+                    minecraft_id: id.to_owned(),
+                    account: account.to_owned(),
+                },
+                false,
+            )),
         }
     }
 
     Ok(accounts)
 }
 
-pub fn get_active() -> Result<Option<(String, Account)>> {
+pub fn get_active() -> Result<Option<AccountEntry>> {
     if !ACCOUNTS_PATH.exists() {
         write(&AccountsDocument::default())?;
     }
@@ -79,7 +94,10 @@ pub fn get_active() -> Result<Option<(String, Account)>> {
                 .accounts
                 .remove(&id)
                 .ok_or(eyre!("Account not found"))?;
-            Ok(Some((id, account)))
+            Ok(Some(AccountEntry {
+                minecraft_id: id,
+                account,
+            }))
         }
         None => Ok(None),
     }
@@ -91,6 +109,15 @@ pub fn set_active(id: &str) -> Result<()> {
     document.active_account = Some(id.to_owned());
     let content = toml::to_string(&document)?;
     fs::write(ACCOUNTS_PATH.as_path(), content)?;
+
+    Ok(())
+}
+
+pub fn add() -> Result<()> {
+    let msa = super::msa::login()?;
+    let mut document = read()?;
+    document.accounts.insert(msa.minecraft_id, msa.account);
+    write(&document)?;
 
     Ok(())
 }
