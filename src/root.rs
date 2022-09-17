@@ -66,7 +66,7 @@ pub fn build_widget() -> impl Widget<AppState> {
             View::InstanceTypeSelection => Box::new(instance_type_selection::build_widget()),
             View::LoadingVersions => Box::new(loading_versions::build_widget()),
             View::InstanceVersionSelection => Box::new(instance_version_selection::build_widget(
-                &data.new_instance_state.shown_minecraft_versions,
+                &data.new_instance_state.available_minecraft_versions,
             )),
             View::InstanceNameSelection => Box::new(instance_name_selection::build_widget()),
             View::CreatingInstance => Box::new(creating_instance::build_widget()),

@@ -13,11 +13,11 @@ mod instance_type_selection;
 mod instance_version_selection;
 mod instances;
 mod lib;
+mod loading_versions;
 mod news;
 mod root;
 mod runtimes;
 mod settings;
-mod loading_versions;
 
 use std::fs;
 
@@ -48,14 +48,9 @@ enum View {
 #[derive(Data, Clone, Lens)]
 pub struct NewInstanceState {
     available_minecraft_versions: Vector<lib::minecraft_version_manifest::Version>,
-    shown_minecraft_versions: Vector<lib::minecraft_version_manifest::Version>,
     selected_version: Option<lib::minecraft_version_manifest::Version>,
     instance_type: lib::instances::InstanceType,
     instance_name: String,
-    show_releases: bool,
-    show_snapshots: bool,
-    show_beta: bool,
-    show_alpha: bool,
 }
 
 #[derive(Data, Clone, Lens)]
@@ -83,14 +78,9 @@ fn main() -> Result<()> {
 
     let new_instance_state = NewInstanceState {
         available_minecraft_versions: vector![],
-        shown_minecraft_versions: vector![],
         selected_version: None,
         instance_type: lib::instances::InstanceType::Vanilla,
         instance_name: String::new(),
-        show_releases: true,
-        show_snapshots: false,
-        show_beta: false,
-        show_alpha: false,
     };
 
     let initial_state = AppState {
