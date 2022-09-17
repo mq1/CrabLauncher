@@ -7,7 +7,7 @@ use druid::{
 };
 
 use crate::{
-    lib::{accounts, msa::AccountEntry, self},
+    lib::{self, accounts, msa::AccountEntry},
     AppState,
 };
 
@@ -36,7 +36,8 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_flex_spacer(1.)
                         .with_child(Button::new("Remove 💣").on_click(
                             |ctx, (entry, _): &mut (AccountEntry, _), _| {
-                                accounts::remove(&entry.minecraft_id).expect("Failed to remove account");
+                                accounts::remove(&entry.minecraft_id)
+                                    .expect("Failed to remove account");
                                 let event_sink = ctx.get_external_handle();
                                 update_accounts(event_sink);
                             },
@@ -44,7 +45,8 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_default_spacer()
                         .with_child(Button::new("Select ✅").on_click(
                             |ctx, (entry, _): &mut (AccountEntry, _), _env| {
-                                accounts::set_active(&entry.minecraft_id).expect("Failed to set active account");
+                                accounts::set_active(&entry.minecraft_id)
+                                    .expect("Failed to set active account");
                                 let event_sink = ctx.get_external_handle();
                                 update_accounts(event_sink);
                             },
@@ -59,12 +61,11 @@ pub fn build_widget() -> impl Widget<AppState> {
             .vertical(),
         )
         .with_default_spacer()
-        .with_child(
-            Button::new("New Account 🎉").on_click(|ctx, _, _| {
-                let event_sink = ctx.get_external_handle();
-                add_account(event_sink);
-            }),
-        )
+        .with_child(Button::new("New Account 🎉").on_click(|ctx, _, _| {
+            let event_sink = ctx.get_external_handle();
+            add_account(event_sink);
+        }))
+        .with_flex_spacer(1.)
         .padding(10.)
 }
 
