@@ -42,25 +42,25 @@ pub struct AssetIndex {
     pub url: String,
 }
 
-fn install_client(downloads: &Downloads) -> Result<()> {
+async fn install_client(downloads: &Downloads) -> Result<()> {
     let client_path = VERSIONS_DIR.join(&downloads.client.path);
-    download_file(&downloads.client.url, &client_path)?;
+    download_file(&downloads.client.url, &client_path).await?;
 
     Ok(())
 }
 
-pub fn install(version: &minecraft_version_manifest::Version) -> Result<()> {
+pub async fn install(version: &minecraft_version_manifest::Version) -> Result<()> {
     let version_dir = VERSIONS_DIR.join(&version.id);
     fs::create_dir_all(&version_dir)?;
 
     let meta_path = version_dir.join("meta.json");
-    download_file(&version.url, &meta_path)?;
+    download_file(&version.url, &meta_path).await?;
     let file = File::open(&meta_path)?;
     let meta: MinecraftVersionMeta = serde_json::from_reader(file)?;
 
-    minecraft_assets::install(&meta.asset_index.url)?;
-    minecraft_libraries::install(&meta.libraries)?;
-    install_client(&meta.downloads)?;
+    minecraft_assets::install(&meta.asset_index.url).await?;
+    minecraft_libraries::install(&meta.libraries).await?;
+    install_client(&meta.downloads).await?;
 
     Ok(())
 }

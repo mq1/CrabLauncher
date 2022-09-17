@@ -32,7 +32,7 @@ struct Index {
     objects: HashMap<String, Object>,
 }
 
-pub fn install(index_url: &str) -> Result<()> {
+pub async fn install(index_url: &str) -> Result<()> {
     fs::create_dir_all(ASSETS_DIR.as_path())?;
     fs::create_dir_all(INDEXES_DIR.as_path())?;
     fs::create_dir_all(OBJECTS_DIR.as_path())?;
@@ -41,7 +41,7 @@ pub fn install(index_url: &str) -> Result<()> {
     let index_file_name = url.path_segments().unwrap().last().unwrap();
     let index_path = INDEXES_DIR.join(index_file_name);
 
-    download_file(index_url, &index_path)?;
+    download_file(index_url, &index_path).await?;
 
     // parse index file
     let index = File::open(index_path)?;
@@ -59,7 +59,7 @@ pub fn install(index_url: &str) -> Result<()> {
 
         if !object_path.exists() {
             fs::create_dir_all(object_path.parent().unwrap())?;
-            download_file(&object_url, &object_path)?;
+            download_file(&object_url, &object_path).await?;
         }
     }
 

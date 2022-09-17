@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::thread;
-
 use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
     Color, Widget, WidgetExt,
@@ -43,7 +41,9 @@ pub fn build_widget() -> impl Widget<AppState> {
             Button::new("Install ⬇️").on_click(|ctx, data: &mut AppState, _env| {
                 if data.available_runtimes.is_empty() {
                     let event_sink = ctx.get_external_handle();
-                    thread::spawn(move || install_runtime::update_runtimes(event_sink));
+                    smol::spawn(async move {
+                        install_runtime::update_runtimes(event_sink).await;
+                    }).detach();
                 }
 
                 data.current_view = View::InstallRuntime;

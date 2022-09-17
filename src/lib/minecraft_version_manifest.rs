@@ -3,7 +3,7 @@
 
 use color_eyre::Result;
 use druid::{im::Vector, Data, Lens};
-use isahc::ReadResponseExt;
+use isahc::AsyncReadResponseExt;
 use serde::{Deserialize, Serialize};
 
 const VERSION_MANIFEST_URL: &str =
@@ -47,14 +47,14 @@ pub enum VersionType {
     Snapshot,
 }
 
-pub fn fetch_manifest() -> Result<MinecraftVersionManifest> {
-    let manifest = isahc::get(VERSION_MANIFEST_URL)?.json()?;
+pub async fn fetch_manifest() -> Result<MinecraftVersionManifest> {
+    let manifest = isahc::get_async(VERSION_MANIFEST_URL).await?.json().await?;
 
     Ok(manifest)
 }
 
-pub fn fetch_versions() -> Result<Vector<Version>> {
-    let manifest = fetch_manifest()?;
+pub async fn fetch_versions() -> Result<Vector<Version>> {
+    let manifest = fetch_manifest().await?;
     let versions = Vector::from(manifest.versions);
 
     Ok(versions)

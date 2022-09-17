@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use color_eyre::eyre::Result;
-use isahc::{ReadResponseExt, Request, RequestExt};
+use isahc::{AsyncReadResponseExt, Request, RequestExt};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -99,7 +99,7 @@ pub enum TileSize {
 }
 
 /// Get the news from minecraft.net
-pub fn fetch(page_size: Option<i32>) -> Result<News> {
+pub async fn fetch(page_size: Option<i32>) -> Result<News> {
     let page_size = page_size.unwrap_or(20);
 
     let url = Url::parse_with_params(MINECRAFT_NEWS_URL, &[("pageSize", page_size.to_string())])?;
@@ -107,8 +107,10 @@ pub fn fetch(page_size: Option<i32>) -> Result<News> {
     let news = Request::get(url.to_string())
         .header("user-agent", USER_AGENT)
         .body(())?
-        .send()?
-        .json()?;
+        .send_async()
+        .await?
+        .json()
+        .await?;
 
     Ok(news)
 }

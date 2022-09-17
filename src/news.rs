@@ -6,10 +6,7 @@ use druid::{
     Color, UnitPoint, Widget, WidgetExt,
 };
 
-use crate::{
-    lib::{self, minecraft_news::MINECRAFT_NEWS_BASE_URL},
-    AppState,
-};
+use crate::{lib::minecraft_news::MINECRAFT_NEWS_BASE_URL, AppState};
 
 pub fn build_widget() -> impl Widget<AppState> {
     let loading = Flex::column()
@@ -46,18 +43,6 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_default_spacer()
         .with_flex_child(either, 1.)
         .padding(10.)
-}
-
-pub fn update_news(event_sink: druid::ExtEventSink) {
-    let news = lib::minecraft_news::fetch(None).unwrap();
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.news = news
-            .article_grid
-            .into_iter()
-            .map(|article| (article.default_tile.title, article.article_url))
-            .collect();
-    });
 }
 
 fn open_article(url: &String) {

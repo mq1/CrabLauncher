@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::thread;
-
 use druid::{
     im::Vector,
     widget::{Button, Checkbox, CrossAxisAlignment, Flex, Label, RadioGroup, Scroll},
@@ -66,8 +64,13 @@ pub fn build_widget(
                 )
                 .on_click(|ctx, data, _| {
                     let event_sink = ctx.get_external_handle();
+                    let new_instance_state = data.new_instance_state.clone();
                     data.current_view = View::LoadingVersions;
-                    thread::spawn(move || refresh_shown_versions(event_sink));
+
+                    smol::spawn(async move {
+                        refresh_shown_versions(event_sink, new_instance_state).await;
+                    })
+                    .detach();
                 }),
             1.,
         )
@@ -89,20 +92,23 @@ pub fn build_widget(
         .padding(10.)
 }
 
-pub fn refresh_shown_versions(event_sink: druid::ExtEventSink) {
+pub async fn refresh_shown_versions(
+    event_sink: druid::ExtEventSink,
+    new_instance_state: NewInstanceState,
+) {
+    let shown_versions = new_instance_state
+        .available_minecraft_versions
+        .into_iter()
+        .filter(|version| match version.version_type {
+            VersionType::Release => new_instance_state.show_releases,
+            VersionType::Snapshot => new_instance_state.show_snapshots,
+            VersionType::OldBeta => new_instance_state.show_beta,
+            VersionType::OldAlpha => new_instance_state.show_alpha,
+        })
+        .collect();
+
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.new_instance_state.shown_minecraft_versions = data
-            .new_instance_state
-            .available_minecraft_versions
-            .clone()
-            .into_iter()
-            .filter(|version| match version.version_type {
-                VersionType::Release => data.new_instance_state.show_releases,
-                VersionType::Snapshot => data.new_instance_state.show_snapshots,
-                VersionType::OldBeta => data.new_instance_state.show_beta,
-                VersionType::OldAlpha => data.new_instance_state.show_alpha,
-            })
-            .collect();
+        data.new_instance_state.shown_minecraft_versions = shown_versions;
         data.current_view = View::InstanceVersionSelection;
     });
 }
