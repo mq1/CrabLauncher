@@ -8,7 +8,6 @@ use druid::{
 };
 
 use crate::{
-    instance_version_selection::refresh_shown_versions,
     lib::{self, instances::InstanceType},
     AppState, NewInstanceState, View,
 };
@@ -29,10 +28,11 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_flex_spacer(1.)
         .with_child(Flex::row().with_flex_spacer(1.).with_child(
             Button::new("Select version 📦 >").on_click(|ctx, data: &mut AppState, _| {
+                data.new_instance_state.available_minecraft_versions = vector![];
+
                 let event_sink = ctx.get_external_handle();
-                let new_instance_state = data.new_instance_state.clone();
                 smol::spawn(async move {
-                    update_available_versions(event_sink, new_instance_state).await;
+                    update_available_versions(event_sink).await;
                 })
                 .detach();
                 data.current_view = View::LoadingVersions;
@@ -43,24 +43,15 @@ pub fn build_widget() -> impl Widget<AppState> {
 
 async fn update_available_versions(
     event_sink: druid::ExtEventSink,
-    new_instance_state: NewInstanceState,
 ) {
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.new_instance_state.available_minecraft_versions = vector![];
-    });
-
     let available_versions = lib::minecraft_version_manifest::fetch_versions()
         .await
         .unwrap();
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.new_instance_state.available_minecraft_versions = available_versions;
-    });
-
-    refresh_shown_versions(event_sink.clone(), new_instance_state).await;
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
         data.new_instance_state.selected_version =
-            Some(data.new_instance_state.shown_minecraft_versions[0].clone());
+            Some(data.new_instance_state.available_minecraft_versions[0].clone());
+        data.current_view = View::InstanceVersionSelection;
     });
 }
