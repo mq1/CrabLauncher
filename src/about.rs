@@ -13,9 +13,10 @@ const APP_VERSION: &str = formatcp!("Ice Launcher version {}", env!("CARGO_PKG_V
 const REPOSITORY: &str = "https://github.com/mq1/ice-launcher";
 const LICENSE: &str = "https://github.com/mq1/ice-launcher/blob/main/COPYING";
 const COPYRIGHT: &str = "Copyright © 2022 Manuel Quarneti";
+const IMAGE_BYTES: &[u8] = include_bytes!("../ice-launcher.png");
 
 pub fn build_widget() -> impl Widget<AppState> {
-    let png_data = ImageBuf::from_data(include_bytes!("../ice-launcher.png")).unwrap();
+    let png_data = ImageBuf::from_data(IMAGE_BYTES).unwrap();
     let image = Image::new(png_data).fix_width(128.);
 
     Flex::column()
