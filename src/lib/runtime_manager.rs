@@ -8,7 +8,7 @@ use std::{
 
 use color_eyre::eyre::{bail, Result};
 use druid::im::Vector;
-use isahc::ReadResponseExt;
+use isahc::AsyncReadResponseExt;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use url::Url;
@@ -64,9 +64,9 @@ struct Assets {
     version: Version,
 }
 
-pub fn fetch_available_releases() -> Result<AvailableReleases> {
+pub async fn fetch_available_releases() -> Result<AvailableReleases> {
     let url = format!("{ADOPTIUM_API_ENDPOINT}/v3/info/available_releases");
-    let response = isahc::get(url)?.json()?;
+    let response = isahc::get_async(url).await?.json().await?;
 
     Ok(response)
 }
@@ -99,7 +99,7 @@ fn get_os_string() -> Result<String> {
     bail!("Unsupported OS");
 }
 
-fn get_assets_info(java_version: &i32) -> Result<Assets> {
+async fn get_assets_info(java_version: &i32) -> Result<Assets> {
     let url = format!("{endpoint}/v3/assets/latest/{version}/hotspot?architecture={arch}&image_type=jre&os={os}&vendor=eclipse",
         endpoint = ADOPTIUM_API_ENDPOINT,
         version = java_version,
@@ -109,7 +109,7 @@ fn get_assets_info(java_version: &i32) -> Result<Assets> {
 
     println!("Fetching {url}");
 
-    let mut response: Vec<Assets> = isahc::get(url)?.json()?;
+    let mut response: Vec<Assets> = isahc::get_async(url).await?.json().await?;
     let assets = response.pop().unwrap();
 
     Ok(assets)
@@ -151,10 +151,10 @@ fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn install(java_version: &i32) -> Result<()> {
+pub async fn install(java_version: &i32) -> Result<()> {
     println!("Installing Java {}", java_version);
 
-    let assets = get_assets_info(java_version)?;
+    let assets = get_assets_info(java_version).await?;
 
     let download_url = assets.binary.package.link;
     println!("Downloading {}", download_url);
@@ -167,7 +167,7 @@ pub fn install(java_version: &i32) -> Result<()> {
 
     let download_path = &RUNTIMES_DIR.join(format!("{}.{}", assets.version.semver, extension));
 
-    download_file(download_url.as_str(), &download_path)?;
+    download_file(download_url.as_str(), &download_path).await?;
     extract_archive(download_path, RUNTIMES_DIR.as_path())?;
     fs::remove_file(download_path)?;
 

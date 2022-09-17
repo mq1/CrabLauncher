@@ -55,7 +55,7 @@ pub fn list() -> Result<Vector<(String, InstanceInfo)>> {
     Ok(instances)
 }
 
-pub fn new(instance_name: &str, minecraft_version: &Version) -> Result<()> {
+pub async fn new(instance_name: &str, minecraft_version: &Version) -> Result<()> {
     let instance_dir = INSTANCES_DIR.join(instance_name);
     fs::create_dir_all(&instance_dir)?;
 
@@ -68,7 +68,7 @@ pub fn new(instance_name: &str, minecraft_version: &Version) -> Result<()> {
     let content = toml::to_string(&info)?;
     fs::write(&path, content)?;
 
-    minecraft_version_meta::install(minecraft_version)?;
+    minecraft_version_meta::install(minecraft_version).await?;
 
     Ok(())
 }

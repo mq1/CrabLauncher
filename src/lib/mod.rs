@@ -6,8 +6,9 @@ use std::path::{Path, PathBuf};
 use color_eyre::eyre::Result;
 use const_format::formatcp;
 use directories::ProjectDirs;
-use isahc::{config::RedirectPolicy, prelude::Configurable, HttpClient, ReadResponseExt};
+use isahc::{config::RedirectPolicy, prelude::Configurable, AsyncReadResponseExt, HttpClient};
 use once_cell::sync::Lazy;
+use smol::fs::File;
 
 pub mod accounts;
 pub mod instances;
@@ -30,7 +31,7 @@ pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
         .to_path_buf()
 });
 
-pub fn download_file(url: &str, path: &Path) -> Result<()> {
+pub async fn download_file(url: &str, path: &Path) -> Result<()> {
     if path.exists() {
         println!("File already exists, skipping download");
         return Ok(());
@@ -38,9 +39,12 @@ pub fn download_file(url: &str, path: &Path) -> Result<()> {
 
     let client = HttpClient::builder()
         .redirect_policy(RedirectPolicy::Limit(10))
+        .default_header("User-Agent", USER_AGENT)
         .build()?;
 
-    client.get(url)?.copy_to_file(path)?;
+    let mut resp = client.get_async(url).await?;
+    let mut file = File::create(path).await?;
+    resp.copy_to(&mut file).await?;
 
     Ok(())
 }

@@ -1,15 +1,16 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::thread;
-
 use druid::{
     im::vector,
     widget::{Button, CrossAxisAlignment, Flex, Label, TextBox},
     Color, LensExt, Widget, WidgetExt,
 };
 
-use crate::{lib, AppState, NewInstanceState, View};
+use crate::{
+    lib::{self, minecraft_version_manifest::Version},
+    AppState, NewInstanceState, View,
+};
 
 pub fn build_widget() -> impl Widget<AppState> {
     Flex::column()
@@ -37,7 +38,14 @@ pub fn build_widget() -> impl Widget<AppState> {
                 .with_child(
                     Button::new("Done ✅").on_click(|ctx, data: &mut AppState, _| {
                         let event_sink = ctx.get_external_handle();
-                        thread::spawn(move || install_version(event_sink));
+                        let name = data.new_instance_state.instance_name.clone();
+                        let version = data.new_instance_state.selected_version.clone().unwrap();
+
+                        smol::spawn(async move {
+                            install_version(event_sink, &name, &version).await;
+                        })
+                        .detach();
+
                         data.current_view = View::CreatingInstance;
                     }),
                 ),
@@ -45,13 +53,11 @@ pub fn build_widget() -> impl Widget<AppState> {
         .padding(10.)
 }
 
-fn install_version(event_sink: druid::ExtEventSink) {
+async fn install_version(event_sink: druid::ExtEventSink, name: &str, version: &Version) {
+    lib::instances::new(name, version).await.unwrap();
+
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        let version = data.new_instance_state.selected_version.clone().unwrap();
-        lib::instances::new(&data.new_instance_state.instance_name, &version).unwrap();
-
         data.new_instance_state.available_minecraft_versions = vector![];
-
         data.instances = lib::instances::list().unwrap();
         data.current_view = View::Instances;
     });

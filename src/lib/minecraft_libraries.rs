@@ -89,13 +89,13 @@ fn get_valid_artifacts(libraries: &Vec<Library>) -> Result<Vec<&Artifact>> {
     return Ok(valid_artifacts);
 }
 
-pub fn install(libraries: &Vec<Library>) -> Result<()> {
+pub async fn install(libraries: &Vec<Library>) -> Result<()> {
     let artifacts = get_valid_artifacts(libraries)?;
 
     for artifact in artifacts {
         let library_path = LIBRARIES_DIR.join(&artifact.path);
         fs::create_dir_all(library_path.parent().unwrap())?;
-        download_file(&artifact.url, &library_path)?;
+        download_file(&artifact.url, &library_path).await?;
     }
 
     Ok(())
