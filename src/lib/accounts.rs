@@ -39,7 +39,7 @@ fn write(accounts: &AccountsDocument) -> Result<()> {
 
 fn read() -> Result<AccountsDocument> {
     if !ACCOUNTS_PATH.exists() {
-        write(&AccountsDocument::default());
+        write(&AccountsDocument::default())?;
     }
 
     let content = fs::read(ACCOUNTS_PATH.as_path())?;
