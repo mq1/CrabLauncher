@@ -22,15 +22,13 @@ mod settings;
 use std::fs;
 
 use color_eyre::eyre::Result;
-use druid::{
-    im::{vector, Vector},
-    AppLauncher, Data, Lens, WindowDesc,
-};
+use druid::{im::Vector, AppLauncher, Data, Lens, WindowDesc};
 use lib::BASE_DIR;
 use strum_macros::Display;
 
-#[derive(PartialEq, Eq, Data, Clone, Copy, Display)]
+#[derive(PartialEq, Eq, Data, Clone, Copy, Display, Default)]
 enum View {
+    #[default]
     Instances,
     InstanceTypeSelection,
     InstanceVersionSelection,
@@ -45,7 +43,7 @@ enum View {
     About,
 }
 
-#[derive(Data, Clone, Lens)]
+#[derive(Data, Clone, Lens, Default)]
 pub struct NewInstanceState {
     available_minecraft_versions: Vector<lib::minecraft_version_manifest::Version>,
     selected_version: Option<lib::minecraft_version_manifest::Version>,
@@ -53,7 +51,7 @@ pub struct NewInstanceState {
     instance_name: String,
 }
 
-#[derive(Data, Clone, Lens)]
+#[derive(Data, Clone, Lens, Default)]
 pub struct AppState {
     config: lib::launcher_config::LauncherConfig,
     current_view: View,
@@ -76,24 +74,13 @@ fn main() -> Result<()> {
         .title("Ice Launcher")
         .window_size((800.0, 600.0));
 
-    let new_instance_state = NewInstanceState {
-        available_minecraft_versions: vector![],
-        selected_version: None,
-        instance_type: lib::instances::InstanceType::Vanilla,
-        instance_name: String::new(),
-    };
-
     let initial_state = AppState {
         config: lib::launcher_config::read()?,
-        current_view: View::Instances,
         instances: lib::instances::list()?,
-        new_instance_state,
         accounts: lib::accounts::list()?,
         active_account: lib::accounts::get_active()?,
-        news: vector![],
         installed_runtimes: lib::runtime_manager::list()?,
-        available_runtimes: vector![],
-        installing_runtime: false,
+        ..Default::default()
     };
 
     AppLauncher::with_window(window)
