@@ -13,8 +13,9 @@ use super::{minecraft_version_manifest::Version, minecraft_version_meta, BASE_DI
 
 const INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("instances"));
 
-#[derive(Display, Serialize, Deserialize, Clone, Data, PartialEq, Eq)]
+#[derive(Display, Serialize, Deserialize, Clone, Data, PartialEq, Eq, Default)]
 pub enum InstanceType {
+    #[default]
     Vanilla,
     Fabric,
     Forge,
