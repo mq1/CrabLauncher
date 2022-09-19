@@ -80,12 +80,7 @@ pub async fn fetch_available_releases() -> Result<AvailableReleases> {
 }
 
 async fn get_assets_info(java_version: &i32) -> Result<Assets> {
-    let url = format!("{endpoint}/v3/assets/latest/{version}/hotspot?architecture={arch}&image_type=jre&os={os}&vendor=eclipse",
-        endpoint = ADOPTIUM_API_ENDPOINT,
-        version = java_version,
-        arch = ARCH_STRING,
-        os = OS_STRING
-    );
+    let url = format!("{ADOPTIUM_API_ENDPOINT}/v3/assets/latest/{java_version}/hotspot?architecture={ARCH_STRING}&image_type=jre&os={OS_STRING}&vendor=eclipse");
 
     println!("Fetching {url}");
 
