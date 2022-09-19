@@ -31,8 +31,8 @@ const NATIVES_STRING: &str = "natives-windows";
 #[derive(Serialize, Deserialize)]
 pub struct Artifact {
     pub path: String,
-    sha1: String,
-    size: i32,
+    pub sha1: String,
+    pub size: i32,
     pub url: String,
 }
 
@@ -96,7 +96,7 @@ pub async fn install(libraries: &Vec<Library>) -> Result<()> {
     for artifact in artifacts {
         let library_path = LIBRARIES_DIR.join(&artifact.path);
         fs::create_dir_all(library_path.parent().unwrap()).await?;
-        download_file(&artifact.url, &library_path).await?;
+        download_file(&artifact.url, &library_path, Some(&artifact.sha1)).await?;
     }
 
     Ok(())

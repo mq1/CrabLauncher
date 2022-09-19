@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 #[cfg(target_os = "linux")]
 const CURRENT_OS: OsName = OsName::Linux;
@@ -14,13 +14,13 @@ const CURRENT_OS: OsName = OsName::MacOS;
 #[cfg(target_os = "windows")]
 const CURRENT_OS: OsName = OsName::Windows;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 enum Action {
     #[serde(rename = "allow")]
     Allow,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 enum OsName {
     #[serde(rename = "linux")]
     Linux,
@@ -30,12 +30,12 @@ enum OsName {
     Windows,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct Os {
     name: OsName,
 }
 
-#[derive(Serialize, Deserialize, Hash, Eq, PartialEq)]
+#[derive(Deserialize, Hash, Eq, PartialEq)]
 enum Feature {
     #[serde(rename = "is_demo_user")]
     IsDemoUser,
@@ -43,7 +43,7 @@ enum Feature {
     HasCustomResolution,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct Rule {
     action: Action,
     os: Option<Os>,
