@@ -52,7 +52,14 @@ pub fn build_widget() -> impl Widget<AppState> {
         )
         .with_default_spacer()
         .with_child(
-            Button::new("About").on_click(|_ctx, data: &mut AppState, _env| {
+            Button::new(|data: &AppState, _env: &_| {
+                if data.is_update_available {
+                    "⚠️ About"
+                } else {
+                    "About"
+                }
+            })
+            .on_click(|_ctx, data: &mut AppState, _env| {
                 data.current_view = View::About;
             }),
         )
