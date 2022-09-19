@@ -18,6 +18,16 @@ static INDEXES_DIR: Lazy<PathBuf> = Lazy::new(|| ASSETS_DIR.join("indexes"));
 static OBJECTS_DIR: Lazy<PathBuf> = Lazy::new(|| ASSETS_DIR.join("objects"));
 
 #[derive(Deserialize)]
+pub struct AssetIndex {
+    pub id: String,
+    pub sha1: String,
+    pub size: i32,
+    #[serde(rename = "totalSize")]
+    pub total_size: Option<i32>,
+    pub url: String,
+}
+
+#[derive(Deserialize)]
 struct Object {
     hash: String,
     size: i32,
@@ -29,7 +39,7 @@ struct Index {
     objects: HashMap<String, Object>,
 }
 
-pub async fn install(index_url: &str) -> Result<()> {
+pub async fn install(index: &AssetIndex) -> Result<()> {
     let results = [
         fs::create_dir_all(ASSETS_DIR.as_path()),
         fs::create_dir_all(INDEXES_DIR.as_path()),
@@ -40,11 +50,11 @@ pub async fn install(index_url: &str) -> Result<()> {
         result.await?;
     }
 
-    let url = Url::parse(index_url)?;
+    let url = Url::parse(&index.url)?;
     let index_file_name = url.path_segments().unwrap().last().unwrap();
     let index_path = INDEXES_DIR.join(index_file_name);
 
-    download_file(index_url, &index_path).await?;
+    download_file(&index.url, &index_path, Some(&index.sha1)).await?;
 
     // parse index file
     let index = fs::read_to_string(index_path).await?;
@@ -62,7 +72,7 @@ pub async fn install(index_url: &str) -> Result<()> {
 
         if !object_path.exists() {
             fs::create_dir_all(object_path.parent().unwrap()).await?;
-            download_file(&object_url, &object_path).await?;
+            download_file(&object_url, &object_path, Some(&object.hash)).await?;
         }
     }
 

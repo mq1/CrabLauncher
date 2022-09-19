@@ -4,24 +4,24 @@
 use color_eyre::Result;
 use druid::{im::Vector, Data, Lens};
 use isahc::AsyncReadResponseExt;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 const VERSION_MANIFEST_URL: &str =
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct MinecraftVersionManifest {
     pub latest: Latest,
     pub versions: Vec<Version>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct Latest {
     pub release: String,
     pub snapshot: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Data, PartialEq, Eq, Lens)]
+#[derive(Deserialize, Clone, Data, PartialEq, Eq, Lens)]
 pub struct Version {
     pub id: String,
     #[serde(rename = "type")]
@@ -35,7 +35,7 @@ pub struct Version {
     pub compliance_level: i32,
 }
 
-#[derive(Serialize, Deserialize, Clone, Data, PartialEq, Eq)]
+#[derive(Deserialize, Clone, Data, PartialEq, Eq)]
 pub enum VersionType {
     #[serde(rename = "old_alpha")]
     OldAlpha,

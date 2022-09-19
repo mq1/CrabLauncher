@@ -126,9 +126,7 @@ pub async fn install(java_version: &i32) -> Result<()> {
     println!("Installing Java {}", java_version);
 
     let assets = get_assets_info(java_version).await?;
-
-    let download_url = assets.binary.package.link;
-    println!("Downloading {}", download_url);
+    println!("Downloading {}", assets.binary.package.link);
 
     #[cfg(target_os = "windows")]
     let extension = "zip";
@@ -138,7 +136,12 @@ pub async fn install(java_version: &i32) -> Result<()> {
 
     let download_path = &RUNTIMES_DIR.join(format!("{}.{}", assets.version.semver, extension));
 
-    download_file(download_url.as_str(), &download_path).await?;
+    download_file(
+        assets.binary.package.link.as_str(),
+        &download_path,
+        None, // hash is sha256, TODO support this
+    )
+    .await?;
     extract_archive(download_path, RUNTIMES_DIR.as_path())?;
     fs::remove_file(download_path).await?;
 

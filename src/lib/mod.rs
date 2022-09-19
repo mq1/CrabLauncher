@@ -8,11 +8,13 @@ use const_format::formatcp;
 use directories::ProjectDirs;
 use isahc::{config::RedirectPolicy, prelude::Configurable, AsyncReadResponseExt, HttpClient};
 use once_cell::sync::Lazy;
+use sha1::{Digest, Sha1};
 use smol::fs::File;
 
 pub mod accounts;
 pub mod instances;
 pub mod launcher_config;
+pub mod launcher_updater;
 mod minecraft_assets;
 mod minecraft_libraries;
 pub mod minecraft_news;
@@ -21,7 +23,6 @@ pub mod minecraft_version_manifest;
 pub mod minecraft_version_meta;
 pub mod msa;
 pub mod runtime_manager;
-pub mod launcher_updater;
 
 pub const USER_AGENT: &str = formatcp!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 
@@ -32,10 +33,19 @@ pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
         .to_path_buf()
 });
 
-pub async fn download_file(url: &str, path: &Path) -> Result<()> {
+pub async fn download_file(url: &str, path: &Path, hash: Option<&str>) -> Result<()> {
     if path.exists() {
-        println!("File already exists, skipping download");
-        return Ok(());
+        if let Some(hash) = hash {
+            let mut file = std::fs::File::open(&path)?;
+            let mut hasher = Sha1::new();
+            std::io::copy(&mut file, &mut hasher)?;
+            let h = hasher.finalize();
+            if format!("{:x}", h) == hash {
+                return Ok(());
+            }
+        } else {
+            return Ok(());
+        }
     }
 
     let client = HttpClient::builder()

@@ -33,6 +33,7 @@ base64-url = "1"
 tiny_http = "0.11"
 smol = "1"
 version-compare = "0.1"
+sha1 = "0.10"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
