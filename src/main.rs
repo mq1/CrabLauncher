@@ -98,16 +98,15 @@ fn main() -> Result<()> {
     .detach();
 
     let launcher = AppLauncher::with_window(window);
+
+    // Spawn a task to check for updates.
     let event_sink = launcher.get_external_handle();
     smol::spawn(async move {
         check_for_updates(event_sink).await;
     })
     .detach();
 
-    launcher
-        .log_to_console()
-        .launch(initial_state)
-        .expect("Launch failed");
+    launcher.log_to_console().launch(initial_state)?;
 
     Ok(())
 }
