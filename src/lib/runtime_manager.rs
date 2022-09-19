@@ -1,16 +1,14 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{
-    fs::{self, File},
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::{bail, Result};
 use druid::im::Vector;
 use isahc::AsyncReadResponseExt;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
+use smol::{fs, stream::StreamExt};
 use url::Url;
 
 #[cfg(target_os = "windows")]
@@ -90,17 +88,15 @@ async fn get_assets_info(java_version: &i32) -> Result<Assets> {
     Ok(assets)
 }
 
-pub fn list() -> Result<Vector<String>> {
-    fs::create_dir_all(RUNTIMES_DIR.as_path())?;
-
+pub async fn list() -> Result<Vector<String>> {
     let mut runtimes = Vector::new();
 
-    for entry in fs::read_dir(RUNTIMES_DIR.as_path())? {
-        let entry = entry?;
-        let path = entry.path();
+    fs::create_dir_all(RUNTIMES_DIR.as_path()).await?;
+    let mut entries = fs::read_dir(RUNTIMES_DIR.as_path()).await?;
 
-        if path.is_dir() {
-            runtimes.push_back(path.file_name().unwrap().to_str().unwrap().to_string());
+    while let Some(entry) = entries.try_next().await? {
+        if entry.path().is_dir() {
+            runtimes.push_back(entry.file_name().to_string_lossy().to_string());
         }
     }
 
@@ -118,7 +114,7 @@ fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
 
 #[cfg(not(target_os = "windows"))]
 fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
-    let tar_gz = File::open(archive_path)?;
+    let tar_gz = std::fs::File::open(archive_path)?;
     let tar = GzDecoder::new(tar_gz);
     let mut archive = Archive::new(tar);
     archive.unpack(destination_path)?;
@@ -144,31 +140,29 @@ pub async fn install(java_version: &i32) -> Result<()> {
 
     download_file(download_url.as_str(), &download_path).await?;
     extract_archive(download_path, RUNTIMES_DIR.as_path())?;
-    fs::remove_file(download_path)?;
+    fs::remove_file(download_path).await?;
 
     println!("Java {} installed", java_version);
     Ok(())
 }
 
-pub fn remove(runtime: &str) -> Result<()> {
+pub async fn remove(runtime: &str) -> Result<()> {
     println!("Removing {runtime}");
 
     let runtime_path = RUNTIMES_DIR.join(runtime);
-    fs::remove_dir_all(runtime_path)?;
+    fs::remove_dir_all(runtime_path).await?;
 
     println!("{runtime} removed");
     Ok(())
 }
 
-pub fn get_java_path(java_version: &str) -> Result<PathBuf> {
-    let available_runtimes = fs::read_dir(RUNTIMES_DIR.as_path())?;
+pub async fn get_java_path(java_version: &str) -> Result<PathBuf> {
     let mut runtime: Option<PathBuf> = None;
 
-    for file in available_runtimes {
-        let file = file?;
-
-        if file.file_name().to_str().unwrap().contains(java_version) {
-            runtime = Some(file.path());
+    let mut entries = fs::read_dir(RUNTIMES_DIR.as_path()).await?;
+    while let Some(entry) = entries.try_next().await? {
+        if entry.file_name().to_string_lossy().contains(java_version) {
+            runtime = Some(entry.path());
             break;
         }
     }
@@ -179,19 +173,18 @@ pub fn get_java_path(java_version: &str) -> Result<PathBuf> {
 
     let runtime = runtime.unwrap();
 
-    let runtime_path = if cfg!(target_os = "windows") {
-        runtime.join("bin").join("java.exe")
-    } else if cfg!(target_os = "macos") {
-        runtime
-            .join("Contents")
-            .join("Home")
-            .join("bin")
-            .join("java")
-    } else if cfg!(target_os = "linux") {
-        runtime.join("bin").join("java")
-    } else {
-        panic!("Unsupported operating system");
-    };
+    #[cfg(target_os = "windows")]
+    let runtime_path = runtime.join("bin").join("java.exe");
+
+    #[cfg(target_os = "macos")]
+    let runtime_path = runtime
+        .join("Contents")
+        .join("Home")
+        .join("bin")
+        .join("java");
+
+    #[cfg(target_os = "linux")]
+    let runtime_path = runtime.join("bin").join("java");
 
     Ok(runtime_path)
 }

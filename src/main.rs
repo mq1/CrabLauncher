@@ -76,24 +76,29 @@ fn main() -> Result<()> {
         .title("Ice Launcher")
         .window_size((800.0, 600.0));
 
-    let initial_state = AppState {
-        config: lib::launcher_config::read()?,
-        instances: lib::instances::list()?,
-        accounts: lib::accounts::list()?,
-        active_account: lib::accounts::get_active()?,
-        installed_runtimes: lib::runtime_manager::list()?,
-        ..Default::default()
-    };
+    let initial_state = smol::block_on(async move {
+        let config = lib::launcher_config::read();
+        let instances = lib::instances::list();
+        let accounts = lib::accounts::list();
+        let active_account = lib::accounts::get_active();
+        let installed_runtimes = lib::runtime_manager::list();
+
+        AppState {
+            config: config.await.unwrap(),
+            instances: instances.await.unwrap(),
+            accounts: accounts.await.unwrap(),
+            active_account: active_account.await.unwrap(),
+            installed_runtimes: installed_runtimes.await.unwrap(),
+            ..Default::default()
+        }
+    });
 
     let launcher = AppLauncher::with_window(window);
 
     // Spawn a task to check for updates.
     if initial_state.config.automatically_check_for_updates {
         let event_sink = launcher.get_external_handle();
-        smol::spawn(async move {
-            check_for_updates(event_sink).await;
-        })
-        .detach();
+        smol::spawn(check_for_updates(event_sink)).detach();
     }
 
     launcher.log_to_console().launch(initial_state)?;

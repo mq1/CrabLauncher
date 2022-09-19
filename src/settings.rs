@@ -69,7 +69,12 @@ pub fn build_widget() -> impl Widget<AppState> {
                 .with_default_spacer()
                 .with_child(Button::new("Save settings 📝").on_click(
                     |_ctx, data: &mut LauncherConfig, _env| {
-                        launcher_config::write(data).unwrap();
+                        let data = data.clone();
+
+                        smol::spawn(async move {
+                            launcher_config::write(&data).await;
+                        })
+                        .detach();
                     },
                 )),
         )

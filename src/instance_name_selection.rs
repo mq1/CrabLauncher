@@ -55,10 +55,11 @@ pub fn build_widget() -> impl Widget<AppState> {
 
 async fn install_version(event_sink: druid::ExtEventSink, name: &str, version: &Version) {
     lib::instances::new(name, version).await.unwrap();
+    let instance_list = lib::instances::list().await.unwrap();
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.new_instance_state.available_minecraft_versions = vector![];
-        data.instances = lib::instances::list().unwrap();
+        data.instances = instance_list;
         data.current_view = View::Instances;
     });
 }
