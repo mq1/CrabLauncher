@@ -86,18 +86,41 @@ fn main() -> Result<()> {
     };
 
     smol::spawn(async move {
-        let update = lib::launcher_updater::check_for_updates().await.unwrap();
-
-        if update.is_some() {
-            initial_state.is_update_available = true;
+        match lib::launcher_updater::check_for_updates().await {
+            Ok(update) => {
+                if update.is_some() {
+                    initial_state.is_update_available = true;
+                }
+            }
+            Err(_) => {}
         }
     })
     .detach();
 
-    AppLauncher::with_window(window)
+    let launcher = AppLauncher::with_window(window);
+    let event_sink = launcher.get_external_handle();
+    smol::spawn(async move {
+        check_for_updates(event_sink).await;
+    })
+    .detach();
+
+    launcher
         .log_to_console()
         .launch(initial_state)
         .expect("Launch failed");
 
     Ok(())
+}
+
+async fn check_for_updates(event_sink: druid::ExtEventSink) {
+    match lib::launcher_updater::check_for_updates().await {
+        Ok(update) => {
+            if update.is_some() {
+                event_sink.add_idle_callback(|data: &mut AppState| {
+                    data.is_update_available = true;
+                })
+            }
+        }
+        Err(_) => {}
+    }
 }

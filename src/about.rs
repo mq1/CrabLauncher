@@ -3,7 +3,7 @@
 
 use const_format::formatcp;
 use druid::{
-    widget::{Button, Flex, Image, Label},
+    widget::{Button, Either, Flex, Image, Label},
     ImageBuf, Widget, WidgetExt,
 };
 
@@ -11,6 +11,7 @@ use crate::AppState;
 
 const APP_VERSION: &str = formatcp!("Ice Launcher version {}", env!("CARGO_PKG_VERSION"));
 const REPOSITORY: &str = "https://github.com/mq1/ice-launcher";
+const LATEST_RELEASE_URL: &str = "https://github.com/mq1/ice-launcher/releases/latest";
 const LICENSE: &str = "https://github.com/mq1/ice-launcher/blob/main/COPYING";
 const COPYRIGHT: &str = "Copyright © 2022 Manuel Quarneti";
 const IMAGE_BYTES: &[u8] = include_bytes!("../ice-launcher.png");
@@ -19,6 +20,21 @@ pub fn build_widget() -> impl Widget<AppState> {
     let png_data = ImageBuf::from_data(IMAGE_BYTES).unwrap();
     let image = Image::new(png_data).fix_width(128.);
 
+    let update_box = Flex::row()
+        .with_child(Label::new("⚠️ Update available!"))
+        .with_default_spacer()
+        .with_child(
+            Button::new("Update ↗️").on_click(|_ctx, _data: &mut AppState, _env: &_| {
+                open::that(LATEST_RELEASE_URL).unwrap();
+            }),
+        );
+
+    let either = Either::new(
+        |data: &AppState, _env: &_| data.is_update_available,
+        update_box,
+        Label::new("No updates available"),
+    );
+
     Flex::column()
         .with_flex_spacer(1.)
         .with_child(image)
@@ -26,6 +42,8 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_child(Label::new(APP_VERSION).with_text_size(32.))
         .with_default_spacer()
         .with_child(Label::new("Made with ❤️ by Manuel Quarneti").with_text_size(16.))
+        .with_default_spacer()
+        .with_child(either)
         .with_flex_spacer(1.)
         .with_child(
             Flex::row()
