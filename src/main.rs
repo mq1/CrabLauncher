@@ -76,7 +76,7 @@ fn main() -> Result<()> {
         .title("Ice Launcher")
         .window_size((800.0, 600.0));
 
-    let mut initial_state = AppState {
+    let initial_state = AppState {
         config: lib::launcher_config::read()?,
         instances: lib::instances::list()?,
         accounts: lib::accounts::list()?,
@@ -84,18 +84,6 @@ fn main() -> Result<()> {
         installed_runtimes: lib::runtime_manager::list()?,
         ..Default::default()
     };
-
-    smol::spawn(async move {
-        match lib::launcher_updater::check_for_updates().await {
-            Ok(update) => {
-                if update.is_some() {
-                    initial_state.is_update_available = true;
-                }
-            }
-            Err(_) => {}
-        }
-    })
-    .detach();
 
     let launcher = AppLauncher::with_window(window);
 
