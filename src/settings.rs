@@ -72,7 +72,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                         let data = data.clone();
 
                         smol::spawn(async move {
-                            launcher_config::write(&data).await;
+                            launcher_config::write(&data).await.unwrap();
                         })
                         .detach();
                     },

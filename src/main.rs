@@ -18,7 +18,6 @@ mod news;
 mod root;
 mod runtimes;
 mod settings;
-mod update;
 
 use std::fs;
 
