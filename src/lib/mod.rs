@@ -21,6 +21,7 @@ pub mod minecraft_version_manifest;
 pub mod minecraft_version_meta;
 pub mod msa;
 pub mod runtime_manager;
+pub mod launcher_updater;
 
 pub const USER_AGENT: &str = formatcp!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 

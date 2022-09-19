@@ -18,6 +18,7 @@ mod news;
 mod root;
 mod runtimes;
 mod settings;
+mod update;
 
 use std::fs;
 
@@ -53,6 +54,7 @@ pub struct NewInstanceState {
 
 #[derive(Data, Clone, Lens, Default)]
 pub struct AppState {
+    is_update_available: bool,
     config: lib::launcher_config::LauncherConfig,
     current_view: View,
     instances: Vector<(String, lib::instances::InstanceInfo)>,
@@ -74,7 +76,7 @@ fn main() -> Result<()> {
         .title("Ice Launcher")
         .window_size((800.0, 600.0));
 
-    let initial_state = AppState {
+    let mut initial_state = AppState {
         config: lib::launcher_config::read()?,
         instances: lib::instances::list()?,
         accounts: lib::accounts::list()?,
@@ -82,6 +84,15 @@ fn main() -> Result<()> {
         installed_runtimes: lib::runtime_manager::list()?,
         ..Default::default()
     };
+
+    smol::spawn(async move {
+        let update = lib::launcher_updater::check_for_updates().await.unwrap();
+
+        if update.is_some() {
+            initial_state.is_update_available = true;
+        }
+    })
+    .detach();
 
     AppLauncher::with_window(window)
         .log_to_console()
