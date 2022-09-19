@@ -66,22 +66,23 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_default_spacer()
         .with_child(Button::new("New Account 🎉").on_click(|ctx, _, _| {
             let event_sink = ctx.get_external_handle();
-            add_account(event_sink);
+            smol::spawn(add_account(event_sink)).detach();
         }))
         .with_flex_spacer(1.)
         .padding(10.)
 }
 
 async fn remove_account(event_sink: druid::ExtEventSink, id: String) {
-    accounts::remove(&id);
+    let _ = accounts::remove(&id);
 
+    let id = id.clone();
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.accounts.retain(|(entry, _)| entry.minecraft_id != id);
     });
 }
 
 async fn set_active_account(event_sink: druid::ExtEventSink, id: String) {
-    accounts::set_active(&id);
+    let _ = accounts::set_active(&id);
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.accounts.iter_mut().for_each(|(entry, is_active)| {

@@ -42,7 +42,7 @@ async fn read() -> Result<AccountsDocument> {
     if !ACCOUNTS_PATH.exists() {
         let default = AccountsDocument::default();
 
-        write(&default);
+        let _ = write(&default);
         return Ok(default);
     }
 
@@ -116,7 +116,7 @@ pub async fn add() -> Result<AccountEntry> {
     let msa = super::msa::login()?;
     let mut document = read().await?;
     document.accounts.insert(msa.minecraft_id.clone(), msa.account.clone());
-    write(&document);
+    let _ = write(&document);
 
     let entry = AccountEntry {
         minecraft_id: msa.minecraft_id.clone(),

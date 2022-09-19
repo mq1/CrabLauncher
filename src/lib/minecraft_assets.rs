@@ -37,7 +37,7 @@ pub async fn install(index_url: &str) -> Result<()> {
     ];
 
     for result in results.into_iter() {
-        result.await;
+        result.await?;
     }
 
     let url = Url::parse(index_url)?;

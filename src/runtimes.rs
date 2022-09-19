@@ -23,9 +23,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_flex_spacer(1.)
                         .with_child(Button::new("💣 Delete").on_click(
                             |_ctx, runtime: &mut String, _env: &_| {
-                                smol::block_on(async move {
-                                    lib::runtime_manager::remove(runtime).await;
-                                });
+                                smol::block_on(lib::runtime_manager::remove(runtime)).unwrap();
                             },
                         ))
                         .padding(5.)
