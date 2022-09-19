@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use color_eyre::Result;
 use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use smol::fs;
 
 use super::{
@@ -28,7 +28,7 @@ const NATIVES_STRING: &str = "natives-macos-arm64";
 #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
 const NATIVES_STRING: &str = "natives-windows";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct Artifact {
     pub path: String,
     pub sha1: String,
@@ -36,13 +36,13 @@ pub struct Artifact {
     pub url: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct LibraryDownloads {
     artifact: Artifact,
     rules: Option<Vec<Rule>>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct Library {
     downloads: LibraryDownloads,
     name: String,
