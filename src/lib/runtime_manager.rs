@@ -30,6 +30,14 @@ const ADOPTIUM_API_ENDPOINT: &str = "https://api.adoptium.net";
 
 static RUNTIMES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("runtimes"));
 
+const ARCH_STRING: &str = std::env::consts::ARCH;
+
+#[cfg(any(target_os = "windows", target_os = "linux"))]
+const OS_STRING: &str = std::env::consts::OS;
+
+#[cfg(target_os = "macos")]
+const OS_STRING: &str = "mac";
+
 #[derive(Deserialize)]
 pub struct AvailableReleases {
     pub available_lts_releases: Vec<i32>,
@@ -71,40 +79,12 @@ pub async fn fetch_available_releases() -> Result<AvailableReleases> {
     Ok(response)
 }
 
-fn get_architecture_string() -> Result<String> {
-    #[cfg(target_arch = "x86")]
-    return Ok("x86".to_string());
-
-    #[cfg(target_arch = "x86_64")]
-    return Ok("x86_64".to_string());
-
-    #[cfg(target_arch = "aarch64")]
-    return Ok("aarch64".to_string());
-
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))]
-    bail!("Unsupported architecture");
-}
-
-fn get_os_string() -> Result<String> {
-    #[cfg(target_os = "windows")]
-    return Ok("windows".to_string());
-
-    #[cfg(target_os = "macos")]
-    return Ok("mac".to_string());
-
-    #[cfg(target_os = "linux")]
-    return Ok("linux".to_string());
-
-    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-    bail!("Unsupported OS");
-}
-
 async fn get_assets_info(java_version: &i32) -> Result<Assets> {
     let url = format!("{endpoint}/v3/assets/latest/{version}/hotspot?architecture={arch}&image_type=jre&os={os}&vendor=eclipse",
         endpoint = ADOPTIUM_API_ENDPOINT,
         version = java_version,
-        arch = get_architecture_string()?,
-        os = get_os_string()?
+        arch = ARCH_STRING,
+        os = OS_STRING
     );
 
     println!("Fetching {url}");
