@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 use color_eyre::eyre::Result;
 use druid::{Data, Lens};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use smol::fs;
 
 use super::BASE_DIR;
 
@@ -30,19 +31,19 @@ impl Default for LauncherConfig {
     }
 }
 
-pub fn write(config: &LauncherConfig) -> Result<()> {
+pub async fn write(config: &LauncherConfig) -> Result<()> {
     let content = toml::to_string(config)?;
-    fs::write(LAUNCHER_CONFIG_PATH.as_path(), content)?;
+    fs::write(LAUNCHER_CONFIG_PATH.as_path(), content).await?;
 
     Ok(())
 }
 
-pub fn read() -> Result<LauncherConfig> {
+pub async fn read() -> Result<LauncherConfig> {
     if !LAUNCHER_CONFIG_PATH.exists() {
-        write(&LauncherConfig::default())?;
+        write(&LauncherConfig::default()).await?;
     }
 
-    let content = fs::read_to_string(LAUNCHER_CONFIG_PATH.as_path())?;
+    let content = fs::read_to_string(LAUNCHER_CONFIG_PATH.as_path()).await?;
     let config: LauncherConfig = toml::from_str(&content)?;
 
     Ok(config)

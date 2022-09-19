@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 use color_eyre::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use smol::fs;
 
 use super::{
     download_file,
@@ -94,7 +95,7 @@ pub async fn install(libraries: &Vec<Library>) -> Result<()> {
 
     for artifact in artifacts {
         let library_path = LIBRARIES_DIR.join(&artifact.path);
-        fs::create_dir_all(library_path.parent().unwrap())?;
+        fs::create_dir_all(library_path.parent().unwrap()).await?;
         download_file(&artifact.url, &library_path).await?;
     }
 

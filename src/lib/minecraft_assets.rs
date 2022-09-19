@@ -1,15 +1,12 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{
-    collections::HashMap,
-    fs::{self, File},
-    path::PathBuf,
-};
+use std::{collections::HashMap, path::PathBuf};
 
 use color_eyre::eyre::Result;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
+use smol::fs;
 use url::Url;
 
 use super::{download_file, BASE_DIR};
@@ -33,9 +30,15 @@ struct Index {
 }
 
 pub async fn install(index_url: &str) -> Result<()> {
-    fs::create_dir_all(ASSETS_DIR.as_path())?;
-    fs::create_dir_all(INDEXES_DIR.as_path())?;
-    fs::create_dir_all(OBJECTS_DIR.as_path())?;
+    let results = [
+        fs::create_dir_all(ASSETS_DIR.as_path()),
+        fs::create_dir_all(INDEXES_DIR.as_path()),
+        fs::create_dir_all(OBJECTS_DIR.as_path()),
+    ];
+
+    for result in results.into_iter() {
+        result.await;
+    }
 
     let url = Url::parse(index_url)?;
     let index_file_name = url.path_segments().unwrap().last().unwrap();
@@ -44,8 +47,8 @@ pub async fn install(index_url: &str) -> Result<()> {
     download_file(index_url, &index_path).await?;
 
     // parse index file
-    let index = File::open(index_path)?;
-    let index: Index = serde_json::from_reader(index)?;
+    let index = fs::read_to_string(index_path).await?;
+    let index: Index = serde_json::from_str(&index)?;
 
     // download all objects
     for object in index.objects.values() {
@@ -58,7 +61,7 @@ pub async fn install(index_url: &str) -> Result<()> {
         );
 
         if !object_path.exists() {
-            fs::create_dir_all(object_path.parent().unwrap())?;
+            fs::create_dir_all(object_path.parent().unwrap()).await?;
             download_file(&object_url, &object_path).await?;
         }
     }

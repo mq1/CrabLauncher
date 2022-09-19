@@ -4,10 +4,11 @@
 use druid::{im::Vector, Data};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
+use smol::{fs, stream::StreamExt};
+use std::path::PathBuf;
 use strum_macros::Display;
 
-use color_eyre::eyre::{eyre, Result};
+use color_eyre::eyre::Result;
 
 use super::{minecraft_version_manifest::Version, minecraft_version_meta, BASE_DIR};
 
@@ -27,29 +28,25 @@ pub struct InstanceInfo {
     pub minecraft_version: String,
 }
 
-fn read_info(instance_name: &str) -> Result<InstanceInfo> {
+async fn read_info(instance_name: &str) -> Result<InstanceInfo> {
     let path = INSTANCES_DIR.join(instance_name).join("instance.toml");
-    let content = fs::read_to_string(path)?;
+    let content = fs::read_to_string(path).await?;
     let info: InstanceInfo = toml::from_str(&content)?;
 
     Ok(info)
 }
 
-pub fn list() -> Result<Vector<(String, InstanceInfo)>> {
-    fs::create_dir_all(INSTANCES_DIR.as_path())?;
-
+pub async fn list() -> Result<Vector<(String, InstanceInfo)>> {
     let mut instances = Vector::new();
-    for entry in fs::read_dir(INSTANCES_DIR.as_path())? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            let file_name = path.file_name().ok_or(eyre!("Could not get file name"))?;
-            let file_name = file_name
-                .to_str()
-                .ok_or(eyre!("Could not convert file name to string"))?;
 
-            let info = read_info(file_name)?;
-            instances.push_back((file_name.to_string(), info));
+    fs::create_dir_all(INSTANCES_DIR.as_path()).await?;
+    let mut entries = fs::read_dir(INSTANCES_DIR.as_path()).await?;
+
+    while let Some(entry) = entries.try_next().await? {
+        if entry.path().is_dir() {
+            let file_name = entry.file_name().to_string_lossy().to_string();
+            let info = read_info(&file_name).await?;
+            instances.push_back((file_name, info));
         }
     }
 
@@ -58,7 +55,7 @@ pub fn list() -> Result<Vector<(String, InstanceInfo)>> {
 
 pub async fn new(instance_name: &str, minecraft_version: &Version) -> Result<()> {
     let instance_dir = INSTANCES_DIR.join(instance_name);
-    fs::create_dir_all(&instance_dir)?;
+    fs::create_dir_all(&instance_dir).await?;
 
     let info = InstanceInfo {
         instance_type: InstanceType::Vanilla,
@@ -67,7 +64,7 @@ pub async fn new(instance_name: &str, minecraft_version: &Version) -> Result<()>
 
     let path = instance_dir.join("instance.toml");
     let content = toml::to_string(&info)?;
-    fs::write(&path, content)?;
+    fs::write(&path, content).await?;
 
     minecraft_version_meta::install(minecraft_version).await?;
 

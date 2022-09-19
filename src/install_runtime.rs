@@ -84,10 +84,11 @@ async fn install_runtime(event_sink: druid::ExtEventSink, runtime: &i32) {
     });
 
     lib::runtime_manager::install(runtime).await.unwrap();
+    let list = lib::runtime_manager::list().await.unwrap();
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.installing_runtime = false;
-        data.installed_runtimes = lib::runtime_manager::list().unwrap();
+        data.installed_runtimes = list;
         data.current_view = View::Runtimes;
     });
 }

@@ -23,7 +23,9 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_flex_spacer(1.)
                         .with_child(Button::new("💣 Delete").on_click(
                             |_ctx, runtime: &mut String, _env: &_| {
-                                lib::runtime_manager::remove(runtime).unwrap();
+                                smol::block_on(async move {
+                                    lib::runtime_manager::remove(runtime).await;
+                                });
                             },
                         ))
                         .padding(5.)
@@ -43,7 +45,8 @@ pub fn build_widget() -> impl Widget<AppState> {
                     let event_sink = ctx.get_external_handle();
                     smol::spawn(async move {
                         install_runtime::update_runtimes(event_sink).await;
-                    }).detach();
+                    })
+                    .detach();
                 }
 
                 data.current_view = View::InstallRuntime;
