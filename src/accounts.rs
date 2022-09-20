@@ -73,16 +73,15 @@ pub fn build_widget() -> impl Widget<AppState> {
 }
 
 async fn remove_account(event_sink: druid::ExtEventSink, id: String) {
-    let _ = accounts::remove(&id);
+    smol::spawn(accounts::remove(id.clone())).detach();
 
-    let id = id.clone();
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.accounts.retain(|(entry, _)| entry.minecraft_id != id);
     });
 }
 
 async fn set_active_account(event_sink: druid::ExtEventSink, id: String) {
-    let _ = accounts::set_active(&id);
+    smol::spawn(accounts::set_active(id.clone())).detach();
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.accounts.iter_mut().for_each(|(entry, is_active)| {
