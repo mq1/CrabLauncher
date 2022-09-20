@@ -16,7 +16,7 @@ use super::{
 
 static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"));
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AccountsDocument {
     pub active_account: Option<String>,
     pub accounts: HashMap<String, Account>,
@@ -31,8 +31,8 @@ impl Default for AccountsDocument {
     }
 }
 
-async fn write(accounts: &AccountsDocument) -> Result<()> {
-    let content = toml::to_string(accounts)?;
+async fn write(accounts: AccountsDocument) -> Result<()> {
+    let content = toml::to_string(&accounts)?;
     fs::write(ACCOUNTS_PATH.as_path(), content).await?;
 
     Ok(())
@@ -42,7 +42,7 @@ async fn read() -> Result<AccountsDocument> {
     if !ACCOUNTS_PATH.exists() {
         let default = AccountsDocument::default();
 
-        let _ = write(&default);
+        smol::spawn(write(default.clone())).detach();
         return Ok(default);
     }
 
@@ -79,12 +79,7 @@ pub async fn list() -> Result<Vector<(AccountEntry, bool)>> {
 }
 
 pub async fn get_active() -> Result<Option<AccountEntry>> {
-    if !ACCOUNTS_PATH.exists() {
-        write(&AccountsDocument::default()).await?;
-    }
-
-    let content = fs::read_to_string(ACCOUNTS_PATH.as_path()).await?;
-    let mut document: AccountsDocument = toml::from_str(&content)?;
+    let mut document = read().await?;
     let id = document.active_account;
 
     match id {
@@ -102,7 +97,7 @@ pub async fn get_active() -> Result<Option<AccountEntry>> {
     }
 }
 
-pub async fn set_active(id: &str) -> Result<()> {
+pub async fn set_active(id: String) -> Result<()> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path()).await?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
     document.active_account = Some(id.to_owned());
@@ -115,8 +110,10 @@ pub async fn set_active(id: &str) -> Result<()> {
 pub async fn add() -> Result<AccountEntry> {
     let msa = super::msa::login()?;
     let mut document = read().await?;
-    document.accounts.insert(msa.minecraft_id.clone(), msa.account.clone());
-    let _ = write(&document);
+    document
+        .accounts
+        .insert(msa.minecraft_id.clone(), msa.account.clone());
+    smol::spawn(write(document)).detach();
 
     let entry = AccountEntry {
         minecraft_id: msa.minecraft_id.clone(),
@@ -126,10 +123,10 @@ pub async fn add() -> Result<AccountEntry> {
     Ok(entry)
 }
 
-pub async fn remove(id: &str) -> Result<()> {
+pub async fn remove(id: String) -> Result<()> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path()).await?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
-    document.accounts.remove(id);
+    document.accounts.remove(&id);
     let content = toml::to_string(&document)?;
     fs::write(ACCOUNTS_PATH.as_path(), content).await?;
 
