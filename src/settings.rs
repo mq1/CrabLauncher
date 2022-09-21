@@ -71,10 +71,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                     |_ctx, data: &mut LauncherConfig, _env| {
                         let data = data.clone();
 
-                        smol::spawn(async move {
-                            launcher_config::write(&data).await.unwrap();
-                        })
-                        .detach();
+                        smol::spawn(launcher_config::write(data.clone())).detach();
                     },
                 )),
         )

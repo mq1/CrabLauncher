@@ -41,10 +41,7 @@ pub fn build_widget() -> impl Widget<AppState> {
             Button::new("Install ⬇️").on_click(|ctx, data: &mut AppState, _env| {
                 if data.available_runtimes.is_empty() {
                     let event_sink = ctx.get_external_handle();
-                    smol::spawn(async move {
-                        install_runtime::update_runtimes(event_sink).await;
-                    })
-                    .detach();
+                    smol::spawn(install_runtime::update_runtimes(event_sink)).detach();
                 }
 
                 data.current_view = View::InstallRuntime;

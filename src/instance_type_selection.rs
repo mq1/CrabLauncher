@@ -31,19 +31,14 @@ pub fn build_widget() -> impl Widget<AppState> {
                 data.new_instance_state.available_minecraft_versions = vector![];
 
                 let event_sink = ctx.get_external_handle();
-                smol::spawn(async move {
-                    update_available_versions(event_sink).await;
-                })
-                .detach();
+                smol::spawn(update_available_versions(event_sink)).detach();
                 data.current_view = View::LoadingVersions;
             }),
         ))
         .padding(10.)
 }
 
-async fn update_available_versions(
-    event_sink: druid::ExtEventSink,
-) {
+async fn update_available_versions(event_sink: druid::ExtEventSink) {
     let available_versions = lib::minecraft_version_manifest::fetch_versions()
         .await
         .unwrap();

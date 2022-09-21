@@ -41,10 +41,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                         let name = data.new_instance_state.instance_name.clone();
                         let version = data.new_instance_state.selected_version.clone().unwrap();
 
-                        smol::spawn(async move {
-                            install_version(event_sink, &name, &version).await;
-                        })
-                        .detach();
+                        smol::spawn(install_version(event_sink, name, version)).detach();
 
                         data.current_view = View::CreatingInstance;
                     }),
@@ -53,8 +50,8 @@ pub fn build_widget() -> impl Widget<AppState> {
         .padding(10.)
 }
 
-async fn install_version(event_sink: druid::ExtEventSink, name: &str, version: &Version) {
-    lib::instances::new(name, version).await.unwrap();
+async fn install_version(event_sink: druid::ExtEventSink, name: String, version: Version) {
+    lib::instances::new(&name, &version).await.unwrap();
     let instance_list = lib::instances::list().await.unwrap();
 
     event_sink.add_idle_callback(move |data: &mut AppState| {

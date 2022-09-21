@@ -31,8 +31,14 @@ impl Default for LauncherConfig {
     }
 }
 
-pub async fn write(config: &LauncherConfig) -> Result<()> {
-    let content = toml::to_string(config)?;
+impl AsRef<LauncherConfig> for LauncherConfig {
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
+pub async fn write<L: AsRef<LauncherConfig>>(config: L) -> Result<()> {
+    let content = toml::to_string(config.as_ref())?;
     fs::write(LAUNCHER_CONFIG_PATH.as_path(), content).await?;
 
     Ok(())

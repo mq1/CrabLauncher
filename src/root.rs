@@ -36,10 +36,7 @@ pub fn build_widget() -> impl Widget<AppState> {
             Button::new("News").on_click(|ctx, data: &mut AppState, _env| {
                 if data.news.is_empty() {
                     let event_sink = ctx.get_external_handle();
-                    smol::spawn(async move {
-                        update_news(event_sink).await;
-                    })
-                    .detach();
+                    smol::spawn(update_news(event_sink)).detach();
                 }
                 data.current_view = View::News;
             }),
