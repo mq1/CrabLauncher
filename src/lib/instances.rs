@@ -63,7 +63,7 @@ pub async fn new(instance_name: &str, minecraft_version: &Version) -> Result<()>
     };
 
     let path = instance_dir.join("instance.toml");
-    let content = toml::to_string(&info)?;
+    let content = toml::to_string_pretty(&info)?;
     fs::write(&path, content).await?;
 
     minecraft_version_meta::install(minecraft_version).await?;

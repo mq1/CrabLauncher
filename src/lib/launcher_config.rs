@@ -38,7 +38,7 @@ impl AsRef<LauncherConfig> for LauncherConfig {
 }
 
 pub async fn write<L: AsRef<LauncherConfig>>(config: L) -> Result<()> {
-    let content = toml::to_string(config.as_ref())?;
+    let content = toml::to_string_pretty(config.as_ref())?;
     fs::write(LAUNCHER_CONFIG_PATH.as_path(), content).await?;
 
     Ok(())
