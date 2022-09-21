@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use color_eyre::eyre::{bail, eyre, Result};
 use druid::Data;
-use isahc::{ReadResponseExt, Request, RequestExt};
+use isahc::{AsyncReadResponseExt, Request, RequestExt};
 use once_cell::sync::Lazy;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -72,7 +72,7 @@ struct OAuth2Token {
     refresh_token: String,
 }
 
-fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<AccountEntry> {
+async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<AccountEntry> {
     // Authenticate with Xbox Live
 
     #[derive(Deserialize)]
@@ -108,8 +108,10 @@ fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<AccountEntry> {
         .header("Accept", "application/json")
         .header("User-Agent", USER_AGENT)
         .body(params.to_string())?
-        .send()?
-        .json()?;
+        .send_async()
+        .await?
+        .json()
+        .await?;
 
     // Authenticate with XSTS
 
@@ -133,8 +135,10 @@ fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<AccountEntry> {
         .header("Accept", "application/json")
         .header("User-Agent", USER_AGENT)
         .body(params.to_string())?
-        .send()?
-        .json()?;
+        .send_async()
+        .await?
+        .json()
+        .await?;
 
     // Authenticate with Minecraft
 
@@ -156,8 +160,10 @@ fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<AccountEntry> {
         .header("Accept", "application/json")
         .header("User-Agent", USER_AGENT)
         .body(params.to_string())?
-        .send()?
-        .json()?;
+        .send_async()
+        .await?
+        .json()
+        .await?;
 
     // Get Minecraft profile
 
@@ -174,8 +180,10 @@ fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<AccountEntry> {
         )
         .header("User-Agent", USER_AGENT)
         .body(())?
-        .send()?
-        .json()?;
+        .send_async()
+        .await?
+        .json()
+        .await?;
 
     let account = Account {
         microsoft_refresh_token: msa_token.refresh_token,
@@ -226,7 +234,7 @@ pub struct AccountEntry {
     pub account: Account,
 }
 
-pub fn login() -> Result<AccountEntry> {
+pub async fn login() -> Result<AccountEntry> {
     let code = listen_login_callback()?;
 
     let form = url::form_urlencoded::Serializer::new(String::new())
@@ -243,10 +251,35 @@ pub fn login() -> Result<AccountEntry> {
         .header("Accept", "application/json")
         .header("User-Agent", USER_AGENT)
         .body(form)?
-        .send()?
-        .json()?;
+        .send_async()
+        .await?
+        .json()
+        .await?;
 
-    let entry = get_minecraft_account_data(resp)?;
+    let entry = get_minecraft_account_data(resp).await?;
+
+    Ok(entry)
+}
+
+pub async fn refresh(account: Account) -> Result<AccountEntry> {
+    let form = url::form_urlencoded::Serializer::new(String::new())
+        .append_pair("client_id", CLIENT_ID)
+        .append_pair("scope", SCOPE)
+        .append_pair("refresh_token", &account.microsoft_refresh_token)
+        .append_pair("grant_type", "refresh_token")
+        .finish();
+
+    let resp: OAuth2Token = Request::post(MSA_TOKEN_ENDPOINT)
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .header("Accept", "application/json")
+        .header("User-Agent", USER_AGENT)
+        .body(form)?
+        .send_async()
+        .await?
+        .json()
+        .await?;
+
+    let entry = get_minecraft_account_data(resp).await?;
 
     Ok(entry)
 }

@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use smol::fs;
 
 use super::{
-    msa::{Account, AccountEntry},
+    msa::{self, Account, AccountEntry},
     BASE_DIR,
 };
 
@@ -114,7 +114,7 @@ pub async fn set_active<S: AsRef<str>>(id: S) -> Result<()> {
 }
 
 pub async fn add() -> Result<AccountEntry> {
-    let msa = super::msa::login()?;
+    let msa = msa::login().await?;
     let mut document = read().await?;
     document
         .accounts
