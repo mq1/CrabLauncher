@@ -32,11 +32,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                 .with_child(
                     Button::new("Install").on_click(|ctx, runtime: &mut i32, _env: &_| {
                         let event_sink = ctx.get_external_handle();
-                        let runtime = runtime.clone();
-                        smol::spawn(async move {
-                            install_runtime(event_sink, &runtime).await;
-                        })
-                        .detach();
+                        smol::spawn(install_runtime(event_sink, runtime.clone())).detach();
                     }),
                 )
                 .padding(5.)
@@ -78,12 +74,12 @@ pub async fn update_runtimes(event_sink: druid::ExtEventSink) {
     });
 }
 
-async fn install_runtime(event_sink: druid::ExtEventSink, runtime: &i32) {
+async fn install_runtime(event_sink: druid::ExtEventSink, runtime: i32) {
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.installing_runtime = true;
     });
 
-    lib::runtime_manager::install(runtime).await.unwrap();
+    lib::runtime_manager::install(&runtime).await.unwrap();
     let list = lib::runtime_manager::list().await.unwrap();
 
     event_sink.add_idle_callback(move |data: &mut AppState| {

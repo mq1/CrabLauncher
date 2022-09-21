@@ -31,8 +31,14 @@ impl Default for AccountsDocument {
     }
 }
 
-async fn write(accounts: AccountsDocument) -> Result<()> {
-    let content = toml::to_string(&accounts)?;
+impl AsRef<AccountsDocument> for AccountsDocument {
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
+async fn write<A: AsRef<AccountsDocument>>(accounts: A) -> Result<()> {
+    let content = toml::to_string(accounts.as_ref())?;
     fs::write(ACCOUNTS_PATH.as_path(), content).await?;
 
     Ok(())
@@ -97,10 +103,10 @@ pub async fn get_active() -> Result<Option<AccountEntry>> {
     }
 }
 
-pub async fn set_active(id: String) -> Result<()> {
+pub async fn set_active<S: AsRef<str>>(id: S) -> Result<()> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path()).await?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
-    document.active_account = Some(id.to_owned());
+    document.active_account = Some(id.as_ref().to_owned());
     let content = toml::to_string(&document)?;
     fs::write(ACCOUNTS_PATH.as_path(), content).await?;
 
@@ -123,10 +129,10 @@ pub async fn add() -> Result<AccountEntry> {
     Ok(entry)
 }
 
-pub async fn remove(id: String) -> Result<()> {
+pub async fn remove<S: AsRef<str>>(id: S) -> Result<()> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path()).await?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
-    document.accounts.remove(&id);
+    document.accounts.remove(id.as_ref());
     let content = toml::to_string(&document)?;
     fs::write(ACCOUNTS_PATH.as_path(), content).await?;
 
