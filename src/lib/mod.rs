@@ -33,14 +33,14 @@ pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
         .to_path_buf()
 });
 
-pub async fn download_file(url: &str, path: &Path, hash: Option<&str>) -> Result<()> {
+pub async fn download_file(url: &str, path: &Path, sha1: Option<&str>) -> Result<()> {
     if path.exists() {
-        if let Some(hash) = hash {
+        if let Some(sha1) = sha1 {
             let mut file = std::fs::File::open(&path)?;
             let mut hasher = Sha1::new();
             std::io::copy(&mut file, &mut hasher)?;
-            let h = hasher.finalize();
-            if format!("{:x}", h) == hash {
+            let hash = hasher.finalize();
+            if format!("{:x}", hash) == sha1 {
                 return Ok(());
             }
         } else {
