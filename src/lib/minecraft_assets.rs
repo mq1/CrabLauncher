@@ -13,7 +13,7 @@ use super::{download_file, BASE_DIR};
 
 const ASSETS_DOWNLOAD_ENDPOINT: &str = "https://resources.download.minecraft.net";
 
-static ASSETS_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("assets"));
+pub static ASSETS_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("assets"));
 static INDEXES_DIR: Lazy<PathBuf> = Lazy::new(|| ASSETS_DIR.join("indexes"));
 static OBJECTS_DIR: Lazy<PathBuf> = Lazy::new(|| ASSETS_DIR.join("objects"));
 

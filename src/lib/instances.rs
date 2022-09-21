@@ -4,13 +4,15 @@
 use druid::{im::Vector, Data};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use smol::{fs, stream::StreamExt};
+use smol::{fs, stream::StreamExt, process::Command};
 use std::path::PathBuf;
 use strum_macros::Display;
 
 use color_eyre::eyre::Result;
 
-use super::{minecraft_version_manifest::Version, minecraft_version_meta, BASE_DIR};
+use crate::lib::{msa, runtime_manager, minecraft_assets::ASSETS_DIR};
+
+use super::{minecraft_version_manifest::Version, minecraft_version_meta, msa::Account, BASE_DIR};
 
 const INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("instances"));
 
@@ -26,6 +28,17 @@ pub enum InstanceType {
 pub struct InstanceInfo {
     pub instance_type: InstanceType,
     pub minecraft_version: String,
+    pub jre_version: String,
+}
+
+impl Default for InstanceInfo {
+    fn default() -> Self {
+        Self {
+            instance_type: InstanceType::default(),
+            minecraft_version: "".to_string(),
+            jre_version: "latest".to_string(),
+        }
+    }
 }
 
 async fn read_info(instance_name: &str) -> Result<InstanceInfo> {
@@ -58,8 +71,8 @@ pub async fn new(instance_name: &str, minecraft_version: &Version) -> Result<()>
     fs::create_dir_all(&instance_dir).await?;
 
     let info = InstanceInfo {
-        instance_type: InstanceType::Vanilla,
         minecraft_version: minecraft_version.id.clone(),
+        ..Default::default()
     };
 
     let path = instance_dir.join("instance.toml");
@@ -67,6 +80,83 @@ pub async fn new(instance_name: &str, minecraft_version: &Version) -> Result<()>
     fs::write(&path, content).await?;
 
     minecraft_version_meta::install(minecraft_version).await?;
+
+    Ok(())
+}
+
+pub async fn launch(instance_name: &str, account: Account) -> Result<()> {
+    println!("Launching instance {}", instance_name);
+
+    println!("Refreshing account");
+    let account_entry = msa::refresh(account).await?;
+    println!("Account refreshed");
+
+    let info = read_info(instance_name).await?;
+    let version = minecraft_version_meta::get(&info.minecraft_version).await?;
+
+    let jre_version = if info.jre_version == "latest" {
+        runtime_manager::fetch_available_releases()
+            .await?
+            .most_recent_feature_release
+    } else {
+        info.jre_version.parse()?
+    };
+
+    let is_updated = runtime_manager::is_updated(&jre_version).await?;
+    if !is_updated {
+        println!("Installing JRE {}", jre_version);
+        runtime_manager::install(&jre_version).await?;
+    }
+
+    let java_path = runtime_manager::get_java_path(&jre_version).await?;
+
+    let mut game_args = Vec::new();
+    for arg in &version.arguments.game {
+        let arg = match arg {
+            minecraft_version_meta::Argument::Simple(s) => Some(s),
+            minecraft_version_meta::Argument::Complex { value } => None
+        };
+
+        if let Some(arg) = arg {
+            let arg = match arg.as_str() {
+                "${auth_player_name}" => account_entry.account.minecraft_username.to_string(),
+                "${version_name}" => info.minecraft_version.to_string(),
+                "${game_directory}" => INSTANCES_DIR.join(instance_name).to_string_lossy().to_string(),
+                "${assets_root}" => ASSETS_DIR.to_string_lossy().to_string(),
+                "${assets_index_name}" => version.assets.to_string(),
+                "${auth_uuid}" => account_entry.minecraft_id.to_string(),
+                "${auth_access_token}" => account_entry.account.minecraft_access_token.to_string(),
+                "${clientid}" => format!("ice-launcher/{}", env!("CARGO_PKG_VERSION")),
+                "${auth_xuid}" => "0".to_string(),
+                "${user_type}" => "mojang".to_string(),
+                "${version_type}" => info.instance_type.to_string(),
+                &_ => arg.to_string(),
+            };
+
+            game_args.push(arg);
+        }
+    }
+
+    let mut jvm_args = vec![
+        "-Djava.library.path=natives".to_string(),
+        "-Dminecraft.launcher.brand=ice-launcher".to_string(),
+        format!("-Dminecraft.launcher.version={}", env!("CARGO_PKG_VERSION")),
+    ];
+
+    #[cfg(target_os = "macos")]
+    jvm_args.push("-XstartOnFirstThread".to_string());
+
+    jvm_args.push("-cp".to_string());
+    jvm_args.push(version.get_classpath());
+
+    let command = Command::new(java_path)
+        .args(jvm_args)
+        .arg(version.main_class)
+        .args(game_args)
+        .current_dir(INSTANCES_DIR.join(instance_name))
+        .spawn()?;
+
+    let _ = command;
 
     Ok(())
 }

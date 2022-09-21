@@ -88,6 +88,17 @@ async fn get_assets_info(java_version: &i32) -> Result<Assets> {
     Ok(assets)
 }
 
+pub async fn is_updated(java_version: &i32) -> Result<bool> {
+    let assets = get_assets_info(java_version).await?;
+    let runtime_path = RUNTIMES_DIR.join(assets.version.semver);
+
+    if !runtime_path.exists() {
+        return Ok(false);
+    }
+
+    Ok(true)
+}
+
 pub async fn list() -> Result<Vector<String>> {
     let mut runtimes = Vector::new();
 
@@ -159,12 +170,14 @@ pub async fn remove(runtime: &str) -> Result<()> {
     Ok(())
 }
 
-pub async fn get_java_path(java_version: &str) -> Result<PathBuf> {
+pub async fn get_java_path(java_version: &i32) -> Result<PathBuf> {
+    let java_version = java_version.to_string();
+
     let mut runtime: Option<PathBuf> = None;
 
     let mut entries = fs::read_dir(RUNTIMES_DIR.as_path()).await?;
     while let Some(entry) = entries.try_next().await? {
-        if entry.file_name().to_string_lossy().contains(java_version) {
+        if entry.file_name().to_string_lossy().contains(&java_version) {
             runtime = Some(entry.path());
             break;
         }

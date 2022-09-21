@@ -74,7 +74,7 @@ fn is_valid_library(library: &Library) -> bool {
     return true;
 }
 
-fn get_valid_artifacts(libraries: &Vec<Library>) -> Result<Vec<&Artifact>> {
+pub fn get_valid_artifacts(libraries: &Vec<Library>) -> Vec<&Artifact> {
     let mut valid_artifacts: Vec<&Artifact> = Vec::new();
 
     for library in libraries {
@@ -87,11 +87,11 @@ fn get_valid_artifacts(libraries: &Vec<Library>) -> Result<Vec<&Artifact>> {
         }
     }
 
-    return Ok(valid_artifacts);
+    valid_artifacts
 }
 
 pub async fn install(libraries: &Vec<Library>) -> Result<()> {
-    let artifacts = get_valid_artifacts(libraries)?;
+    let artifacts = get_valid_artifacts(libraries);
 
     for artifact in artifacts {
         let library_path = LIBRARIES_DIR.join(&artifact.path);
