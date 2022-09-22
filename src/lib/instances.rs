@@ -4,13 +4,13 @@
 use druid::{im::Vector, Data};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use smol::{fs, stream::StreamExt, process::Command};
+use smol::{fs, process::Command, stream::StreamExt};
 use std::path::PathBuf;
 use strum_macros::Display;
 
 use color_eyre::eyre::Result;
 
-use crate::lib::{msa, runtime_manager, minecraft_assets::ASSETS_DIR};
+use crate::lib::{minecraft_assets::ASSETS_DIR, msa, runtime_manager};
 
 use super::{minecraft_version_manifest::Version, minecraft_version_meta, msa::Account, BASE_DIR};
 
@@ -113,15 +113,18 @@ pub async fn launch(instance_name: &str, account: Account) -> Result<()> {
     let mut game_args = Vec::new();
     for arg in &version.arguments.game {
         let arg = match arg {
-            minecraft_version_meta::Argument::Simple(s) => Some(s),
-            minecraft_version_meta::Argument::Complex { value } => None
+            minecraft_version_meta::Argument::Simple(arg) => Some(arg),
+            minecraft_version_meta::Argument::Complex { value } => None,
         };
 
         if let Some(arg) = arg {
             let arg = match arg.as_str() {
                 "${auth_player_name}" => account_entry.account.minecraft_username.to_string(),
                 "${version_name}" => info.minecraft_version.to_string(),
-                "${game_directory}" => INSTANCES_DIR.join(instance_name).to_string_lossy().to_string(),
+                "${game_directory}" => INSTANCES_DIR
+                    .join(instance_name)
+                    .to_string_lossy()
+                    .to_string(),
                 "${assets_root}" => ASSETS_DIR.to_string_lossy().to_string(),
                 "${assets_index_name}" => version.assets.to_string(),
                 "${auth_uuid}" => account_entry.minecraft_id.to_string(),

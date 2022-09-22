@@ -18,12 +18,14 @@ use super::{
 const VERSIONS_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("versions"));
 
 #[derive(Deserialize)]
+#[serde(untagged)]
 pub enum Value {
     Single(String),
     Multiple(Vec<String>),
 }
 
 #[derive(Deserialize)]
+#[serde(untagged)]
 pub enum Argument {
     Simple(String),
     Complex { value: Value },
