@@ -7,7 +7,10 @@ use druid::{
 };
 
 use crate::{
-    lib::instances::{InstanceInfo, InstanceType},
+    lib::{
+        self,
+        instances::{InstanceInfo, InstanceType},
+    },
     AppState, View,
 };
 
@@ -36,7 +39,9 @@ pub fn build_widget() -> impl Widget<AppState> {
                             name.to_string()
                         }))
                         .with_flex_spacer(1.)
-                        .with_child(Button::new("Launch 🚀"))
+                        .with_child(Button::new("Delete ❌").on_click(remove_instance))
+                        .with_default_spacer()
+                        .with_child(Button::new("Launch 🚀").on_click(launch_instance))
                         .padding(5.)
                         .border(Color::GRAY, 1.)
                         .rounded(5.)
@@ -60,4 +65,33 @@ pub fn build_widget() -> impl Widget<AppState> {
             },
         )))
         .padding(10.)
+}
+
+fn remove_instance(
+    ctx: &mut druid::EventCtx,
+    (instance_name, _): &mut (String, InstanceInfo),
+    _env: &druid::Env,
+) {
+    let instance_name = instance_name.clone();
+    smol::spawn(lib::instances::remove(instance_name.clone())).detach();
+
+    let event_sink = ctx.get_external_handle();
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.instances.retain(|(name, _)| name != &instance_name);
+    });
+}
+
+fn launch_instance(
+    ctx: &mut druid::EventCtx,
+    (instance_name, _): &mut (String, InstanceInfo),
+    _env: &druid::Env,
+) {
+    let instance_name = instance_name.clone();
+    let event_sink = ctx.get_external_handle();
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        let instance_name = instance_name.clone();
+        let account = data.active_account.clone().unwrap().account;
+        smol::spawn(lib::instances::launch(instance_name, account)).detach();
+    });
 }

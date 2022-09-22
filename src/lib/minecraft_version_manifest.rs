@@ -5,6 +5,12 @@ use color_eyre::Result;
 use druid::{im::Vector, Data, Lens};
 use isahc::AsyncReadResponseExt;
 use serde::Deserialize;
+use smol::fs;
+
+use super::{
+    download_file,
+    minecraft_version_meta::{MinecraftVersionMeta, VERSIONS_DIR},
+};
 
 const VERSION_MANIFEST_URL: &str =
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
@@ -33,6 +39,21 @@ pub struct Version {
     pub sha1: String,
     #[serde(rename = "complianceLevel")]
     pub compliance_level: i32,
+}
+
+impl Version {
+    pub async fn install(&self) -> Result<()> {
+        let version_dir = VERSIONS_DIR.join(&self.id);
+        fs::create_dir_all(&version_dir).await?;
+
+        let meta_path = version_dir.join("meta.json");
+        download_file(&self.url, &meta_path, Some(&self.sha1)).await?;
+        let meta = fs::read_to_string(meta_path).await?;
+        let meta: MinecraftVersionMeta = serde_json::from_str(&meta)?;
+        meta.install().await?;
+
+        Ok(())
+    }
 }
 
 #[derive(Deserialize, Clone, Data, PartialEq, Eq)]

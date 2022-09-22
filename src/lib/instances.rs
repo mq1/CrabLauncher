@@ -79,19 +79,26 @@ pub async fn new(instance_name: &str, minecraft_version: &Version) -> Result<()>
     let content = toml::to_string_pretty(&info)?;
     fs::write(&path, content).await?;
 
-    minecraft_version_meta::install(minecraft_version).await?;
+    minecraft_version.install().await?;
 
     Ok(())
 }
 
-pub async fn launch(instance_name: &str, account: Account) -> Result<()> {
-    println!("Launching instance {}", instance_name);
+pub async fn remove<S: AsRef<str>>(instance_name: S) -> Result<()> {
+    let instance_dir = INSTANCES_DIR.join(instance_name.as_ref());
+    fs::remove_dir_all(&instance_dir).await?;
+
+    Ok(())
+}
+
+pub async fn launch<S: AsRef<str>>(instance_name: S, account: Account) -> Result<()> {
+    println!("Launching instance {}", instance_name.as_ref());
 
     println!("Refreshing account");
     let account_entry = msa::refresh(account).await?;
     println!("Account refreshed");
 
-    let info = read_info(instance_name).await?;
+    let info = read_info(instance_name.as_ref()).await?;
     let version = minecraft_version_meta::get(&info.minecraft_version).await?;
 
     let jre_version = if info.jre_version == "latest" {
@@ -122,7 +129,7 @@ pub async fn launch(instance_name: &str, account: Account) -> Result<()> {
                 "${auth_player_name}" => account_entry.account.minecraft_username.to_string(),
                 "${version_name}" => info.minecraft_version.to_string(),
                 "${game_directory}" => INSTANCES_DIR
-                    .join(instance_name)
+                    .join(instance_name.as_ref())
                     .to_string_lossy()
                     .to_string(),
                 "${assets_root}" => ASSETS_DIR.to_string_lossy().to_string(),
@@ -156,7 +163,7 @@ pub async fn launch(instance_name: &str, account: Account) -> Result<()> {
         .args(jvm_args)
         .arg(version.main_class)
         .args(game_args)
-        .current_dir(INSTANCES_DIR.join(instance_name))
+        .current_dir(INSTANCES_DIR.join(instance_name.as_ref()))
         .spawn()?;
 
     let _ = command;
