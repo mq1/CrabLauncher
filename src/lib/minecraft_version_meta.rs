@@ -10,12 +10,12 @@ use smol::fs;
 
 use super::{
     download_file,
-    minecraft_assets::{self, AssetIndex},
-    minecraft_libraries::{self, get_valid_artifacts, Artifact, Library},
-    minecraft_version_manifest, BASE_DIR,
+    minecraft_assets::AssetIndex,
+    minecraft_libraries::{Library, LIBRARIES_DIR},
+    BASE_DIR,
 };
 
-const VERSIONS_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("versions"));
+pub const VERSIONS_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("versions"));
 
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -38,8 +38,15 @@ pub struct Arguments {
 }
 
 #[derive(Deserialize)]
+pub struct Download {
+    pub sha1: String,
+    pub size: u32,
+    pub url: String,
+}
+
+#[derive(Deserialize)]
 pub struct Downloads {
-    pub client: Artifact,
+    pub client: Download,
 }
 
 #[derive(Deserialize)]
@@ -71,43 +78,60 @@ impl MinecraftVersionMeta {
         #[cfg(not(target_os = "windows"))]
         let separator = ":";
 
-        let artifacts = get_valid_artifacts(&self.libraries);
-        let mut jars = artifacts
-            .into_iter()
-            .map(|a| a.path.to_string())
+        let mut jars = self
+            .libraries
+            .iter()
+            .filter(|l| l.is_valid())
+            .map(|l| l.downloads.artifact.path.to_owned())
             .collect::<Vec<String>>();
+
         jars.push(self.get_client_path());
 
         jars.join(separator)
     }
-}
 
-async fn install_client(downloads: &Downloads) -> Result<()> {
-    let client_path = VERSIONS_DIR.join(&downloads.client.path);
-    download_file(
-        &downloads.client.url,
-        &client_path,
-        Some(&downloads.client.sha1),
-    )
-    .await?;
+    async fn install_libraries(&self) -> Result<()> {
+        for library in &self.libraries {
+            if !library.is_valid() {
+                continue;
+            }
 
-    Ok(())
-}
+            let library_path = LIBRARIES_DIR.join(&library.downloads.artifact.path);
+            fs::create_dir_all(library_path.parent().unwrap()).await?;
+            download_file(
+                &library.downloads.artifact.url,
+                &library_path,
+                Some(&library.downloads.artifact.sha1),
+            )
+            .await?;
+        }
 
-pub async fn install(version: &minecraft_version_manifest::Version) -> Result<()> {
-    let version_dir = VERSIONS_DIR.join(&version.id);
-    fs::create_dir_all(&version_dir).await?;
+        Ok(())
+    }
 
-    let meta_path = version_dir.join("meta.json");
-    download_file(&version.url, &meta_path, Some(&version.sha1)).await?;
-    let meta = fs::read_to_string(meta_path).await?;
-    let meta: MinecraftVersionMeta = serde_json::from_str(&meta)?;
+    async fn install_client(&self) -> Result<()> {
+        let client_path = VERSIONS_DIR.join(&self.id).join("client.jar");
+        download_file(
+            &self.downloads.client.url,
+            &client_path,
+            Some(&self.downloads.client.sha1),
+        )
+        .await?;
 
-    minecraft_assets::install(&meta.asset_index).await?;
-    minecraft_libraries::install(&meta.libraries).await?;
-    install_client(&meta.downloads).await?;
+        Ok(())
+    }
 
-    Ok(())
+    pub async fn install(&self) -> Result<()> {
+        let assets_result = self.asset_index.install();
+        let libraries_result = self.install_libraries();
+        let client_result = self.install_client();
+
+        assets_result.await?;
+        libraries_result.await?;
+        client_result.await?;
+
+        Ok(())
+    }
 }
 
 pub async fn get(version_id: &str) -> Result<MinecraftVersionMeta> {

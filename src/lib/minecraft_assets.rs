@@ -39,42 +39,44 @@ struct Index {
     objects: HashMap<String, Object>,
 }
 
-pub async fn install(index: &AssetIndex) -> Result<()> {
-    let results = [
-        fs::create_dir_all(ASSETS_DIR.as_path()),
-        fs::create_dir_all(INDEXES_DIR.as_path()),
-        fs::create_dir_all(OBJECTS_DIR.as_path()),
-    ];
+impl AssetIndex {
+    pub async fn install(&self) -> Result<()> {
+        let results = [
+            fs::create_dir_all(ASSETS_DIR.as_path()),
+            fs::create_dir_all(INDEXES_DIR.as_path()),
+            fs::create_dir_all(OBJECTS_DIR.as_path()),
+        ];
 
-    for result in results.into_iter() {
-        result.await?;
-    }
-
-    let url = Url::parse(&index.url)?;
-    let index_file_name = url.path_segments().unwrap().last().unwrap();
-    let index_path = INDEXES_DIR.join(index_file_name);
-
-    download_file(&index.url, &index_path, Some(&index.sha1)).await?;
-
-    // parse index file
-    let index = fs::read_to_string(index_path).await?;
-    let index: Index = serde_json::from_str(&index)?;
-
-    // download all objects
-    for object in index.objects.values() {
-        let object_path = OBJECTS_DIR.join(&object.hash[..2]).join(&object.hash);
-        let object_url = format!(
-            "{}/{}/{}",
-            ASSETS_DOWNLOAD_ENDPOINT,
-            &object.hash[..2],
-            &object.hash
-        );
-
-        if !object_path.exists() {
-            fs::create_dir_all(object_path.parent().unwrap()).await?;
-            download_file(&object_url, &object_path, Some(&object.hash)).await?;
+        for result in results.into_iter() {
+            result.await?;
         }
-    }
 
-    Ok(())
+        let url = Url::parse(&self.url)?;
+        let index_file_name = url.path_segments().unwrap().last().unwrap();
+        let index_path = INDEXES_DIR.join(index_file_name);
+
+        download_file(&self.url, &index_path, Some(&self.sha1)).await?;
+
+        // parse index file
+        let index = fs::read_to_string(index_path).await?;
+        let index: Index = serde_json::from_str(&index)?;
+
+        // download all objects
+        for object in index.objects.values() {
+            let object_path = OBJECTS_DIR.join(&object.hash[..2]).join(&object.hash);
+            let object_url = format!(
+                "{}/{}/{}",
+                ASSETS_DOWNLOAD_ENDPOINT,
+                &object.hash[..2],
+                &object.hash
+            );
+
+            if !object_path.exists() {
+                fs::create_dir_all(object_path.parent().unwrap()).await?;
+                download_file(&object_url, &object_path, Some(&object.hash)).await?;
+            }
+        }
+
+        Ok(())
+    }
 }
