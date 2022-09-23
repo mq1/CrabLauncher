@@ -60,7 +60,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_flex_spacer(1.)
         .with_child(Flex::row().with_flex_spacer(1.).with_child(Label::new(
             |data: &AppState, _env: &_| match &data.active_account {
-                Some(entry) => format!("Active account: {}", entry.account.minecraft_username),
+                Some(account) => format!("Active account: {}", account.mc_username),
                 None => "No active account".to_string(),
             },
         )))
@@ -91,7 +91,7 @@ fn launch_instance(
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         let instance_name = instance_name.clone();
-        let account = data.active_account.clone().unwrap().account;
+        let account = data.active_account.clone().unwrap();
         smol::spawn(lib::instances::launch(instance_name, account)).detach();
     });
 }

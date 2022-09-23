@@ -58,8 +58,8 @@ pub struct AppState {
     current_view: View,
     instances: Vector<(String, lib::instances::InstanceInfo)>,
     new_instance_state: NewInstanceState,
-    accounts: Vector<(lib::msa::AccountEntry, bool)>,
-    active_account: Option<lib::msa::AccountEntry>,
+    accounts: Vector<lib::msa::Account>,
+    active_account: Option<lib::msa::Account>,
     news: Vector<(String, String)>,
     installed_runtimes: Vector<String>,
     available_runtimes: Vector<i32>,
@@ -78,14 +78,14 @@ fn main() -> Result<()> {
     let initial_state = smol::block_on(async move {
         let config = lib::launcher_config::read();
         let instances = lib::instances::list();
-        let accounts = lib::accounts::list();
+        let accounts = lib::accounts::read();
         let active_account = lib::accounts::get_active();
         let installed_runtimes = lib::runtime_manager::list();
 
         AppState {
             config: config.await.unwrap(),
             instances: instances.await.unwrap(),
-            accounts: accounts.await.unwrap(),
+            accounts: Vector::from(accounts.await.unwrap().accounts),
             active_account: active_account.await.unwrap(),
             installed_runtimes: installed_runtimes.await.unwrap(),
             ..Default::default()

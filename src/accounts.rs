@@ -6,10 +6,7 @@ use druid::{
     Color, Widget, WidgetExt,
 };
 
-use crate::{
-    lib::{self, accounts, msa::AccountEntry},
-    AppState,
-};
+use crate::{lib, AppState};
 
 pub fn build_widget() -> impl Widget<AppState> {
     Flex::column()
@@ -21,8 +18,8 @@ pub fn build_widget() -> impl Widget<AppState> {
                 List::new(|| {
                     Flex::row()
                         .with_child(Label::new(
-                            |(_, is_active): &(_, bool), _env: &_| {
-                                if *is_active {
+                            |account: &lib::msa::Account, _env: &_| {
+                                if account.is_active {
                                     "✅"
                                 } else {
                                     "☑️"
@@ -30,28 +27,23 @@ pub fn build_widget() -> impl Widget<AppState> {
                             },
                         ))
                         .with_default_spacer()
-                        .with_child(Label::new(|(entry, _): &(AccountEntry, _), _env: &_| {
-                            entry.account.minecraft_username.to_string()
+                        .with_child(Label::new(|account: &lib::msa::Account, _env: &_| {
+                            account.mc_username.to_string()
                         }))
                         .with_flex_spacer(1.)
                         .with_child(Button::new("Remove 💣").on_click(
-                            |ctx, (entry, _): &mut (AccountEntry, _), _| {
+                            |ctx, account: &mut lib::msa::Account, _| {
                                 let event_sink = ctx.get_external_handle();
-
-                                smol::spawn(remove_account(event_sink, entry.minecraft_id.clone()))
-                                    .detach();
+                                smol::spawn(remove_account(event_sink, account.clone())).detach();
                             },
                         ))
                         .with_default_spacer()
                         .with_child(Button::new("Select ✅").on_click(
-                            |ctx, (entry, _): &mut (AccountEntry, _), _env| {
+                            |ctx, account: &mut lib::msa::Account, _env| {
                                 let event_sink = ctx.get_external_handle();
 
-                                smol::spawn(set_active_account(
-                                    event_sink,
-                                    entry.minecraft_id.clone(),
-                                ))
-                                .detach();
+                                smol::spawn(set_active_account(event_sink, account.clone()))
+                                    .detach();
                             },
                         ))
                         .padding(5.)
@@ -72,29 +64,32 @@ pub fn build_widget() -> impl Widget<AppState> {
         .padding(10.)
 }
 
-async fn remove_account(event_sink: druid::ExtEventSink, id: String) {
-    smol::spawn(accounts::remove(id.clone())).detach();
+async fn remove_account(event_sink: druid::ExtEventSink, account: lib::msa::Account) {
+    let id = account.mc_id.clone();
+
+    smol::spawn(lib::accounts::remove(account)).detach();
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.accounts.retain(|(entry, _)| entry.minecraft_id != id);
+        data.accounts.retain(|a| a.mc_id != id);
     });
 }
 
-async fn set_active_account(event_sink: druid::ExtEventSink, id: String) {
-    smol::spawn(accounts::set_active(id.clone())).detach();
-
+async fn set_active_account(event_sink: druid::ExtEventSink, account: lib::msa::Account) {
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.accounts.iter_mut().for_each(|(entry, is_active)| {
-            *is_active = entry.minecraft_id == id;
+        data.accounts.iter_mut().for_each(|a| {
+            a.is_active = a.mc_id == account.mc_id;
         });
+
+        let accounts = data.accounts.clone().into_iter().collect();
+        smol::spawn(lib::accounts::update_accounts(accounts)).detach();
     });
 }
 
 async fn add_account(event_sink: druid::ExtEventSink) {
     open::that(lib::msa::AUTH_URL.as_str()).expect("Failed to open auth url");
-    let entry = lib::accounts::add().await.expect("Failed to add account");
+    let account = lib::accounts::add().await.expect("Failed to add account");
 
     event_sink.add_idle_callback(|data: &mut AppState| {
-        data.accounts.push_front((entry, false));
+        data.accounts.push_front(account);
     });
 }
