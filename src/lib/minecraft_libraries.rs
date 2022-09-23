@@ -77,4 +77,8 @@ impl Library {
 
         return true;
     }
+
+    pub fn get_path(&self) -> String {
+        LIBRARIES_DIR.join(&self.downloads.artifact.path).to_string_lossy().to_string()
+    }
 }

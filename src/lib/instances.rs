@@ -160,6 +160,10 @@ pub async fn launch<S: AsRef<str>>(instance_name: S, account: msa::Account) -> R
     jvm_args.push("-cp".to_string());
     jvm_args.push(version.get_classpath());
 
+    println!("jvm_args: {:?}", jvm_args);
+    println!("main_class: {}", version.main_class);
+    println!("game_args: {:?}", game_args);
+
     let command = Command::new(java_path)
         .args(jvm_args)
         .arg(version.main_class)

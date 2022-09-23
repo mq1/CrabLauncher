@@ -82,7 +82,7 @@ impl MinecraftVersionMeta {
             .libraries
             .iter()
             .filter(|l| l.is_valid())
-            .map(|l| l.downloads.artifact.path.to_owned())
+            .map(|l| l.get_path())
             .collect::<Vec<String>>();
 
         jars.push(self.get_client_path());
