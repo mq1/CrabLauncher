@@ -6,18 +6,17 @@
 
 mod about;
 mod accounts;
-mod creating_instance;
 mod install_runtime;
 mod instance_name_selection;
 mod instance_type_selection;
 mod instance_version_selection;
 mod instances;
 mod lib;
-mod loading_versions;
 mod news;
 mod root;
 mod runtimes;
 mod settings;
+mod loading;
 
 use std::fs;
 
@@ -30,11 +29,10 @@ use strum_macros::Display;
 enum View {
     #[default]
     Instances,
+    Loading,
     InstanceTypeSelection,
     InstanceVersionSelection,
-    LoadingVersions,
     InstanceNameSelection,
-    CreatingInstance,
     Accounts,
     Runtimes,
     InstallRuntime,
@@ -54,6 +52,7 @@ pub struct NewInstanceState {
 #[derive(Data, Clone, Lens, Default)]
 pub struct AppState {
     is_update_available: bool,
+    loading_message: String,
     config: lib::launcher_config::LauncherConfig,
     current_view: View,
     instances: Vector<(String, lib::instances::InstanceInfo)>,
@@ -63,7 +62,7 @@ pub struct AppState {
     news: Vector<(String, String)>,
     installed_runtimes: Vector<String>,
     available_runtimes: Vector<i32>,
-    installing_runtime: bool,
+    selected_runtime: Option<i32>,
 }
 
 fn main() -> Result<()> {

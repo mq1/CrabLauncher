@@ -2,20 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use druid::{
-    widget::{Button, CrossAxisAlignment, Either, Flex, Label, List, Scroll, Spinner},
-    Color, UnitPoint, Widget, WidgetExt,
+    widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
+    Color, Widget, WidgetExt,
 };
 
 use crate::{lib::minecraft_news::MINECRAFT_NEWS_BASE_URL, AppState};
 
 pub fn build_widget() -> impl Widget<AppState> {
-    let loading = Flex::column()
-        .with_child(Label::new("Loading..."))
-        .with_default_spacer()
-        .with_child(Spinner::new())
-        .align_horizontal(UnitPoint::CENTER)
-        .align_vertical(UnitPoint::CENTER);
-
     let news = Scroll::new(
         List::new(|| {
             Flex::row()
@@ -35,13 +28,11 @@ pub fn build_widget() -> impl Widget<AppState> {
     )
     .vertical();
 
-    let either = Either::new(|data, _env| data.news.is_empty(), loading, news);
-
     Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(Label::new("🌎 News").with_text_size(32.))
         .with_default_spacer()
-        .with_flex_child(either, 1.)
+        .with_flex_child(news, 1.)
         .padding(10.)
 }
 

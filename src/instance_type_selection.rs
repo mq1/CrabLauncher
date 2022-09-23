@@ -32,7 +32,9 @@ pub fn build_widget() -> impl Widget<AppState> {
 
                 let event_sink = ctx.get_external_handle();
                 smol::spawn(update_available_versions(event_sink)).detach();
-                data.current_view = View::LoadingVersions;
+
+                data.loading_message = "Fetching available Minecraft versions...".to_string();
+                data.current_view = View::Loading;
             }),
         ))
         .padding(10.)
