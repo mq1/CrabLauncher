@@ -43,7 +43,8 @@ pub fn build_widget() -> impl Widget<AppState> {
 
                         smol::spawn(install_version(event_sink, name, version)).detach();
 
-                        data.current_view = View::CreatingInstance;
+                        data.loading_message = "Creating new instance...".to_string();
+                        data.current_view = View::Loading;
                     }),
                 ),
         )

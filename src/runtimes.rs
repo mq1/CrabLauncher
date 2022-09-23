@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use druid::{
+    im::Vector,
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
     Color, Widget, WidgetExt,
 };
 
-use crate::{install_runtime, lib, AppState, View};
+use crate::{lib, AppState, View};
 
 pub fn build_widget() -> impl Widget<AppState> {
     Flex::column()
@@ -37,15 +38,29 @@ pub fn build_widget() -> impl Widget<AppState> {
             1.,
         )
         .with_default_spacer()
-        .with_child(
-            Button::new("Install ⬇️").on_click(|ctx, data: &mut AppState, _env| {
-                if data.available_runtimes.is_empty() {
-                    let event_sink = ctx.get_external_handle();
-                    smol::spawn(install_runtime::update_runtimes(event_sink)).detach();
-                }
-
-                data.current_view = View::InstallRuntime;
-            }),
-        )
+        .with_child(Button::new("Install ⬇️").on_click(new_runtime))
         .padding(10.)
+}
+
+fn new_runtime(ctx: &mut druid::EventCtx, data: &mut AppState, _env: &druid::Env) {
+    if data.available_runtimes.is_empty() {
+        let event_sink = ctx.get_external_handle();
+        smol::spawn(update_runtimes(event_sink)).detach();
+
+        data.loading_message = "Loading available runtimes...".to_string();
+        data.current_view = View::Loading;
+    } else {
+        data.current_view = View::InstallRuntime;
+    }
+}
+
+async fn update_runtimes(event_sink: druid::ExtEventSink) {
+    let runtimes = lib::runtime_manager::fetch_available_releases()
+        .await
+        .unwrap();
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.available_runtimes = Vector::from(runtimes.available_releases);
+        data.current_view = View::InstallRuntime;
+    });
 }
