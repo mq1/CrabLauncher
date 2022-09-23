@@ -10,9 +10,10 @@ use strum_macros::Display;
 
 use color_eyre::eyre::Result;
 
-use crate::lib::{minecraft_assets::ASSETS_DIR, msa, runtime_manager};
-
-use super::{minecraft_version_manifest::Version, minecraft_version_meta, msa::Account, BASE_DIR};
+use super::{
+    minecraft_assets::ASSETS_DIR, minecraft_version_manifest::Version, minecraft_version_meta, msa,
+    runtime_manager, BASE_DIR,
+};
 
 const INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("instances"));
 
@@ -91,11 +92,11 @@ pub async fn remove<S: AsRef<str>>(instance_name: S) -> Result<()> {
     Ok(())
 }
 
-pub async fn launch<S: AsRef<str>>(instance_name: S, account: Account) -> Result<()> {
+pub async fn launch<S: AsRef<str>>(instance_name: S, account: msa::Account) -> Result<()> {
     println!("Launching instance {}", instance_name.as_ref());
 
     println!("Refreshing account");
-    let account_entry = msa::refresh(account).await?;
+    let account = msa::refresh(account).await?;
     println!("Account refreshed");
 
     let info = read_info(instance_name.as_ref()).await?;
@@ -126,7 +127,7 @@ pub async fn launch<S: AsRef<str>>(instance_name: S, account: Account) -> Result
 
         if let Some(arg) = arg {
             let arg = match arg.as_str() {
-                "${auth_player_name}" => account_entry.account.minecraft_username.to_string(),
+                "${auth_player_name}" => account.mc_username.to_owned(),
                 "${version_name}" => info.minecraft_version.to_string(),
                 "${game_directory}" => INSTANCES_DIR
                     .join(instance_name.as_ref())
@@ -134,8 +135,8 @@ pub async fn launch<S: AsRef<str>>(instance_name: S, account: Account) -> Result
                     .to_string(),
                 "${assets_root}" => ASSETS_DIR.to_string_lossy().to_string(),
                 "${assets_index_name}" => version.assets.to_string(),
-                "${auth_uuid}" => account_entry.minecraft_id.to_string(),
-                "${auth_access_token}" => account_entry.account.minecraft_access_token.to_string(),
+                "${auth_uuid}" => account.mc_id.to_owned(),
+                "${auth_access_token}" => account.mc_access_token.to_owned(),
                 "${clientid}" => format!("ice-launcher/{}", env!("CARGO_PKG_VERSION")),
                 "${auth_xuid}" => "0".to_string(),
                 "${user_type}" => "mojang".to_string(),

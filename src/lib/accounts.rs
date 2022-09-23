@@ -1,34 +1,20 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
-use color_eyre::eyre::{eyre, Result};
-use druid::im::Vector;
+use color_eyre::eyre::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use smol::fs;
 
-use super::{
-    msa::{self, Account, AccountEntry},
-    BASE_DIR,
-};
+use super::{msa, BASE_DIR};
 
 static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"));
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub struct AccountsDocument {
-    pub active_account: Option<String>,
-    pub accounts: HashMap<String, Account>,
-}
-
-impl Default for AccountsDocument {
-    fn default() -> Self {
-        Self {
-            active_account: None,
-            accounts: HashMap::new(),
-        }
-    }
+    pub accounts: Vec<msa::Account>,
 }
 
 impl AsRef<AccountsDocument> for AccountsDocument {
@@ -44,7 +30,7 @@ async fn write<A: AsRef<AccountsDocument>>(accounts: A) -> Result<()> {
     Ok(())
 }
 
-async fn read() -> Result<AccountsDocument> {
+pub async fn read() -> Result<AccountsDocument> {
     if !ACCOUNTS_PATH.exists() {
         let default = AccountsDocument::default();
 
@@ -58,83 +44,40 @@ async fn read() -> Result<AccountsDocument> {
     Ok(accounts)
 }
 
-pub async fn list() -> Result<Vector<(AccountEntry, bool)>> {
-    let document = read().await?;
-
-    let mut accounts = Vector::new();
-    for (id, account) in document.accounts.iter() {
-        match document.active_account {
-            Some(ref active_account) => accounts.push_back((
-                AccountEntry {
-                    minecraft_id: id.to_owned(),
-                    account: account.to_owned(),
-                },
-                active_account.to_owned() == id.to_owned(),
-            )),
-            None => accounts.push_back((
-                AccountEntry {
-                    minecraft_id: id.to_owned(),
-                    account: account.to_owned(),
-                },
-                false,
-            )),
-        }
-    }
-
-    Ok(accounts)
-}
-
-pub async fn get_active() -> Result<Option<AccountEntry>> {
+pub async fn update_accounts(accounts: Vec<msa::Account>) -> Result<()> {
     let mut document = read().await?;
-    let id = document.active_account;
-
-    match id {
-        Some(id) => {
-            let account = document
-                .accounts
-                .remove(&id)
-                .ok_or(eyre!("Account not found"))?;
-            Ok(Some(AccountEntry {
-                minecraft_id: id,
-                account,
-            }))
-        }
-        None => Ok(None),
-    }
-}
-
-pub async fn set_active<S: AsRef<str>>(id: S) -> Result<()> {
-    let content = fs::read_to_string(ACCOUNTS_PATH.as_path()).await?;
-    let mut document: AccountsDocument = toml::from_str(&content)?;
-    document.active_account = Some(id.as_ref().to_owned());
-    let content = toml::to_string_pretty(&document)?;
-    fs::write(ACCOUNTS_PATH.as_path(), content).await?;
+    document.accounts = accounts;
+    smol::spawn(write(document)).detach();
 
     Ok(())
 }
 
-pub async fn add() -> Result<AccountEntry> {
-    let msa = msa::login().await?;
-    let mut document = read().await?;
-    document
-        .accounts
-        .insert(msa.minecraft_id.clone(), msa.account.clone());
-    smol::spawn(write(document)).detach();
+pub async fn get_active() -> Result<Option<msa::Account>> {
+    let document = read().await?;
 
-    let entry = AccountEntry {
-        minecraft_id: msa.minecraft_id.clone(),
-        account: msa.account.clone(),
-    };
+    for account in document.accounts {
+        if account.is_active {
+            return Ok(Some(account));
+        }
+    }
 
-    Ok(entry)
+    Ok(None)
 }
 
-pub async fn remove<S: AsRef<str>>(id: S) -> Result<()> {
+pub async fn add() -> Result<msa::Account> {
+    let account = msa::login().await?;
+    let mut document = read().await?;
+    document.accounts.push(account.clone());
+    smol::spawn(write(document)).detach();
+
+    Ok(account)
+}
+
+pub async fn remove(account: msa::Account) -> Result<()> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path()).await?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
-    document.accounts.remove(id.as_ref());
-    let content = toml::to_string_pretty(&document)?;
-    fs::write(ACCOUNTS_PATH.as_path(), content).await?;
+    document.accounts.retain(|a| a.mc_id != account.mc_id);
+    write(document).await?;
 
     Ok(())
 }

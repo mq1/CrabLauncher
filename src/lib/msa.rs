@@ -72,7 +72,7 @@ struct OAuth2Token {
     refresh_token: String,
 }
 
-async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<AccountEntry> {
+async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
     // Authenticate with Xbox Live
 
     #[derive(Deserialize)]
@@ -186,17 +186,14 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<AccountEnt
         .await?;
 
     let account = Account {
-        microsoft_refresh_token: msa_token.refresh_token,
-        minecraft_access_token: minecraft_response.access_token,
-        minecraft_username: minecraft_profile.name,
+        ms_refresh_token: msa_token.refresh_token,
+        mc_id: minecraft_profile.id,
+        mc_access_token: minecraft_response.access_token,
+        mc_username: minecraft_profile.name,
+        is_active: false
     };
 
-    let entry = AccountEntry {
-        minecraft_id: minecraft_profile.id,
-        account,
-    };
-
-    Ok(entry)
+    Ok(account)
 }
 
 fn listen_login_callback() -> Result<String> {
@@ -223,18 +220,14 @@ fn listen_login_callback() -> Result<String> {
 
 #[derive(Serialize, Deserialize, Clone, Data)]
 pub struct Account {
-    pub microsoft_refresh_token: String,
-    pub minecraft_access_token: String,
-    pub minecraft_username: String,
+    pub ms_refresh_token: String,
+    pub mc_id: String,
+    pub mc_access_token: String,
+    pub mc_username: String,
+    pub is_active: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, Data)]
-pub struct AccountEntry {
-    pub minecraft_id: String,
-    pub account: Account,
-}
-
-pub async fn login() -> Result<AccountEntry> {
+pub async fn login() -> Result<Account> {
     let code = listen_login_callback()?;
 
     let form = url::form_urlencoded::Serializer::new(String::new())
@@ -261,11 +254,11 @@ pub async fn login() -> Result<AccountEntry> {
     Ok(entry)
 }
 
-pub async fn refresh(account: Account) -> Result<AccountEntry> {
+pub async fn refresh(account: Account) -> Result<Account> {
     let form = url::form_urlencoded::Serializer::new(String::new())
         .append_pair("client_id", CLIENT_ID)
         .append_pair("scope", SCOPE)
-        .append_pair("refresh_token", &account.microsoft_refresh_token)
+        .append_pair("refresh_token", &account.ms_refresh_token)
         .append_pair("grant_type", "refresh_token")
         .finish();
 
