@@ -64,6 +64,18 @@ pub async fn get_active() -> Result<Option<msa::Account>> {
     Ok(None)
 }
 
+pub async fn set_active(account: msa::Account) -> Result<()> {
+    let mut document = read().await?;
+
+    for a in document.accounts.iter_mut() {
+        a.is_active = a.mc_id == account.mc_id;
+    }
+
+    smol::spawn(write(document)).detach();
+
+    Ok(())
+}
+
 pub async fn add() -> Result<msa::Account> {
     let account = msa::login().await?;
     let mut document = read().await?;

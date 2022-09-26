@@ -6,7 +6,7 @@ use druid::{
     Color, Widget, WidgetExt,
 };
 
-use crate::{lib, AppState};
+use crate::{lib, AppState, View};
 
 pub fn build_widget() -> impl Widget<AppState> {
     Flex::column()
@@ -17,35 +17,13 @@ pub fn build_widget() -> impl Widget<AppState> {
             Scroll::new(
                 List::new(|| {
                     Flex::row()
-                        .with_child(Label::new(
-                            |account: &lib::msa::Account, _env: &_| {
-                                if account.is_active {
-                                    "✅"
-                                } else {
-                                    "☑️"
-                                }
-                            },
-                        ))
+                        .with_child(Label::dynamic(get_emoji))
                         .with_default_spacer()
-                        .with_child(Label::new(|account: &lib::msa::Account, _env: &_| {
-                            account.mc_username.to_string()
-                        }))
+                        .with_child(Label::dynamic(get_name))
                         .with_flex_spacer(1.)
-                        .with_child(Button::new("Remove 💣").on_click(
-                            |ctx, account: &mut lib::msa::Account, _| {
-                                let event_sink = ctx.get_external_handle();
-                                smol::spawn(remove_account(event_sink, account.clone())).detach();
-                            },
-                        ))
+                        .with_child(Button::new("Remove 💣").on_click(remove_account))
                         .with_default_spacer()
-                        .with_child(Button::new("Select ✅").on_click(
-                            |ctx, account: &mut lib::msa::Account, _env| {
-                                let event_sink = ctx.get_external_handle();
-
-                                smol::spawn(set_active_account(event_sink, account.clone()))
-                                    .detach();
-                            },
-                        ))
+                        .with_child(Button::new("Select ✅").on_click(select_account))
                         .padding(5.)
                         .border(Color::GRAY, 1.)
                         .rounded(5.)
@@ -56,40 +34,57 @@ pub fn build_widget() -> impl Widget<AppState> {
             .vertical(),
         )
         .with_default_spacer()
-        .with_child(Button::new("New Account 🎉").on_click(|ctx, _, _| {
-            let event_sink = ctx.get_external_handle();
-            smol::spawn(add_account(event_sink)).detach();
-        }))
+        .with_child(Button::new("New Account 🎉").on_click(add_account))
         .with_flex_spacer(1.)
         .padding(10.)
 }
 
-async fn remove_account(event_sink: druid::ExtEventSink, account: lib::msa::Account) {
-    let id = account.mc_id.clone();
+fn get_emoji(account: &lib::msa::Account, _: &druid::Env) -> String {
+    match account.is_active {
+        true => "✅".to_string(),
+        false => "☑️".to_string(),
+    }
+}
 
-    smol::spawn(lib::accounts::remove(account)).detach();
+fn get_name(account: &lib::msa::Account, _: &druid::Env) -> String {
+    account.mc_username.to_string()
+}
 
+fn remove_account(ctx: &mut druid::EventCtx, account: &mut lib::msa::Account, _: &druid::Env) {
+    smol::spawn(lib::accounts::remove(account.clone())).detach();
+
+    let event_sink = ctx.get_external_handle();
+    let mc_id = account.mc_id.clone();
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.accounts.retain(|a| a.mc_id != id);
+        data.accounts.retain(|a| a.mc_id != mc_id);
     });
 }
 
-async fn set_active_account(event_sink: druid::ExtEventSink, account: lib::msa::Account) {
+fn select_account(ctx: &mut druid::EventCtx, account: &mut lib::msa::Account, _: &druid::Env) {
+    smol::spawn(lib::accounts::set_active(account.clone())).detach();
+
+    let event_sink = ctx.get_external_handle();
+    let mc_id = account.mc_id.clone();
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.accounts.iter_mut().for_each(|a| {
-            a.is_active = a.mc_id == account.mc_id;
+            a.is_active = a.mc_id == mc_id;
         });
-
-        let accounts = data.accounts.clone().into_iter().collect();
-        smol::spawn(lib::accounts::update_accounts(accounts)).detach();
     });
 }
 
-async fn add_account(event_sink: druid::ExtEventSink) {
+fn add_account(ctx: &mut druid::EventCtx, data: &mut AppState, _: &druid::Env) {
     open::that(lib::msa::AUTH_URL.as_str()).expect("Failed to open auth url");
-    let account = lib::accounts::add().await.expect("Failed to add account");
+    data.loading_message = "Waiting for authentication...".to_string();
+    data.current_view = View::Loading;
 
-    event_sink.add_idle_callback(|data: &mut AppState| {
-        data.accounts.push_front(account);
-    });
+    let event_sink = ctx.get_external_handle();
+    smol::spawn(async move {
+        let account = lib::accounts::add().await.expect("Failed to add account");
+
+        event_sink.add_idle_callback(|data: &mut AppState| {
+            data.accounts.push_front(account);
+            data.current_view = View::Accounts;
+        });
+    })
+    .detach();
 }
