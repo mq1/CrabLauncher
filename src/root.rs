@@ -21,12 +21,6 @@ pub fn build_widget() -> impl Widget<AppState> {
         )
         .with_default_spacer()
         .with_child(
-            Button::new("Accounts").on_click(|_ctx, data: &mut AppState, _env| {
-                data.current_view = View::Accounts;
-            }),
-        )
-        .with_default_spacer()
-        .with_child(
             Button::new("Runtimes").on_click(|_ctx, data: &mut AppState, _env| {
                 data.current_view = View::Runtimes;
             }),
