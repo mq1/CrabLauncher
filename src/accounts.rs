@@ -73,18 +73,19 @@ fn select_account(ctx: &mut druid::EventCtx, account: &mut lib::msa::Account, _:
 }
 
 fn add_account(ctx: &mut druid::EventCtx, data: &mut AppState, _: &druid::Env) {
-    open::that(lib::msa::AUTH_URL.as_str()).expect("Failed to open auth url");
     data.loading_message = "Waiting for authentication...".to_string();
     data.current_view = View::Loading;
+    open::that(lib::msa::AUTH_URL.as_str()).expect("Failed to open auth url");
 
     let event_sink = ctx.get_external_handle();
-    smol::spawn(async move {
-        let account = lib::accounts::add().await.expect("Failed to add account");
+    smol::spawn(login(event_sink)).detach();
+}
 
-        event_sink.add_idle_callback(|data: &mut AppState| {
-            data.accounts.push_front(account);
-            data.current_view = View::Accounts;
-        });
-    })
-    .detach();
+async fn login(event_sink: druid::ExtEventSink) {
+    let account = lib::accounts::add().await.expect("Failed to add account");
+
+    event_sink.add_idle_callback(|data: &mut AppState| {
+        data.accounts.push_front(account);
+        data.current_view = View::Accounts;
+    });
 }
