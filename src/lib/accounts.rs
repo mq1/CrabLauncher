@@ -45,14 +45,6 @@ pub async fn read() -> Result<AccountsDocument> {
     Ok(accounts)
 }
 
-pub async fn update_accounts(accounts: Vector<msa::Account>) -> Result<()> {
-    let mut document = read().await?;
-    document.accounts = accounts;
-    smol::spawn(write(document)).detach();
-
-    Ok(())
-}
-
 pub async fn get_active() -> Result<Option<msa::Account>> {
     let document = read().await?;
 
