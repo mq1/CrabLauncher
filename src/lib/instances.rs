@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use druid::{im::Vector, Data};
+use druid::{im::Vector, Data, Lens};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use smol::{fs, process::Command, stream::StreamExt};

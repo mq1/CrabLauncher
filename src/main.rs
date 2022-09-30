@@ -21,14 +21,9 @@ mod settings;
 use std::{fs, process::exit};
 
 use color_eyre::eyre::Result;
-use druid::{im::Vector, AppDelegate, AppLauncher, Data, Lens, Selector, WindowDesc};
+use druid::{im::Vector, AppDelegate, AppLauncher, Data, Lens, WindowDesc};
 use lib::BASE_DIR;
 use strum_macros::Display;
-
-const REMOVE_INSTANCE: Selector<lib::instances::Instance> = Selector::new("remove_instance");
-const LAUNCH_INSTANCE: Selector<lib::instances::Instance> = Selector::new("launch_instance");
-const REMOVE_ACCOUNT: Selector<lib::msa::Account> = Selector::new("remove_account");
-const SELECT_ACCOUNT: Selector<lib::msa::Account> = Selector::new("select_account");
 
 #[derive(PartialEq, Eq, Data, Clone, Copy, Display, Default)]
 enum View {
@@ -78,39 +73,11 @@ impl AppDelegate<AppState> for Delegate {
         _ctx: &mut druid::DelegateCtx,
         _target: druid::Target,
         cmd: &druid::Command,
-        data: &mut AppState,
+        _data: &mut AppState,
         _env: &druid::Env,
     ) -> druid::Handled {
         if let Some(_) = cmd.get(druid::commands::CLOSE_WINDOW) {
             exit(0);
-        }
-
-        if let Some(instance) = cmd.get(REMOVE_INSTANCE) {
-            smol::spawn(lib::instances::remove(instance.clone())).detach();
-            data.instances.retain(|i| i.name != instance.name);
-            return druid::Handled::Yes;
-        }
-
-        if let Some(instance) = cmd.get(LAUNCH_INSTANCE) {
-            let account = data.active_account.clone().unwrap();
-            smol::spawn(lib::instances::launch(instance.to_owned(), account)).detach();
-            return druid::Handled::Yes;
-        }
-
-        if let Some(account) = cmd.get(REMOVE_ACCOUNT) {
-            smol::spawn(lib::accounts::remove(account.clone())).detach();
-            data.accounts.retain(|a| a.mc_id != account.mc_id);
-            return druid::Handled::Yes;
-        }
-
-        if let Some(account) = cmd.get(SELECT_ACCOUNT) {
-            smol::spawn(lib::accounts::set_active(account.clone())).detach();
-
-            data.accounts.iter_mut().for_each(|a| {
-                a.is_active = a.mc_id == account.mc_id;
-            });
-
-            return druid::Handled::Yes;
         }
 
         druid::Handled::No

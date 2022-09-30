@@ -2,13 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use druid::{
+    im::Vector,
+    lens,
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
-    Color, Target, Widget, WidgetExt,
+    Color, LensExt, Widget, WidgetExt,
 };
 
 use crate::{
     lib::{self, msa::Account},
-    AppState, View, REMOVE_ACCOUNT, SELECT_ACCOUNT,
+    AppState, View,
 };
 
 pub fn build_widget() -> impl Widget<AppState> {
@@ -20,38 +22,49 @@ pub fn build_widget() -> impl Widget<AppState> {
             Scroll::new(
                 List::new(|| {
                     Flex::row()
-                        .with_child(Label::<Account>::dynamic(|account, _| {
-                            match account.is_active {
+                        .with_child(Label::<(_, Account)>::dynamic(
+                            |(_, account), _| match account.is_active {
                                 true => "✅".to_string(),
                                 false => "☑️".to_string(),
-                            }
-                        }))
+                            },
+                        ))
                         .with_default_spacer()
-                        .with_child(Label::<Account>::dynamic(|account, _| {
+                        .with_child(Label::<(_, Account)>::dynamic(|(_, account), _| {
                             account.mc_username.to_owned()
                         }))
                         .with_flex_spacer(1.)
-                        .with_child(Button::<Account>::new("Remove 💣").on_click(
-                            |ctx, account, _| {
-                                ctx.get_external_handle()
-                                    .submit_command(REMOVE_ACCOUNT, account.clone(), Target::Auto)
-                                    .expect("Failed to submit command");
-                            },
-                        ))
+                        .with_child(
+                            Button::<(Vector<Account>, Account)>::new("Remove 💣").on_click(
+                                |_, (accounts, account), _| {
+                                    smol::spawn(lib::accounts::remove(account.clone())).detach();
+                                    accounts.retain(|a| a.mc_id != account.mc_id);
+                                },
+                            ),
+                        )
                         .with_default_spacer()
-                        .with_child(Button::<Account>::new("Select ✅").on_click(
-                            |ctx, account, _| {
-                                ctx.get_external_handle()
-                                    .submit_command(SELECT_ACCOUNT, account.clone(), Target::Auto)
-                                    .expect("Failed to submit command");
-                            },
-                        ))
+                        .with_child(
+                            Button::<(Vector<Account>, Account)>::new("Select ✅").on_click(
+                                |_, (accounts, account), _| {
+                                    smol::spawn(lib::accounts::set_active(account.clone()))
+                                        .detach();
+
+                                    accounts.iter_mut().for_each(|a| {
+                                        a.is_active = a.mc_id == account.mc_id;
+                                    });
+                                },
+                            ),
+                        )
                         .padding(5.)
                         .border(Color::GRAY, 1.)
                         .rounded(5.)
                 })
                 .with_spacing(10.)
-                .lens(AppState::accounts),
+                .lens(lens::Identity.map(
+                    |data: &AppState| (data.accounts.clone(), data.accounts.clone()),
+                    |data: &mut AppState, (accounts, _)| {
+                        data.accounts = accounts;
+                    },
+                )),
             )
             .vertical(),
         )
