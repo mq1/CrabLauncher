@@ -32,16 +32,16 @@ pub fn build_widget(available_versions: &Vector<Version>) -> impl Widget<AppStat
         .with_child(
             Flex::row()
                 .with_child(
-                    Button::new("< Select type 🛠️").on_click(|_, data: &mut AppState, _| {
+                    Button::<AppState>::new("< Select type 🛠️").on_click(|_, data, _| {
                         data.current_view = View::InstanceTypeSelection;
                     }),
                 )
                 .with_flex_spacer(1.)
-                .with_child(Button::new("Select name ✍️ >").on_click(
-                    |_, data: &mut AppState, _| {
+                .with_child(
+                    Button::<AppState>::new("Select name ✍️ >").on_click(|_, data, _| {
                         data.current_view = View::InstanceNameSelection;
-                    },
-                )),
+                    }),
+                ),
         )
         .padding(10.)
 }

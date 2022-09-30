@@ -4,6 +4,7 @@
 use std::path::PathBuf;
 
 use color_eyre::eyre::Result;
+use druid::im::Vector;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use smol::fs;
@@ -14,7 +15,7 @@ static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct AccountsDocument {
-    pub accounts: Vec<msa::Account>,
+    pub accounts: Vector<msa::Account>,
 }
 
 impl AsRef<AccountsDocument> for AccountsDocument {
@@ -44,7 +45,7 @@ pub async fn read() -> Result<AccountsDocument> {
     Ok(accounts)
 }
 
-pub async fn update_accounts(accounts: Vec<msa::Account>) -> Result<()> {
+pub async fn update_accounts(accounts: Vector<msa::Account>) -> Result<()> {
     let mut document = read().await?;
     document.accounts = accounts;
     smol::spawn(write(document)).detach();
@@ -71,18 +72,18 @@ pub async fn set_active(account: msa::Account) -> Result<()> {
         a.is_active = a.mc_id == account.mc_id;
     }
 
-    smol::spawn(write(document)).detach();
+    write(document).await?;
 
     Ok(())
 }
 
-pub async fn add() -> Result<msa::Account> {
+pub async fn add() -> Result<()> {
     let account = msa::login().await?;
     let mut document = read().await?;
-    document.accounts.push(account.clone());
-    smol::spawn(write(document)).detach();
+    document.accounts.push_back(account);
+    write(document).await?;
 
-    Ok(account)
+    Ok(())
 }
 
 pub async fn remove(account: msa::Account) -> Result<()> {

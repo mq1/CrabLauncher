@@ -38,8 +38,8 @@ const OS_STRING: &str = "mac";
 
 #[derive(Deserialize)]
 pub struct AvailableReleases {
-    pub available_lts_releases: Vec<i32>,
-    pub available_releases: Vec<i32>,
+    pub available_lts_releases: Vector<i32>,
+    pub available_releases: Vector<i32>,
     pub most_recent_feature_release: i32,
     pub most_recent_feature_version: i32,
     pub most_recent_lts: i32,

@@ -61,16 +61,16 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_child(
             Flex::row()
                 .with_flex_spacer(1.)
-                .with_child(Button::new("Reset to default settings 🔄").on_click(
-                    |_ctx, data: &mut LauncherConfig, _env| {
-                        *data = LauncherConfig::default();
-                    },
-                ))
+                .with_child(
+                    Button::<LauncherConfig>::new("Reset to default settings 🔄").on_click(
+                        |_, data, _| {
+                            *data = LauncherConfig::default();
+                        },
+                    ),
+                )
                 .with_default_spacer()
-                .with_child(Button::new("Save settings 📝").on_click(
-                    |_ctx, data: &mut LauncherConfig, _env| {
-                        let data = data.clone();
-
+                .with_child(Button::<LauncherConfig>::new("Save settings 📝").on_click(
+                    |_, data, _| {
                         smol::spawn(launcher_config::write(data.clone())).detach();
                     },
                 )),

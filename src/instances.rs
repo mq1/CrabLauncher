@@ -3,15 +3,12 @@
 
 use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
-    Color, Widget, WidgetExt,
+    Color, Target, Widget, WidgetExt,
 };
 
 use crate::{
-    lib::{
-        self,
-        instances::{InstanceInfo, InstanceType},
-    },
-    AppState, View,
+    lib::instances::{Instance, InstanceType},
+    AppState, View, LAUNCH_INSTANCE, REMOVE_INSTANCE,
 };
 
 fn get_instance_icon(instance_type: &InstanceType) -> String {
@@ -31,17 +28,37 @@ pub fn build_widget() -> impl Widget<AppState> {
             Scroll::new(
                 List::new(|| {
                     Flex::row()
-                        .with_child(Label::new(|(_, info): &(_, InstanceInfo), _env: &_| {
-                            get_instance_icon(&info.instance_type)
+                        .with_child(Label::<Instance>::dynamic(|instance, _| {
+                            get_instance_icon(&instance.info.instance_type)
                         }))
                         .with_default_spacer()
-                        .with_child(Label::new(|(name, _): &(String, _), _env: &_| {
-                            name.to_string()
+                        .with_child(Label::<Instance>::dynamic(|instance, _| {
+                            instance.name.to_owned()
                         }))
                         .with_flex_spacer(1.)
-                        .with_child(Button::new("Delete ❌").on_click(remove_instance))
+                        .with_child(Button::<Instance>::new("Delete ❌").on_click(
+                            |ctx, instance, _| {
+                                ctx.get_external_handle()
+                                    .submit_command(
+                                        REMOVE_INSTANCE,
+                                        instance.to_owned(),
+                                        Target::Auto,
+                                    )
+                                    .expect("Failed to submit command");
+                            },
+                        ))
                         .with_default_spacer()
-                        .with_child(Button::new("Launch 🚀").on_click(launch_instance))
+                        .with_child(Button::<Instance>::new("Launch 🚀").on_click(
+                            |ctx, instance, _| {
+                                ctx.get_external_handle()
+                                    .submit_command(
+                                        LAUNCH_INSTANCE,
+                                        instance.to_owned(),
+                                        Target::Auto,
+                                    )
+                                    .expect("Failed to submit command");
+                            },
+                        ))
                         .padding(5.)
                         .border(Color::GRAY, 1.)
                         .rounded(5.)
@@ -53,50 +70,21 @@ pub fn build_widget() -> impl Widget<AppState> {
         )
         .with_default_spacer()
         .with_child(
-            Button::new("New Instance ✨").on_click(|_, data: &mut AppState, _| {
+            Button::<AppState>::new("New Instance ✨").on_click(|_, data, _| {
                 data.current_view = View::InstanceTypeSelection;
             }),
         )
         .with_flex_spacer(1.)
         .with_child(
             Flex::row().with_flex_spacer(1.).with_child(
-                Button::new(|data: &AppState, _env: &_| match &data.active_account {
+                Button::<AppState>::dynamic(|data, _| match &data.active_account {
                     Some(account) => format!("Active account: {}", account.mc_username),
                     None => "⚠️ No active account".to_string(),
                 })
-                .on_click(|_, data: &mut AppState, _| {
+                .on_click(|_, data, _| {
                     data.current_view = View::Accounts;
                 }),
             ),
         )
         .padding(10.)
-}
-
-fn remove_instance(
-    ctx: &mut druid::EventCtx,
-    (instance_name, _): &mut (String, InstanceInfo),
-    _env: &druid::Env,
-) {
-    let instance_name = instance_name.clone();
-    smol::spawn(lib::instances::remove(instance_name.clone())).detach();
-
-    let event_sink = ctx.get_external_handle();
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.instances.retain(|(name, _)| name != &instance_name);
-    });
-}
-
-fn launch_instance(
-    ctx: &mut druid::EventCtx,
-    (instance_name, _): &mut (String, InstanceInfo),
-    _env: &druid::Env,
-) {
-    let instance_name = instance_name.clone();
-    let event_sink = ctx.get_external_handle();
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        let instance_name = instance_name.clone();
-        let account = data.active_account.clone().unwrap();
-        smol::spawn(lib::instances::launch(instance_name, account)).detach();
-    });
 }

@@ -12,18 +12,23 @@ mod instance_type_selection;
 mod instance_version_selection;
 mod instances;
 mod lib;
+mod loading;
 mod news;
 mod root;
 mod runtimes;
 mod settings;
-mod loading;
 
-use std::fs;
+use std::{fs, process::exit};
 
 use color_eyre::eyre::Result;
-use druid::{im::Vector, AppLauncher, Data, Lens, WindowDesc};
+use druid::{im::Vector, AppDelegate, AppLauncher, Data, Lens, Selector, WindowDesc};
 use lib::BASE_DIR;
 use strum_macros::Display;
+
+const REMOVE_INSTANCE: Selector<lib::instances::Instance> = Selector::new("remove_instance");
+const LAUNCH_INSTANCE: Selector<lib::instances::Instance> = Selector::new("launch_instance");
+const REMOVE_ACCOUNT: Selector<lib::msa::Account> = Selector::new("remove_account");
+const SELECT_ACCOUNT: Selector<lib::msa::Account> = Selector::new("select_account");
 
 #[derive(PartialEq, Eq, Data, Clone, Copy, Display, Default)]
 enum View {
@@ -55,14 +60,61 @@ pub struct AppState {
     loading_message: String,
     config: lib::launcher_config::LauncherConfig,
     current_view: View,
-    instances: Vector<(String, lib::instances::InstanceInfo)>,
+    instances: Vector<lib::instances::Instance>,
     new_instance_state: NewInstanceState,
     accounts: Vector<lib::msa::Account>,
     active_account: Option<lib::msa::Account>,
-    news: Vector<(String, String)>,
+    news: lib::minecraft_news::News,
     installed_runtimes: Vector<String>,
     available_runtimes: Vector<i32>,
     selected_runtime: Option<i32>,
+}
+
+struct Delegate;
+
+impl AppDelegate<AppState> for Delegate {
+    fn command(
+        &mut self,
+        _ctx: &mut druid::DelegateCtx,
+        _target: druid::Target,
+        cmd: &druid::Command,
+        data: &mut AppState,
+        _env: &druid::Env,
+    ) -> druid::Handled {
+        if let Some(_) = cmd.get(druid::commands::CLOSE_WINDOW) {
+            exit(0);
+        }
+
+        if let Some(instance) = cmd.get(REMOVE_INSTANCE) {
+            smol::spawn(lib::instances::remove(instance.clone())).detach();
+            data.instances.retain(|i| i.name != instance.name);
+            return druid::Handled::Yes;
+        }
+
+        if let Some(instance) = cmd.get(LAUNCH_INSTANCE) {
+            let account = data.active_account.clone().unwrap();
+            smol::spawn(lib::instances::launch(instance.to_owned(), account)).detach();
+            return druid::Handled::Yes;
+        }
+
+        if let Some(account) = cmd.get(REMOVE_ACCOUNT) {
+            smol::spawn(lib::accounts::remove(account.clone())).detach();
+            data.accounts.retain(|a| a.mc_id != account.mc_id);
+            return druid::Handled::Yes;
+        }
+
+        if let Some(account) = cmd.get(SELECT_ACCOUNT) {
+            smol::spawn(lib::accounts::set_active(account.clone())).detach();
+
+            data.accounts.iter_mut().for_each(|a| {
+                a.is_active = a.mc_id == account.mc_id;
+            });
+
+            return druid::Handled::Yes;
+        }
+
+        druid::Handled::No
+    }
 }
 
 fn main() -> Result<()> {
@@ -84,7 +136,7 @@ fn main() -> Result<()> {
         AppState {
             config: config.await.unwrap(),
             instances: instances.await.unwrap(),
-            accounts: Vector::from(accounts.await.unwrap().accounts),
+            accounts: accounts.await.unwrap().accounts,
             active_account: active_account.await.unwrap(),
             installed_runtimes: installed_runtimes.await.unwrap(),
             ..Default::default()
@@ -99,7 +151,10 @@ fn main() -> Result<()> {
         smol::spawn(check_for_updates(event_sink)).detach();
     }
 
-    launcher.log_to_console().launch(initial_state)?;
+    launcher
+        .delegate(Delegate {})
+        .log_to_console()
+        .launch(initial_state)?;
 
     Ok(())
 }

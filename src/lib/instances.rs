@@ -42,6 +42,12 @@ impl Default for InstanceInfo {
     }
 }
 
+#[derive(Clone, Data)]
+pub struct Instance {
+    pub name: String,
+    pub info: InstanceInfo,
+}
+
 async fn read_info(instance_name: &str) -> Result<InstanceInfo> {
     let path = INSTANCES_DIR.join(instance_name).join("instance.toml");
     let content = fs::read_to_string(path).await?;
@@ -50,7 +56,7 @@ async fn read_info(instance_name: &str) -> Result<InstanceInfo> {
     Ok(info)
 }
 
-pub async fn list() -> Result<Vector<(String, InstanceInfo)>> {
+pub async fn list() -> Result<Vector<Instance>> {
     let mut instances = Vector::new();
 
     fs::create_dir_all(INSTANCES_DIR.as_path()).await?;
@@ -60,7 +66,10 @@ pub async fn list() -> Result<Vector<(String, InstanceInfo)>> {
         if entry.path().is_dir() {
             let file_name = entry.file_name().to_string_lossy().to_string();
             let info = read_info(&file_name).await?;
-            instances.push_back((file_name, info));
+            instances.push_back(Instance {
+                name: file_name,
+                info,
+            });
         }
     }
 
@@ -85,29 +94,28 @@ pub async fn new(instance_name: &str, minecraft_version: &Version) -> Result<()>
     Ok(())
 }
 
-pub async fn remove<S: AsRef<str>>(instance_name: S) -> Result<()> {
-    let instance_dir = INSTANCES_DIR.join(instance_name.as_ref());
+pub async fn remove(instance: Instance) -> Result<()> {
+    let instance_dir = INSTANCES_DIR.join(instance.name);
     fs::remove_dir_all(&instance_dir).await?;
 
     Ok(())
 }
 
-pub async fn launch<S: AsRef<str>>(instance_name: S, account: msa::Account) -> Result<()> {
-    println!("Launching instance {}", instance_name.as_ref());
+pub async fn launch(instance: Instance, account: msa::Account) -> Result<()> {
+    println!("Launching instance {}", instance.name);
 
     println!("Refreshing account");
     let account = msa::refresh(account).await?;
     println!("Account refreshed");
 
-    let info = read_info(instance_name.as_ref()).await?;
-    let version = minecraft_version_meta::get(&info.minecraft_version).await?;
+    let version = minecraft_version_meta::get(&instance.info.minecraft_version).await?;
 
-    let jre_version = if info.jre_version == "latest" {
+    let jre_version = if instance.info.jre_version == "latest" {
         runtime_manager::fetch_available_releases()
             .await?
             .most_recent_feature_release
     } else {
-        info.jre_version.parse()?
+        instance.info.jre_version.parse()?
     };
 
     let is_updated = runtime_manager::is_updated(&jre_version).await?;
@@ -128,9 +136,9 @@ pub async fn launch<S: AsRef<str>>(instance_name: S, account: msa::Account) -> R
         if let Some(arg) = arg {
             let arg = match arg.as_str() {
                 "${auth_player_name}" => account.mc_username.to_owned(),
-                "${version_name}" => info.minecraft_version.to_string(),
+                "${version_name}" => instance.info.minecraft_version.to_string(),
                 "${game_directory}" => INSTANCES_DIR
-                    .join(instance_name.as_ref())
+                    .join(&instance.name)
                     .to_string_lossy()
                     .to_string(),
                 "${assets_root}" => ASSETS_DIR.to_string_lossy().to_string(),
@@ -140,7 +148,7 @@ pub async fn launch<S: AsRef<str>>(instance_name: S, account: msa::Account) -> R
                 "${clientid}" => format!("ice-launcher/{}", env!("CARGO_PKG_VERSION")),
                 "${auth_xuid}" => "0".to_string(),
                 "${user_type}" => "mojang".to_string(),
-                "${version_type}" => info.instance_type.to_string(),
+                "${version_type}" => instance.info.instance_type.to_string(),
                 &_ => arg.to_string(),
             };
 
@@ -168,7 +176,7 @@ pub async fn launch<S: AsRef<str>>(instance_name: S, account: msa::Account) -> R
         .args(jvm_args)
         .arg(version.main_class)
         .args(game_args)
-        .current_dir(INSTANCES_DIR.join(instance_name.as_ref()))
+        .current_dir(INSTANCES_DIR.join(instance.name))
         .spawn()?;
 
     let _ = command;

@@ -18,7 +18,7 @@ const VERSION_MANIFEST_URL: &str =
 #[derive(Deserialize)]
 pub struct MinecraftVersionManifest {
     pub latest: Latest,
-    pub versions: Vec<Version>,
+    pub versions: Vector<Version>,
 }
 
 #[derive(Deserialize)]
@@ -76,7 +76,7 @@ pub async fn fetch_manifest() -> Result<MinecraftVersionManifest> {
 
 pub async fn fetch_versions() -> Result<Vector<Version>> {
     let manifest = fetch_manifest().await?;
-    let versions = Vector::from(manifest.versions);
+    let versions = manifest.versions;
 
     Ok(versions)
 }

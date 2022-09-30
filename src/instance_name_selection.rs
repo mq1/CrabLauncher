@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use druid::{
-    im::vector,
+    im::Vector,
     widget::{Button, CrossAxisAlignment, Flex, Label, TextBox},
     Color, LensExt, Widget, WidgetExt,
 };
@@ -29,24 +29,22 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_flex_spacer(1.)
         .with_child(
             Flex::row()
-                .with_child(Button::new("< Select version 📦").on_click(
-                    |_, data: &mut AppState, _| {
+                .with_child(Button::<AppState>::new("< Select version 📦").on_click(
+                    |_, data, _| {
                         data.current_view = View::InstanceVersionSelection;
                     },
                 ))
                 .with_flex_spacer(1.)
-                .with_child(
-                    Button::new("Done ✅").on_click(|ctx, data: &mut AppState, _| {
-                        let event_sink = ctx.get_external_handle();
-                        let name = data.new_instance_state.instance_name.clone();
-                        let version = data.new_instance_state.selected_version.clone().unwrap();
+                .with_child(Button::<AppState>::new("Done ✅").on_click(|ctx, data, _| {
+                    let event_sink = ctx.get_external_handle();
+                    let name = data.new_instance_state.instance_name.clone();
+                    let version = data.new_instance_state.selected_version.clone().unwrap();
 
-                        smol::spawn(install_version(event_sink, name, version)).detach();
+                    smol::spawn(install_version(event_sink, name, version)).detach();
 
-                        data.loading_message = "Creating new instance...".to_string();
-                        data.current_view = View::Loading;
-                    }),
-                ),
+                    data.loading_message = "Creating new instance...".to_string();
+                    data.current_view = View::Loading;
+                })),
         )
         .padding(10.)
 }
@@ -56,7 +54,7 @@ async fn install_version(event_sink: druid::ExtEventSink, name: String, version:
     let instance_list = lib::instances::list().await.unwrap();
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.new_instance_state.available_minecraft_versions = vector![];
+        data.new_instance_state.available_minecraft_versions = Vector::new();
         data.instances = instance_list;
         data.current_view = View::Instances;
     });
