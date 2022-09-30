@@ -3,28 +3,35 @@
 
 use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
-    Color, Widget, WidgetExt,
+    Color, LensExt, Widget, WidgetExt,
 };
 
-use crate::{lib::minecraft_news::MINECRAFT_NEWS_BASE_URL, AppState};
+use crate::{
+    lib::minecraft_news::{Article, News, MINECRAFT_NEWS_BASE_URL},
+    AppState,
+};
 
 pub fn build_widget() -> impl Widget<AppState> {
     let news = Scroll::new(
         List::new(|| {
             Flex::row()
-                .with_child(Label::new(|(item, _): &(String, String), _env: &_| {
-                    item.to_string()
+                .with_child(Label::<Article>::dynamic(|article, _| {
+                    article.default_tile.title.to_owned()
                 }))
                 .with_flex_spacer(1.)
-                .with_child(Button::new("Open ↗️").on_click(|_ctx, (_, url), _env: &_| {
-                    open_article(url);
+                .with_child(Button::<Article>::new("Open ↗️").on_click(|_, article, _| {
+                    open::that(format!(
+                        "{MINECRAFT_NEWS_BASE_URL}{url}",
+                        url = article.article_url
+                    ))
+                    .unwrap();
                 }))
                 .padding(5.)
                 .border(Color::GRAY, 1.)
                 .rounded(5.)
         })
         .with_spacing(10.)
-        .lens(AppState::news),
+        .lens(AppState::news.then(News::article_grid)),
     )
     .vertical();
 
@@ -34,8 +41,4 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_default_spacer()
         .with_flex_child(news, 1.)
         .padding(10.)
-}
-
-fn open_article(url: &String) {
-    open::that(format!("{MINECRAFT_NEWS_BASE_URL}{url}")).unwrap();
 }

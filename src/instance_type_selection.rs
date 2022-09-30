@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use druid::{
-    im::vector,
+    im::Vector,
     widget::{Button, CrossAxisAlignment, Flex, Label, RadioGroup},
     Color, LensExt, Widget, WidgetExt,
 };
@@ -27,14 +27,13 @@ pub fn build_widget() -> impl Widget<AppState> {
         )
         .with_flex_spacer(1.)
         .with_child(Flex::row().with_flex_spacer(1.).with_child(
-            Button::new("Select version 📦 >").on_click(|ctx, data: &mut AppState, _| {
-                data.new_instance_state.available_minecraft_versions = vector![];
+            Button::<AppState>::new("Select version 📦 >").on_click(|ctx, data, _| {
+                data.new_instance_state.available_minecraft_versions = Vector::new();
+                data.loading_message = "Fetching available Minecraft versions...".to_string();
+                data.current_view = View::Loading;
 
                 let event_sink = ctx.get_external_handle();
                 smol::spawn(update_available_versions(event_sink)).detach();
-
-                data.loading_message = "Fetching available Minecraft versions...".to_string();
-                data.current_view = View::Loading;
             }),
         ))
         .padding(10.)

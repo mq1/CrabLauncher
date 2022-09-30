@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use color_eyre::eyre::Result;
+use druid::{im::Vector, Data, Lens};
 use isahc::{AsyncReadResponseExt, Request, RequestExt};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use url::Url;
 
 use super::USER_AGENT;
@@ -12,26 +13,26 @@ const MINECRAFT_NEWS_URL: &str =
     "https://www.minecraft.net/content/minecraft-net/_jcr_content.articles.grid";
 pub const MINECRAFT_NEWS_BASE_URL: &str = "https://www.minecraft.net";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Data, Clone, Default, Lens)]
 pub struct News {
-    pub article_grid: Vec<ArticleGrid>,
+    pub article_grid: Vector<Article>,
     pub article_count: i32,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct ArticleGrid {
+#[derive(Deserialize, Data, Clone)]
+pub struct Article {
     pub default_tile: Tile,
     #[serde(rename = "articleLang")]
     pub article_lang: ArticleLang,
     pub primary_category: String,
-    pub categories: Vec<String>,
+    pub categories: Vector<String>,
     pub article_url: String,
     pub publish_date: String,
-    pub tags: Vec<String>,
+    pub tags: Vector<String>,
     pub preferred_tile: Option<Tile>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Data, Clone)]
 pub struct Tile {
     pub sub_header: String,
     pub image: Image,
@@ -39,7 +40,7 @@ pub struct Tile {
     pub title: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Data, Clone)]
 pub struct Image {
     pub content_type: ContentType,
     #[serde(rename = "videoURL")]
@@ -58,13 +59,13 @@ pub struct Image {
     pub background_color: Option<BackgroundColor>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Data, Clone, PartialEq, Eq)]
 pub enum ArticleLang {
     #[serde(rename = "en-us")]
     EnUs,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Data, Clone, PartialEq, Eq)]
 pub enum BackgroundColor {
     #[serde(rename = "bg-blue")]
     BgBlue,
@@ -74,7 +75,7 @@ pub enum BackgroundColor {
     BgRed,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Data, Clone, PartialEq, Eq)]
 pub enum ContentType {
     #[serde(rename = "image")]
     Image,
@@ -84,7 +85,7 @@ pub enum ContentType {
     Video,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Data, Clone, PartialEq, Eq)]
 pub enum TileSize {
     #[serde(rename = "1x1")]
     The1X1,

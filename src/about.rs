@@ -23,10 +23,12 @@ pub fn build_widget() -> impl Widget<AppState> {
     let update_box = Flex::row()
         .with_child(Label::new("⚠️ Update available!"))
         .with_default_spacer()
-        .with_child(Button::new("Update ↗️").on_click(update));
+        .with_child(Button::new("Update ↗️").on_click(|_, _, _| {
+            open::that(LATEST_RELEASE_URL).unwrap();
+        }));
 
-    let either = Either::new(
-        |data: &AppState, _env: &_| data.is_update_available,
+    let either = Either::<AppState>::new(
+        |data, _| data.is_update_available,
         update_box,
         Label::new("No updates available"),
     );
@@ -43,23 +45,15 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_flex_spacer(1.)
         .with_child(
             Flex::row()
-                .with_child(Button::new("Repository ↗️").on_click(open_repository))
+                .with_child(Button::new("Repository ↗️").on_click(|_, _, _| {
+                    open::that(REPOSITORY).unwrap();
+                }))
                 .with_default_spacer()
-                .with_child(Button::new("GPL-3.0-only Licensed ↗️").on_click(open_license))
+                .with_child(Button::new("GPL-3.0-only Licensed ↗️").on_click(|_, _, _| {
+                    open::that(LICENSE).unwrap();
+                }))
                 .with_flex_spacer(1.)
                 .with_child(Label::new(COPYRIGHT)),
         )
         .padding(10.)
-}
-
-fn update(_: &mut druid::EventCtx, _: &mut AppState, _: &druid::Env) {
-    open::that(LATEST_RELEASE_URL).unwrap();
-}
-
-fn open_repository(_: &mut druid::EventCtx, _: &mut AppState, _: &druid::Env) {
-    open::that(REPOSITORY).unwrap();
-}
-
-fn open_license(_: &mut druid::EventCtx, _: &mut AppState, _: &druid::Env) {
-    open::that(LICENSE).unwrap();
 }

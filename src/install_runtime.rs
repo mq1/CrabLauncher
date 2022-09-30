@@ -28,28 +28,25 @@ pub fn build_widget(available_runtimes: &Vector<i32>) -> impl Widget<AppState> {
             .vertical(),
         )
         .with_flex_spacer(1.)
-        .with_child(
-            Flex::row()
-                .with_flex_spacer(1.)
-                .with_child(Button::new("⬇️ Install").on_click(install_runtime)),
-        )
+        .with_child(Flex::row().with_flex_spacer(1.).with_child(
+            Button::<AppState>::new("⬇️ Install").on_click(|ctx, data, _| {
+                data.loading_message = "Installing runtime...".to_string();
+                data.current_view = View::Loading;
+
+                let runtime = data.selected_runtime.clone().unwrap();
+                let event_sink = ctx.get_external_handle();
+                smol::spawn(install_runtime(event_sink, runtime)).detach();
+            }),
+        ))
         .padding(10.)
 }
 
-fn install_runtime(ctx: &mut druid::EventCtx, data: &mut AppState, _env: &druid::Env) {
-    data.loading_message = "Installing runtime...".to_string();
-    data.current_view = View::Loading;
+async fn install_runtime(event_sink: druid::ExtEventSink, runtime: i32) {
+    lib::runtime_manager::install(&runtime).await.unwrap();
+    let list = lib::runtime_manager::list().await.unwrap();
 
-    let runtime = data.selected_runtime.clone().unwrap();
-    let event_sink = ctx.get_external_handle();
-    smol::spawn(async move {
-        lib::runtime_manager::install(&runtime).await.unwrap();
-        let list = lib::runtime_manager::list().await.unwrap();
-
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.installed_runtimes = list;
-            data.current_view = View::Runtimes;
-        });
-    })
-    .detach();
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.installed_runtimes = list;
+        data.current_view = View::Runtimes;
+    });
 }

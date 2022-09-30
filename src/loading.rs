@@ -12,7 +12,7 @@ pub fn build_widget() -> impl Widget<AppState> {
     Flex::column()
         .with_flex_child(
             Flex::column()
-                .with_child(Label::dynamic(|data: &AppState, _| {
+                .with_child(Label::<AppState>::dynamic(|data, _| {
                     data.loading_message.to_owned()
                 }))
                 .with_default_spacer()
