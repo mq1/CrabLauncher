@@ -3,13 +3,13 @@
 
 use color_eyre::Result;
 use druid::{im::Vector, Data, Lens};
-use isahc::AsyncReadResponseExt;
 use serde::Deserialize;
-use smol::fs;
+use tokio::fs;
 
 use super::{
     download_file,
     minecraft_version_meta::{MinecraftVersionMeta, VERSIONS_DIR},
+    USER_AGENT,
 };
 
 const VERSION_MANIFEST_URL: &str =
@@ -69,7 +69,14 @@ pub enum VersionType {
 }
 
 pub async fn fetch_manifest() -> Result<MinecraftVersionManifest> {
-    let manifest = isahc::get_async(VERSION_MANIFEST_URL).await?.json().await?;
+    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
+
+    let manifest = client
+        .get(VERSION_MANIFEST_URL)
+        .send()
+        .await?
+        .json()
+        .await?;
 
     Ok(manifest)
 }

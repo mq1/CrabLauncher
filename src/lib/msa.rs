@@ -5,7 +5,6 @@ use std::collections::HashMap;
 
 use color_eyre::eyre::{bail, eyre, Result};
 use druid::Data;
-use isahc::{AsyncReadResponseExt, Request, RequestExt};
 use once_cell::sync::Lazy;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -73,6 +72,8 @@ struct OAuth2Token {
 }
 
 async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
+    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
+
     // Authenticate with Xbox Live
 
     #[derive(Deserialize)]
@@ -103,14 +104,13 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
         "TokenType": "JWT",
     });
 
-    let xbl_response: XBLResponse = Request::post(XBOXLIVE_AUTH_ENDPOINT)
-        .header("Content-Type", "application/json")
+    let xbl_response = client
+        .post(XBOXLIVE_AUTH_ENDPOINT)
         .header("Accept", "application/json")
-        .header("User-Agent", USER_AGENT)
-        .body(params.to_string())?
-        .send_async()
+        .json(&params)
+        .send()
         .await?
-        .json()
+        .json::<XBLResponse>()
         .await?;
 
     // Authenticate with XSTS
@@ -130,14 +130,13 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
         "TokenType": "JWT",
     });
 
-    let xsts_response: XSTSResponse = Request::post(XSTS_AUTHORIZATION_ENDPOINT)
-        .header("Content-Type", "application/json")
+    let xsts_response = client
+        .post(XSTS_AUTHORIZATION_ENDPOINT)
         .header("Accept", "application/json")
-        .header("User-Agent", USER_AGENT)
-        .body(params.to_string())?
-        .send_async()
+        .json(&params)
+        .send()
         .await?
-        .json()
+        .json::<XSTSResponse>()
         .await?;
 
     // Authenticate with Minecraft
@@ -155,14 +154,13 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
             )
     });
 
-    let minecraft_response: MinecraftResponse = Request::post(MINECRAFT_AUTH_ENDPOINT)
-        .header("Content-Type", "application/json")
+    let minecraft_response = client
+        .post(MINECRAFT_AUTH_ENDPOINT)
         .header("Accept", "application/json")
-        .header("User-Agent", USER_AGENT)
-        .body(params.to_string())?
-        .send_async()
+        .json(&params)
+        .send()
         .await?
-        .json()
+        .json::<MinecraftResponse>()
         .await?;
 
     // Get Minecraft profile
@@ -173,16 +171,12 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
         name: String,
     }
 
-    let minecraft_profile: MinecraftProfile = Request::get(MINECRAFT_PROFILE_ENDPOINT)
-        .header(
-            "Authorization",
-            format!("Bearer {}", minecraft_response.access_token),
-        )
-        .header("User-Agent", USER_AGENT)
-        .body(())?
-        .send_async()
+    let minecraft_profile = client
+        .get(MINECRAFT_PROFILE_ENDPOINT)
+        .bearer_auth(&minecraft_response.access_token)
+        .send()
         .await?
-        .json()
+        .json::<MinecraftProfile>()
         .await?;
 
     let account = Account {
@@ -190,13 +184,13 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
         mc_id: minecraft_profile.id,
         mc_access_token: minecraft_response.access_token,
         mc_username: minecraft_profile.name,
-        is_active: false
+        is_active: false,
     };
 
     Ok(account)
 }
 
-fn listen_login_callback() -> Result<String> {
+async fn listen_login_callback() -> Result<String> {
     let server = tiny_http::Server::http("127.0.0.1:3003").unwrap();
     let request = server.recv()?;
 
@@ -230,23 +224,24 @@ pub struct Account {
 pub async fn login() -> Result<Account> {
     let code = listen_login_callback()?;
 
-    let form = url::form_urlencoded::Serializer::new(String::new())
-        .append_pair("client_id", CLIENT_ID)
-        .append_pair("scope", SCOPE)
-        .append_pair("code", &code)
-        .append_pair("redirect_uri", REDIRECT_URI)
-        .append_pair("grant_type", "authorization_code")
-        .append_pair("code_verifier", CODE_VERIFIER.as_ref())
-        .finish();
+    let params = [
+        ("client_id", CLIENT_ID),
+        ("scope", SCOPE),
+        ("code", &code),
+        ("redirect_uri", REDIRECT_URI),
+        ("grant_type", "authorization_code"),
+        ("code_verifier", CODE_VERIFIER.as_ref()),
+    ];
 
-    let resp: OAuth2Token = Request::post(MSA_TOKEN_ENDPOINT)
-        .header("Content-Type", "application/x-www-form-urlencoded")
+    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
+
+    let resp = client
+        .post(MSA_TOKEN_ENDPOINT)
         .header("Accept", "application/json")
-        .header("User-Agent", USER_AGENT)
-        .body(form)?
-        .send_async()
+        .form(&params)
+        .send()
         .await?
-        .json()
+        .json::<OAuth2Token>()
         .await?;
 
     let entry = get_minecraft_account_data(resp).await?;
@@ -255,21 +250,22 @@ pub async fn login() -> Result<Account> {
 }
 
 pub async fn refresh(account: Account) -> Result<Account> {
-    let form = url::form_urlencoded::Serializer::new(String::new())
-        .append_pair("client_id", CLIENT_ID)
-        .append_pair("scope", SCOPE)
-        .append_pair("refresh_token", &account.ms_refresh_token)
-        .append_pair("grant_type", "refresh_token")
-        .finish();
+    let params = [
+        ("client_id", CLIENT_ID),
+        ("scope", SCOPE),
+        ("refresh_token", &account.ms_refresh_token),
+        ("grant_type", "refresh_token"),
+    ];
 
-    let resp: OAuth2Token = Request::post(MSA_TOKEN_ENDPOINT)
-        .header("Content-Type", "application/x-www-form-urlencoded")
+    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
+
+    let resp = client
+        .post(MSA_TOKEN_ENDPOINT)
         .header("Accept", "application/json")
-        .header("User-Agent", USER_AGENT)
-        .body(form)?
-        .send_async()
+        .form(&params)
+        .send()
         .await?
-        .json()
+        .json::<OAuth2Token>()
         .await?;
 
     let entry = get_minecraft_account_data(resp).await?;

@@ -7,7 +7,7 @@ use color_eyre::eyre::Result;
 use druid::{Data, Lens};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use smol::fs;
+use tokio::fs;
 
 use super::BASE_DIR;
 

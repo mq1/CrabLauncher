@@ -3,7 +3,6 @@
 
 use color_eyre::eyre::Result;
 use druid::{im::Vector, Data, Lens};
-use isahc::{AsyncReadResponseExt, Request, RequestExt};
 use serde::Deserialize;
 use url::Url;
 
@@ -102,16 +101,9 @@ pub enum TileSize {
 /// Get the news from minecraft.net
 pub async fn fetch(page_size: Option<i32>) -> Result<News> {
     let page_size = page_size.unwrap_or(20);
-
     let url = Url::parse_with_params(MINECRAFT_NEWS_URL, &[("pageSize", page_size.to_string())])?;
+    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
+    let resp = client.get(url.to_string()).send().await?.json().await?;
 
-    let news = Request::get(url.to_string())
-        .header("user-agent", USER_AGENT)
-        .body(())?
-        .send_async()
-        .await?
-        .json()
-        .await?;
-
-    Ok(news)
+    Ok(resp)
 }

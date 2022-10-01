@@ -7,7 +7,7 @@ use color_eyre::eyre::Result;
 use druid::im::Vector;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use smol::fs;
+use tokio::fs;
 
 use super::{msa, BASE_DIR};
 
@@ -35,7 +35,7 @@ pub async fn read() -> Result<AccountsDocument> {
     if !ACCOUNTS_PATH.exists() {
         let default = AccountsDocument::default();
 
-        smol::spawn(write(default.clone())).detach();
+        let _ = write(default.clone());
         return Ok(default);
     }
 

@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use const_format::formatcp;
 use druid::{
     widget::{Button, Either, Flex, Image, Label},
     ImageBuf, Widget, WidgetExt,
@@ -9,7 +8,7 @@ use druid::{
 
 use crate::AppState;
 
-const APP_VERSION: &str = formatcp!("Ice Launcher version {}", env!("CARGO_PKG_VERSION"));
+const APP_VERSION: &str = concat!("Ice Launcher version ", env!("CARGO_PKG_VERSION"));
 const REPOSITORY: &str = "https://github.com/mq1/ice-launcher";
 const LATEST_RELEASE_URL: &str = "https://github.com/mq1/ice-launcher/releases/latest";
 const LICENSE: &str = "https://github.com/mq1/ice-launcher/blob/main/COPYING";

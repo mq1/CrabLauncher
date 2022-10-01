@@ -44,7 +44,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_child(
                             Button::<(Vector<Instance>, Instance)>::new("Delete ❌").on_click(
                                 |_, (instances, instance), _| {
-                                    smol::spawn(lib::instances::remove(instance.clone())).detach();
+                                    tokio::spawn(lib::instances::remove(instance.clone()));
                                     instances.retain(|i| i.name != instance.name);
                                 },
                             ),
@@ -53,7 +53,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_child(Button::<(_, Instance)>::new("Launch 🚀").on_click(
                             |ctx, (_, instance), _| {
                                 let event_sink = ctx.get_external_handle();
-                                smol::spawn(launch_instance(event_sink, instance.clone())).detach();
+                                tokio::spawn(launch_instance(event_sink, instance.clone()));
                             },
                         ))
                         .padding(5.)
@@ -94,6 +94,6 @@ pub fn build_widget() -> impl Widget<AppState> {
 async fn launch_instance(event_sink: druid::ExtEventSink, instance: Instance) {
     event_sink.add_idle_callback(move |data: &mut AppState| {
         let account = data.active_account.clone().unwrap();
-        smol::spawn(lib::instances::launch(instance, account)).detach();
+        tokio::spawn(lib::instances::launch(instance, account));
     });
 }
