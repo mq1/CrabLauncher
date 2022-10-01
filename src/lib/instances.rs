@@ -4,8 +4,8 @@
 use druid::{im::Vector, Data};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use smol::{fs, process::Command, stream::StreamExt};
-use std::path::PathBuf;
+use smol::{fs, stream::StreamExt};
+use std::{path::PathBuf, process::Command};
 use strum_macros::Display;
 
 use color_eyre::eyre::Result;
@@ -104,10 +104,6 @@ pub async fn remove(instance: Instance) -> Result<()> {
 pub async fn launch(instance: Instance, account: msa::Account) -> Result<()> {
     println!("Launching instance {}", instance.name);
 
-    println!("Refreshing account");
-    let account = msa::refresh(account).await?;
-    println!("Account refreshed");
-
     let version = minecraft_version_meta::get(&instance.info.minecraft_version).await?;
 
     let jre_version = if instance.info.jre_version == "latest" {
@@ -168,18 +164,12 @@ pub async fn launch(instance: Instance, account: msa::Account) -> Result<()> {
     jvm_args.push("-cp".to_string());
     jvm_args.push(version.get_classpath());
 
-    println!("jvm_args: {:?}", jvm_args);
-    println!("main_class: {}", version.main_class);
-    println!("game_args: {:?}", game_args);
-
-    let command = Command::new(java_path)
+    Command::new(java_path)
         .args(jvm_args)
         .arg(version.main_class)
         .args(game_args)
         .current_dir(INSTANCES_DIR.join(instance.name))
         .spawn()?;
-
-    let _ = command;
 
     Ok(())
 }
