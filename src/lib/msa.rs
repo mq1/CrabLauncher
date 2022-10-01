@@ -190,7 +190,7 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
     Ok(account)
 }
 
-async fn listen_login_callback() -> Result<String> {
+fn listen_login_callback() -> Result<String> {
     let server = tiny_http::Server::http("127.0.0.1:3003").unwrap();
     let request = server.recv()?;
 
