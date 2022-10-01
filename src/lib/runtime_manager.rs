@@ -48,15 +48,8 @@ pub struct AvailableReleases {
 
 #[derive(Deserialize)]
 struct Package {
-    checksum: String,
     link: Url,
     name: String,
-    size: i32,
-}
-
-#[derive(Deserialize)]
-struct Version {
-    semver: String,
 }
 
 #[derive(Deserialize)]
@@ -67,7 +60,7 @@ struct Binary {
 #[derive(Deserialize)]
 struct Assets {
     binary: Binary,
-    version: Version,
+    release_name: String,
 }
 
 pub async fn fetch_available_releases() -> Result<AvailableReleases> {
@@ -90,7 +83,8 @@ async fn get_assets_info(java_version: &i32) -> Result<Assets> {
 
 pub async fn is_updated(java_version: &i32) -> Result<bool> {
     let assets = get_assets_info(java_version).await?;
-    let runtime_path = RUNTIMES_DIR.join(assets.version.semver);
+    let dir = format!("{}-jre", assets.release_name);
+    let runtime_path = RUNTIMES_DIR.join(dir);
 
     if !runtime_path.exists() {
         return Ok(false);
@@ -139,13 +133,7 @@ pub async fn install(java_version: &i32) -> Result<()> {
     let assets = get_assets_info(java_version).await?;
     println!("Downloading {}", assets.binary.package.link);
 
-    #[cfg(target_os = "windows")]
-    let extension = "zip";
-
-    #[cfg(not(target_os = "windows"))]
-    let extension = "tar.gz";
-
-    let download_path = &RUNTIMES_DIR.join(format!("{}.{}", assets.version.semver, extension));
+    let download_path = RUNTIMES_DIR.join(assets.binary.package.name);
 
     download_file(
         assets.binary.package.link.as_str(),
@@ -153,7 +141,7 @@ pub async fn install(java_version: &i32) -> Result<()> {
         None, // hash is sha256, TODO support this
     )
     .await?;
-    extract_archive(download_path, RUNTIMES_DIR.as_path())?;
+    extract_archive(&download_path, RUNTIMES_DIR.as_path())?;
     fs::remove_file(download_path).await?;
 
     println!("Java {} installed", java_version);
