@@ -33,7 +33,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                 data.current_view = View::Loading;
 
                 let event_sink = ctx.get_external_handle();
-                smol::spawn(update_available_versions(event_sink)).detach();
+                tokio::spawn(update_available_versions(event_sink));
             }),
         ))
         .padding(10.)

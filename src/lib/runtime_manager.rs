@@ -5,10 +5,9 @@ use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::{bail, Result};
 use druid::im::Vector;
-use isahc::AsyncReadResponseExt;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use smol::{fs, stream::StreamExt};
+use tokio::fs;
 use url::Url;
 
 #[cfg(target_os = "windows")]
@@ -22,7 +21,7 @@ use flate2::read::GzDecoder;
 
 use crate::lib::download_file;
 
-use super::BASE_DIR;
+use super::{BASE_DIR, USER_AGENT};
 
 const ADOPTIUM_API_ENDPOINT: &str = "https://api.adoptium.net";
 
@@ -65,7 +64,8 @@ struct Assets {
 
 pub async fn fetch_available_releases() -> Result<AvailableReleases> {
     let url = format!("{ADOPTIUM_API_ENDPOINT}/v3/info/available_releases");
-    let response = isahc::get_async(url).await?.json().await?;
+    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
+    let response = client.get(url).send().await?.json().await?;
 
     Ok(response)
 }
@@ -75,7 +75,8 @@ async fn get_assets_info(java_version: &i32) -> Result<Assets> {
 
     println!("Fetching {url}");
 
-    let mut response: Vec<Assets> = isahc::get_async(url).await?.json().await?;
+    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
+    let mut response = client.get(url).send().await?.json::<Vec<Assets>>().await?;
     let assets = response.pop().unwrap();
 
     Ok(assets)
@@ -99,7 +100,7 @@ pub async fn list() -> Result<Vector<String>> {
     fs::create_dir_all(RUNTIMES_DIR.as_path()).await?;
     let mut entries = fs::read_dir(RUNTIMES_DIR.as_path()).await?;
 
-    while let Some(entry) = entries.try_next().await? {
+    while let Some(entry) = entries.next_entry().await? {
         if entry.path().is_dir() {
             runtimes.push_back(entry.file_name().to_string_lossy().to_string());
         }
@@ -148,10 +149,10 @@ pub async fn install(java_version: &i32) -> Result<()> {
     Ok(())
 }
 
-pub async fn remove(runtime: &str) -> Result<()> {
+pub async fn remove(runtime: String) -> Result<()> {
     println!("Removing {runtime}");
 
-    let runtime_path = RUNTIMES_DIR.join(runtime);
+    let runtime_path = RUNTIMES_DIR.join(&runtime);
     fs::remove_dir_all(runtime_path).await?;
 
     println!("{runtime} removed");
@@ -164,7 +165,7 @@ pub async fn get_java_path(java_version: &i32) -> Result<PathBuf> {
     let mut runtime: Option<PathBuf> = None;
 
     let mut entries = fs::read_dir(RUNTIMES_DIR.as_path()).await?;
-    while let Some(entry) = entries.try_next().await? {
+    while let Some(entry) = entries.next_entry().await? {
         if entry.file_name().to_string_lossy().contains(&java_version) {
             runtime = Some(entry.path());
             break;

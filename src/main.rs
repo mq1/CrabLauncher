@@ -84,7 +84,8 @@ impl AppDelegate<AppState> for Delegate {
     }
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     color_eyre::install()?;
 
     fs::create_dir_all(BASE_DIR.as_path()).expect("Could not create base directory");
@@ -93,7 +94,7 @@ fn main() -> Result<()> {
         .title("Ice Launcher")
         .window_size((800.0, 600.0));
 
-    let initial_state = smol::block_on(async move {
+    let initial_state = {
         let config = lib::launcher_config::read();
         let instances = lib::instances::list();
         let accounts = lib::accounts::read();
@@ -108,14 +109,14 @@ fn main() -> Result<()> {
             installed_runtimes: installed_runtimes.await.unwrap(),
             ..Default::default()
         }
-    });
+    };
 
     let launcher = AppLauncher::with_window(window);
 
     // Spawn a task to check for updates.
     if initial_state.config.automatically_check_for_updates {
         let event_sink = launcher.get_external_handle();
-        smol::spawn(check_for_updates(event_sink)).detach();
+        let _ = check_for_updates(event_sink);
     }
 
     launcher

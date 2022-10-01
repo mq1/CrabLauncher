@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use color_eyre::Result;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use smol::fs;
+use tokio::fs;
 
 use super::{
     download_file,

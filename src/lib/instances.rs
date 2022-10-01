@@ -4,9 +4,9 @@
 use druid::{im::Vector, Data};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use smol::{fs, stream::StreamExt};
 use std::{path::PathBuf, process::Command};
 use strum_macros::Display;
+use tokio::fs;
 
 use color_eyre::eyre::Result;
 
@@ -62,15 +62,18 @@ pub async fn list() -> Result<Vector<Instance>> {
     fs::create_dir_all(INSTANCES_DIR.as_path()).await?;
     let mut entries = fs::read_dir(INSTANCES_DIR.as_path()).await?;
 
-    while let Some(entry) = entries.try_next().await? {
-        if entry.path().is_dir() {
-            let file_name = entry.file_name().to_string_lossy().to_string();
-            let info = read_info(&file_name).await?;
-            instances.push_back(Instance {
-                name: file_name,
-                info,
-            });
+    while let Some(entry) = entries.next_entry().await? {
+        if !entry.path().is_dir() {
+            continue;
         }
+
+        let instance_name = entry.file_name().into_string().unwrap();
+        let info = read_info(&instance_name).await?;
+
+        instances.push_back(Instance {
+            name: instance_name,
+            info,
+        });
     }
 
     Ok(instances)

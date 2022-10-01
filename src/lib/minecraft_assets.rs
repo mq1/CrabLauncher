@@ -6,7 +6,7 @@ use std::{collections::HashMap, path::PathBuf};
 use color_eyre::eyre::Result;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use smol::fs;
+use tokio::fs;
 use url::Url;
 
 use super::{download_file, BASE_DIR};

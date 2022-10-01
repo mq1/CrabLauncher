@@ -15,11 +15,12 @@ copyright = "Copyright (C) 2022 Manuel Quarneti"
 
 [dependencies]
 druid = { git = "https://github.com/linebender/druid.git", features = ["im", "image", "png", "serde"] }
-isahc = { version = "1", default-features = false, features = ["json"] }
+reqwest = { version = "0.11", features = ["json", "stream"] }
+tokio = { version = "1", features = ["full"] }
+futures-util = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 url = { version = "2", features = ["serde"] }
-const_format = "0.2"
 color-eyre = "0.6"
 open = "2"
 directories = "4"
@@ -31,7 +32,6 @@ rand = "0.8"
 sha2 = "0.10"
 base64-url = "1"
 tiny_http = "0.11"
-smol = "1"
 version-compare = "0.1"
 sha1 = "0.10"
 

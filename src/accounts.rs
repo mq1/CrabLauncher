@@ -36,7 +36,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_child(
                             Button::<(Vector<Account>, Account)>::new("Remove 💣").on_click(
                                 |_, (accounts, account), _| {
-                                    smol::spawn(lib::accounts::remove(account.clone())).detach();
+                                    tokio::spawn(lib::accounts::remove(account.clone()));
                                     accounts.retain(|a| a.mc_id != account.mc_id);
                                 },
                             ),
@@ -45,8 +45,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_child(
                             Button::<(Vector<Account>, Account)>::new("Select ✅").on_click(
                                 |_, (accounts, account), _| {
-                                    smol::spawn(lib::accounts::set_active(account.clone()))
-                                        .detach();
+                                    tokio::spawn(lib::accounts::set_active(account.clone()));
 
                                     accounts.iter_mut().for_each(|a| {
                                         a.is_active = a.mc_id == account.mc_id;
@@ -76,7 +75,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                 open::that(lib::msa::AUTH_URL.as_str()).expect("Failed to open auth url");
 
                 let event_sink = ctx.get_external_handle();
-                smol::spawn(login(event_sink)).detach();
+                tokio::spawn(login(event_sink));
             }),
         )
         .with_flex_spacer(1.)

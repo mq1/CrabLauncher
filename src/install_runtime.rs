@@ -35,7 +35,7 @@ pub fn build_widget(available_runtimes: &Vector<i32>) -> impl Widget<AppState> {
 
                 let runtime = data.selected_runtime.clone().unwrap();
                 let event_sink = ctx.get_external_handle();
-                smol::spawn(install_runtime(event_sink, runtime)).detach();
+                tokio::spawn(install_runtime(event_sink, runtime));
             }),
         ))
         .padding(10.)

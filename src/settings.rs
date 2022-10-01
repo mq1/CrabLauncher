@@ -71,7 +71,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                 .with_default_spacer()
                 .with_child(Button::<LauncherConfig>::new("Save settings 📝").on_click(
                     |_, data, _| {
-                        smol::spawn(launcher_config::write(data.clone())).detach();
+                        tokio::spawn(launcher_config::write(data.clone()));
                     },
                 )),
         )

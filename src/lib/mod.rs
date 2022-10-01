@@ -4,12 +4,11 @@
 use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::Result;
-use const_format::formatcp;
 use directories::ProjectDirs;
-use isahc::{config::RedirectPolicy, prelude::Configurable, AsyncReadResponseExt, HttpClient};
+use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use sha1::{Digest, Sha1};
-use smol::fs::File;
+use tokio::{fs::File, io::AsyncWriteExt};
 
 pub mod accounts;
 pub mod instances;
@@ -24,7 +23,7 @@ pub mod minecraft_version_meta;
 pub mod msa;
 pub mod runtime_manager;
 
-pub const USER_AGENT: &str = formatcp!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+pub const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     ProjectDirs::from("eu", "mq1", "ice-launcher")
@@ -48,14 +47,14 @@ pub async fn download_file(url: &str, path: &Path, sha1: Option<&str>) -> Result
         }
     }
 
-    let client = HttpClient::builder()
-        .redirect_policy(RedirectPolicy::Limit(10))
-        .default_header("User-Agent", USER_AGENT)
-        .build()?;
+    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
 
-    let mut resp = client.get_async(url).await?;
+    let mut stream = client.get(url).send().await?.bytes_stream();
     let mut file = File::create(path).await?;
-    resp.copy_to(&mut file).await?;
+
+    while let Some(chunk) = stream.next().await {
+        file.write_all(&chunk?).await?;
+    }
 
     Ok(())
 }

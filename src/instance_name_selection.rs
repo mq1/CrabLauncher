@@ -40,7 +40,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                     let name = data.new_instance_state.instance_name.clone();
                     let version = data.new_instance_state.selected_version.clone().unwrap();
 
-                    smol::spawn(install_version(event_sink, name, version)).detach();
+                    tokio::spawn(install_version(event_sink, name, version));
 
                     data.loading_message = "Creating new instance...".to_string();
                     data.current_view = View::Loading;
