@@ -16,6 +16,7 @@ mod loading;
 mod news;
 mod root;
 mod runtimes;
+mod server;
 mod settings;
 
 use std::{fs, process::exit};
@@ -118,6 +119,9 @@ async fn main() -> Result<()> {
         let event_sink = launcher.get_external_handle();
         let _ = check_for_updates(event_sink);
     }
+
+    let event_sink = launcher.get_external_handle();
+    let _ = server::serve(event_sink);
 
     launcher
         .delegate(Delegate {})

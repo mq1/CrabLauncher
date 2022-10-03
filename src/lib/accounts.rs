@@ -69,8 +69,8 @@ pub async fn set_active(account: msa::Account) -> Result<()> {
     Ok(())
 }
 
-pub async fn add() -> Result<()> {
-    let account = msa::login().await?;
+pub async fn add(code: String) -> Result<()> {
+    let account = msa::login(code).await?;
     let mut document = read().await?;
     document.accounts.push_back(account);
     write(document).await?;
