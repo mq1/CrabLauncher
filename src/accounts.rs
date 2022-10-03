@@ -69,28 +69,12 @@ pub fn build_widget() -> impl Widget<AppState> {
         )
         .with_default_spacer()
         .with_child(
-            Button::<AppState>::new("New Account 🎉").on_click(|ctx, data, _| {
+            Button::<AppState>::new("New Account 🎉").on_click(|_, data, _| {
                 data.loading_message = "Waiting for authentication...".to_string();
                 data.current_view = View::Loading;
                 open::that(lib::msa::AUTH_URL.as_str()).expect("Failed to open auth url");
-
-                let event_sink = ctx.get_external_handle();
-                tokio::spawn(login(event_sink));
             }),
         )
         .with_flex_spacer(1.)
         .padding(10.)
-}
-
-async fn login(event_sink: druid::ExtEventSink) {
-    lib::accounts::add().await.expect("Failed to add account");
-    let accounts = lib::accounts::read()
-        .await
-        .expect("Failed to list accounts")
-        .accounts;
-
-    event_sink.add_idle_callback(|data: &mut AppState| {
-        data.accounts = accounts;
-        data.current_view = View::Accounts;
-    });
 }

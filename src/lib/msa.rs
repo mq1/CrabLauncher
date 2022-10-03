@@ -1,9 +1,7 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::collections::HashMap;
-
-use color_eyre::eyre::{bail, eyre, Result};
+use color_eyre::eyre::Result;
 use druid::Data;
 use once_cell::sync::Lazy;
 use rand::distributions::Alphanumeric;
@@ -190,28 +188,6 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
     Ok(account)
 }
 
-fn listen_login_callback() -> Result<String> {
-    let server = tiny_http::Server::http("127.0.0.1:3003").unwrap();
-    let request = server.recv()?;
-
-    let url = Url::parse(&format!("{}{}", REDIRECT_URI, request.url()))?;
-    let hash_query: HashMap<_, _> = url.query_pairs().into_owned().collect();
-
-    let state = hash_query
-        .get("state")
-        .ok_or(eyre!("Auth2 state not found"))?;
-
-    if state.ne(STATE.as_str()) {
-        bail!("Invalid auth2 state");
-    }
-
-    let code = hash_query.get("code").ok_or(eyre!("Code not found"))?;
-
-    request.respond(tiny_http::Response::from_string("You can close this tab"))?;
-
-    Ok(code.to_string())
-}
-
 #[derive(Serialize, Deserialize, Clone, Data)]
 pub struct Account {
     pub ms_refresh_token: String,
@@ -221,9 +197,7 @@ pub struct Account {
     pub is_active: bool,
 }
 
-pub async fn login() -> Result<Account> {
-    let code = listen_login_callback()?;
-
+pub async fn login(code: String) -> Result<Account> {
     let params = [
         ("client_id", CLIENT_ID),
         ("scope", SCOPE),
