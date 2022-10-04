@@ -23,7 +23,7 @@ const MINECRAFT_AUTH_ENDPOINT: &str =
 const MINECRAFT_PROFILE_ENDPOINT: &str = "https://api.minecraftservices.com/minecraft/profile";
 const CLIENT_ID: &str = "2000ea79-d993-4591-b9c4-e678f82ae1db";
 const SCOPE: &str = "XboxLive.signin offline_access";
-const REDIRECT_URI: &str = "http://127.0.0.1:3003";
+const REDIRECT_URI: &str = "http://127.0.0.1:3003/login";
 
 static CODE_VERIFIER: Lazy<String> = Lazy::new(|| {
     thread_rng()
