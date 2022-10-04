@@ -13,7 +13,6 @@ pub async fn serve(event_sink: druid::ExtEventSink) {
         .and(warp::query::<HashMap<String, String>>())
         .map(move |p: HashMap<String, String>| match p.get("code") {
             Some(code) => {
-                let event_sink = event_sink.clone();
                 let rt = Runtime::new().unwrap();
                 rt.block_on(lib::accounts::add(code.to_owned())).unwrap();
                 let accounts = rt.block_on(lib::accounts::read()).unwrap().accounts;
