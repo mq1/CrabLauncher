@@ -24,9 +24,8 @@ use std::{fs, process::exit};
 use color_eyre::eyre::Result;
 use druid::{im::Vector, AppDelegate, AppLauncher, Data, Lens, WindowDesc};
 use lib::BASE_DIR;
-use strum_macros::Display;
 
-#[derive(PartialEq, Eq, Data, Clone, Copy, Display, Default)]
+#[derive(PartialEq, Eq, Data, Clone, Copy, Default)]
 enum View {
     #[default]
     Instances,
