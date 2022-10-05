@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use color_eyre::eyre::Result;
 use druid::im::Vector;
+use oauth2::PkceCodeVerifier;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
@@ -69,8 +70,8 @@ pub async fn set_active(account: msa::Account) -> Result<()> {
     Ok(())
 }
 
-pub async fn add(code: String) -> Result<()> {
-    let account = msa::login(code).await?;
+pub async fn add(code: String, pkce_verifier: String) -> Result<()> {
+    let account = msa::login(code, pkce_verifier).await?;
     let mut document = read().await?;
     document.accounts.push_back(account);
     write(document).await?;

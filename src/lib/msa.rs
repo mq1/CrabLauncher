@@ -3,12 +3,15 @@
 
 use color_eyre::eyre::Result;
 use druid::Data;
+use oauth2::basic::BasicClient;
+use oauth2::reqwest::async_http_client;
+use oauth2::{
+    AuthUrl, AuthorizationCode, ClientId, CsrfToken, PkceCodeChallenge, PkceCodeVerifier,
+    RedirectUrl, RefreshToken, Scope, TokenResponse, TokenUrl,
+};
 use once_cell::sync::Lazy;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sha2::{Digest, Sha256};
 use url::Url;
 
 use super::USER_AGENT;
@@ -21,55 +24,36 @@ const XSTS_AUTHORIZATION_ENDPOINT: &str = "https://xsts.auth.xboxlive.com/xsts/a
 const MINECRAFT_AUTH_ENDPOINT: &str =
     "https://api.minecraftservices.com/authentication/login_with_xbox";
 const MINECRAFT_PROFILE_ENDPOINT: &str = "https://api.minecraftservices.com/minecraft/profile";
-const CLIENT_ID: &str = "2000ea79-d993-4591-b9c4-e678f82ae1db";
-const SCOPE: &str = "XboxLive.signin offline_access";
+const CLIENT_ID: &str = "ae26ac80-2153-4801-94f6-8859ce8e058a";
 const REDIRECT_URI: &str = "http://127.0.0.1:3003/login";
 
-static CODE_VERIFIER: Lazy<String> = Lazy::new(|| {
-    thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(128)
-        .map(char::from)
-        .collect()
+static OAUTH2_CLIENT: Lazy<BasicClient> = Lazy::new(|| {
+    BasicClient::new(
+        ClientId::new(CLIENT_ID.to_string()),
+        None,
+        AuthUrl::new(MSA_AUTHORIZATION_ENDPOINT.to_string()).unwrap(),
+        Some(TokenUrl::new(MSA_TOKEN_ENDPOINT.to_string()).unwrap()),
+    )
+    .set_redirect_uri(RedirectUrl::new(REDIRECT_URI.to_string()).unwrap())
 });
 
-static CODE_CHALLENGE: Lazy<String> = Lazy::new(|| {
-    let hash = Sha256::digest(CODE_VERIFIER.as_bytes());
-    base64_url::encode(&hash)
-});
+pub fn get_auth_url() -> (Url, PkceCodeVerifier) {
+    let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
-static STATE: Lazy<String> = Lazy::new(|| {
-    thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(8)
-        .map(char::from)
-        .collect()
-});
+    let (auth_url, _) = OAUTH2_CLIENT
+        .authorize_url(CsrfToken::new_random)
+        .add_scope(Scope::new("XboxLive.signin".to_string()))
+        .add_scope(Scope::new("offline_access".to_string()))
+        .set_pkce_challenge(pkce_challenge)
+        .url();
 
-pub static AUTH_URL: Lazy<Url> = Lazy::new(|| {
-    let params = [
-        ("client_id", CLIENT_ID),
-        ("response_type", "code"),
-        ("redirect_uri", REDIRECT_URI),
-        ("response_mode", "query"),
-        ("scope", SCOPE),
-        ("state", STATE.as_ref()),
-        ("code_challenge", CODE_CHALLENGE.as_ref()),
-        ("code_challenge_method", "S256"),
-    ];
-
-    let url = Url::parse_with_params(MSA_AUTHORIZATION_ENDPOINT, &params).unwrap();
-
-    url
-});
-
-#[derive(Deserialize)]
-struct OAuth2Token {
-    access_token: String,
-    refresh_token: String,
+    (auth_url, pkce_verifier)
 }
 
-async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
+async fn get_minecraft_account_data(
+    access_token: String,
+    refresh_token: String,
+) -> Result<Account> {
     let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
 
     // Authenticate with Xbox Live
@@ -96,7 +80,7 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
         "Properties": {
             "AuthMethod": "RPS",
             "SiteName": "user.auth.xboxlive.com",
-            "RpsTicket": format!("d={}", msa_token.access_token),
+            "RpsTicket": format!("d={}", access_token),
         },
         "RelyingParty": "http://auth.xboxlive.com",
         "TokenType": "JWT",
@@ -178,7 +162,7 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
         .await?;
 
     let account = Account {
-        ms_refresh_token: msa_token.refresh_token,
+        ms_refresh_token: refresh_token,
         mc_id: minecraft_profile.id,
         mc_access_token: minecraft_response.access_token,
         mc_username: minecraft_profile.name,
@@ -197,52 +181,35 @@ pub struct Account {
     pub is_active: bool,
 }
 
-pub async fn login(code: String) -> Result<Account> {
-    let params = [
-        ("client_id", CLIENT_ID),
-        ("scope", SCOPE),
-        ("code", &code),
-        ("redirect_uri", REDIRECT_URI),
-        ("grant_type", "authorization_code"),
-        ("code_verifier", CODE_VERIFIER.as_ref()),
-    ];
+pub async fn login(code: String, pkce_verifier: String) -> Result<Account> {
+    let pkce_verifier = PkceCodeVerifier::new(pkce_verifier);
 
-    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
-
-    let resp = client
-        .post(MSA_TOKEN_ENDPOINT)
-        .header("Accept", "application/json")
-        .form(&params)
-        .send()
-        .await?
-        .json::<OAuth2Token>()
+    let token_result = OAUTH2_CLIENT
+        .exchange_code(AuthorizationCode::new(code))
+        .set_pkce_verifier(pkce_verifier)
+        .request_async(async_http_client)
         .await?;
 
-    let entry = get_minecraft_account_data(resp).await?;
+    let access_token = token_result.access_token().secret().clone();
+    let refresh_token = token_result.refresh_token().unwrap().secret().clone();
+
+    let entry = get_minecraft_account_data(access_token, refresh_token).await?;
 
     Ok(entry)
 }
 
 pub async fn refresh(account: Account) -> Result<Account> {
-    let params = [
-        ("client_id", CLIENT_ID),
-        ("scope", SCOPE),
-        ("refresh_token", &account.ms_refresh_token),
-        ("grant_type", "refresh_token"),
-    ];
+    let refresh_token = RefreshToken::new(account.ms_refresh_token.clone());
 
-    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
-
-    let resp = client
-        .post(MSA_TOKEN_ENDPOINT)
-        .header("Accept", "application/json")
-        .form(&params)
-        .send()
-        .await?
-        .json::<OAuth2Token>()
+    let token_result = OAUTH2_CLIENT
+        .exchange_refresh_token(&refresh_token)
+        .request_async(async_http_client)
         .await?;
 
-    let entry = get_minecraft_account_data(resp).await?;
+    let access_token = token_result.access_token().secret().clone();
+    let refresh_token = token_result.refresh_token().unwrap().secret().clone();
+
+    let entry = get_minecraft_account_data(access_token, refresh_token).await?;
 
     Ok(entry)
 }
