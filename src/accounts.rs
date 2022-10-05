@@ -72,7 +72,11 @@ pub fn build_widget() -> impl Widget<AppState> {
             Button::<AppState>::new("New Account 🎉").on_click(|_, data, _| {
                 data.loading_message = "Waiting for authentication...".to_string();
                 data.current_view = View::Loading;
-                open::that(lib::msa::AUTH_URL.as_str()).expect("Failed to open auth url");
+
+                let (auth_url, pkce_verfier) = lib::msa::get_auth_url();
+                data.auth_url = auth_url.to_string();
+                data.pkce_verifier = pkce_verfier.secret().to_string();
+                open::that(auth_url.to_string()).expect("Failed to open auth url");
             }),
         )
         .with_flex_spacer(1.)

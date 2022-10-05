@@ -63,6 +63,8 @@ pub struct AppState {
     installed_runtimes: Vector<String>,
     available_runtimes: Vector<i32>,
     selected_runtime: Option<i32>,
+    auth_url: String,
+    pkce_verifier: String,
 }
 
 struct Delegate;
