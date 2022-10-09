@@ -183,9 +183,9 @@ pub struct Account {
     pub is_active: bool,
 }
 
-async fn login(code: String, pkce_verifier: PkceCodeVerifier) -> Result<Account> {
+async fn login(code: AuthorizationCode, pkce_verifier: PkceCodeVerifier) -> Result<Account> {
     let token_result = OAUTH2_CLIENT
-        .exchange_code(AuthorizationCode::new(code))
+        .exchange_code(code)
         .set_pkce_verifier(pkce_verifier)
         .request_async(async_http_client)
         .await?;
@@ -260,7 +260,7 @@ pub async fn listen_login_callback(pkce_verifier: PkceCodeVerifier) -> Result<Ac
             );
             stream.write_all(response.as_bytes()).await.unwrap();
 
-            return login(code.secret().clone(), pkce_verifier).await;
+            return login(code, pkce_verifier).await;
         }
     }
 }
