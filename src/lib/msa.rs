@@ -12,6 +12,8 @@ use oauth2::{
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use tokio::io::{BufReader, AsyncBufReadExt, AsyncWriteExt};
+use tokio::net::TcpListener;
 use url::Url;
 
 use super::USER_AGENT;
@@ -181,9 +183,7 @@ pub struct Account {
     pub is_active: bool,
 }
 
-pub async fn login(code: String, pkce_verifier: String) -> Result<Account> {
-    let pkce_verifier = PkceCodeVerifier::new(pkce_verifier);
-
+async fn login(code: String, pkce_verifier: PkceCodeVerifier) -> Result<Account> {
     let token_result = OAUTH2_CLIENT
         .exchange_code(AuthorizationCode::new(code))
         .set_pkce_verifier(pkce_verifier)
@@ -212,4 +212,55 @@ pub async fn refresh(account: Account) -> Result<Account> {
     let entry = get_minecraft_account_data(access_token, refresh_token).await?;
 
     Ok(entry)
+}
+
+pub async fn listen_login_callback(pkce_verifier: PkceCodeVerifier) -> Result<Account> {
+    let listener = TcpListener::bind("127.0.0.1:3003").await.unwrap();
+    loop {
+        if let Ok((mut stream, _)) = listener.accept().await {
+            let code;
+            let state;
+            {
+                let mut reader = BufReader::new(&mut stream);
+
+                let mut request_line = String::new();
+                reader.read_line(&mut request_line).await.unwrap();
+
+                let redirect_url = request_line.split_whitespace().nth(1).unwrap();
+                let url = Url::parse(&("http://localhost".to_string() + redirect_url)).unwrap();
+
+                let code_pair = url
+                    .query_pairs()
+                    .find(|pair| {
+                        let &(ref key, _) = pair;
+                        key == "code"
+                    })
+                    .unwrap();
+
+                let (_, value) = code_pair;
+                code = AuthorizationCode::new(value.into_owned());
+
+                let state_pair = url
+                    .query_pairs()
+                    .find(|pair| {
+                        let &(ref key, _) = pair;
+                        key == "state"
+                    })
+                    .unwrap();
+
+                let (_, value) = state_pair;
+                state = CsrfToken::new(value.into_owned());
+            }
+
+            let message = "You can close this tab now.";
+            let response = format!(
+                "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
+                message.len(),
+                message
+            );
+            stream.write_all(response.as_bytes()).await.unwrap();
+
+            return login(code.secret().clone(), pkce_verifier).await;
+        }
+    }
 }
