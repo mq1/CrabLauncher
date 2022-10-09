@@ -70,9 +70,9 @@ pub async fn set_active(account: msa::Account) -> Result<()> {
     Ok(())
 }
 
-pub async fn add(code: String, pkce_verifier: String) -> Result<()> {
-    let account = msa::login(code, pkce_verifier).await?;
+pub async fn add(pkce_verifier: PkceCodeVerifier) -> Result<()> {
     let mut document = read().await?;
+    let account = msa::listen_login_callback(pkce_verifier).await?;
     document.accounts.push_back(account);
     write(document).await?;
 
