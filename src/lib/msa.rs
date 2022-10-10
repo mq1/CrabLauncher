@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{bail, Result};
 use druid::Data;
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
@@ -39,17 +39,17 @@ static OAUTH2_CLIENT: Lazy<BasicClient> = Lazy::new(|| {
     .set_redirect_uri(RedirectUrl::new(REDIRECT_URI.to_string()).unwrap())
 });
 
-pub fn get_auth_url() -> (Url, PkceCodeVerifier) {
+pub fn get_auth_url() -> (Url, CsrfToken, PkceCodeVerifier) {
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
-    let (auth_url, _) = OAUTH2_CLIENT
+    let (auth_url, csfr_token) = OAUTH2_CLIENT
         .authorize_url(CsrfToken::new_random)
         .add_scope(Scope::new("XboxLive.signin".to_string()))
         .add_scope(Scope::new("offline_access".to_string()))
         .set_pkce_challenge(pkce_challenge)
         .url();
 
-    (auth_url, pkce_verifier)
+    (auth_url, csfr_token, pkce_verifier)
 }
 
 async fn get_minecraft_account_data(
@@ -212,7 +212,10 @@ pub async fn refresh(account: Account) -> Result<Account> {
     Ok(entry)
 }
 
-pub async fn listen_login_callback(pkce_verifier: PkceCodeVerifier) -> Result<Account> {
+pub async fn listen_login_callback(
+    csrf_token: CsrfToken,
+    pkce_verifier: PkceCodeVerifier,
+) -> Result<Account> {
     let listener = TcpListener::bind("127.0.0.1:3003").await.unwrap();
     loop {
         if let Ok((mut stream, _)) = listener.accept().await {
@@ -248,6 +251,18 @@ pub async fn listen_login_callback(pkce_verifier: PkceCodeVerifier) -> Result<Ac
 
                 let (_, value) = state_pair;
                 state = CsrfToken::new(value.into_owned());
+            }
+
+            if state.secret() != csrf_token.secret() {
+                let message = "Invalid state";
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
+                    message.len(),
+                    message
+                );
+                stream.write_all(response.as_bytes()).await.unwrap();
+
+                bail!("Invalid CSRF token");
             }
 
             let message = "You can close this tab now.";
