@@ -115,7 +115,7 @@ async fn main() -> Result<()> {
     // Spawn a task to check for updates.
     if initial_state.config.automatically_check_for_updates {
         let event_sink = launcher.get_external_handle();
-        let _ = check_for_updates(event_sink);
+        tokio::spawn(check_for_updates(event_sink));
     }
 
     launcher
