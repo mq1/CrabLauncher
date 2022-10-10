@@ -25,8 +25,8 @@ impl AsRef<AccountsDocument> for AccountsDocument {
     }
 }
 
-async fn write<A: AsRef<AccountsDocument>>(accounts: A) -> Result<()> {
-    let content = toml::to_string_pretty(accounts.as_ref())?;
+async fn write(accounts: &AccountsDocument) -> Result<()> {
+    let content = toml::to_string_pretty(accounts)?;
     fs::write(ACCOUNTS_PATH.as_path(), content).await?;
 
     Ok(())
@@ -65,7 +65,7 @@ pub async fn set_active(account: msa::Account) -> Result<()> {
         a.is_active = a.mc_id == account.mc_id;
     }
 
-    write(document).await?;
+    write(&document).await?;
 
     Ok(())
 }
@@ -74,7 +74,7 @@ pub async fn add(pkce_verifier: PkceCodeVerifier) -> Result<()> {
     let mut document = read().await?;
     let account = msa::listen_login_callback(pkce_verifier).await?;
     document.accounts.push_back(account);
-    write(document).await?;
+    write(&document).await?;
 
     Ok(())
 }
@@ -83,7 +83,7 @@ pub async fn remove(account: msa::Account) -> Result<()> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path()).await?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
     document.accounts.retain(|a| a.mc_id != account.mc_id);
-    write(document).await?;
+    write(&document).await?;
 
     Ok(())
 }
