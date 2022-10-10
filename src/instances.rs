@@ -80,7 +80,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_child(
             Flex::row().with_flex_spacer(1.).with_child(
                 Button::<AppState>::dynamic(|data, _| match &data.active_account {
-                    Some(account) => format!("Active account: {}", account.mc_username),
+                    Some(account) => format!("👤 {}", account.mc_username),
                     None => "⚠️ No active account".to_string(),
                 })
                 .on_click(|_, data, _| {
