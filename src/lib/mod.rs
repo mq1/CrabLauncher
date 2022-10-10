@@ -23,13 +23,20 @@ pub mod minecraft_version_meta;
 pub mod msa;
 pub mod runtime_manager;
 
-pub const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
-
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     ProjectDirs::from("eu", "mq1", "ice-launcher")
         .expect("Could not get project directories")
         .data_dir()
         .to_path_buf()
+});
+
+pub static HTTP_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
+    let user_agent = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+
+    reqwest::Client::builder()
+        .user_agent(user_agent)
+        .build()
+        .expect("Could not create HTTP client")
 });
 
 pub async fn download_file(url: &str, path: &Path, sha1: Option<&str>) -> Result<()> {
@@ -47,9 +54,7 @@ pub async fn download_file(url: &str, path: &Path, sha1: Option<&str>) -> Result
         }
     }
 
-    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
-
-    let mut stream = client.get(url).send().await?.bytes_stream();
+    let mut stream = HTTP_CLIENT.get(url).send().await?.bytes_stream();
     let mut file = File::create(path).await?;
 
     while let Some(chunk) = stream.next().await {

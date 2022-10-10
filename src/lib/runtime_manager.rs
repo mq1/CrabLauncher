@@ -21,7 +21,7 @@ use flate2::read::GzDecoder;
 
 use crate::lib::download_file;
 
-use super::{BASE_DIR, USER_AGENT};
+use super::{BASE_DIR, HTTP_CLIENT};
 
 const ADOPTIUM_API_ENDPOINT: &str = "https://api.adoptium.net";
 
@@ -64,8 +64,7 @@ struct Assets {
 
 pub async fn fetch_available_releases() -> Result<AvailableReleases> {
     let url = format!("{ADOPTIUM_API_ENDPOINT}/v3/info/available_releases");
-    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
-    let response = client.get(url).send().await?.json().await?;
+    let response = HTTP_CLIENT.get(url).send().await?.json().await?;
 
     Ok(response)
 }
@@ -75,8 +74,13 @@ async fn get_assets_info(java_version: &i32) -> Result<Assets> {
 
     println!("Fetching {url}");
 
-    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
-    let mut response = client.get(url).send().await?.json::<Vec<Assets>>().await?;
+    let mut response = HTTP_CLIENT
+        .get(url)
+        .send()
+        .await?
+        .json::<Vec<Assets>>()
+        .await?;
+
     let assets = response.pop().unwrap();
 
     Ok(assets)

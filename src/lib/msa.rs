@@ -12,11 +12,11 @@ use oauth2::{
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tokio::io::{BufReader, AsyncBufReadExt, AsyncWriteExt};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
 use url::Url;
 
-use super::USER_AGENT;
+use super::HTTP_CLIENT;
 
 const MSA_AUTHORIZATION_ENDPOINT: &str =
     "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
@@ -56,8 +56,6 @@ async fn get_minecraft_account_data(
     access_token: String,
     refresh_token: String,
 ) -> Result<Account> {
-    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
-
     // Authenticate with Xbox Live
 
     #[derive(Deserialize)]
@@ -88,7 +86,7 @@ async fn get_minecraft_account_data(
         "TokenType": "JWT",
     });
 
-    let xbl_response = client
+    let xbl_response = HTTP_CLIENT
         .post(XBOXLIVE_AUTH_ENDPOINT)
         .header("Accept", "application/json")
         .json(&params)
@@ -114,7 +112,7 @@ async fn get_minecraft_account_data(
         "TokenType": "JWT",
     });
 
-    let xsts_response = client
+    let xsts_response = HTTP_CLIENT
         .post(XSTS_AUTHORIZATION_ENDPOINT)
         .header("Accept", "application/json")
         .json(&params)
@@ -138,7 +136,7 @@ async fn get_minecraft_account_data(
             )
     });
 
-    let minecraft_response = client
+    let minecraft_response = HTTP_CLIENT
         .post(MINECRAFT_AUTH_ENDPOINT)
         .header("Accept", "application/json")
         .json(&params)
@@ -155,7 +153,7 @@ async fn get_minecraft_account_data(
         name: String,
     }
 
-    let minecraft_profile = client
+    let minecraft_profile = HTTP_CLIENT
         .get(MINECRAFT_PROFILE_ENDPOINT)
         .bearer_auth(&minecraft_response.access_token)
         .send()

@@ -6,7 +6,7 @@ use druid::{im::Vector, Data, Lens};
 use serde::Deserialize;
 use url::Url;
 
-use super::USER_AGENT;
+use super::HTTP_CLIENT;
 
 const MINECRAFT_NEWS_URL: &str =
     "https://www.minecraft.net/content/minecraft-net/_jcr_content.articles.grid";
@@ -102,8 +102,12 @@ pub enum TileSize {
 pub async fn fetch(page_size: Option<i32>) -> Result<News> {
     let page_size = page_size.unwrap_or(20);
     let url = Url::parse_with_params(MINECRAFT_NEWS_URL, &[("pageSize", page_size.to_string())])?;
-    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
-    let resp = client.get(url.to_string()).send().await?.json().await?;
+    let resp = HTTP_CLIENT
+        .get(url.to_string())
+        .send()
+        .await?
+        .json()
+        .await?;
 
     Ok(resp)
 }
