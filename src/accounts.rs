@@ -45,12 +45,15 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_default_spacer()
                         .with_child(
                             Button::<(Vector<Account>, Account)>::new("Select ✅").on_click(
-                                |_, (accounts, account), _| {
+                                |ctx, (accounts, account), _| {
                                     tokio::spawn(lib::accounts::set_active(account.clone()));
 
                                     accounts.iter_mut().for_each(|a| {
                                         a.is_active = a.mc_id == account.mc_id;
                                     });
+
+                                    let event_sink = ctx.get_external_handle();
+                                    update_active_account(event_sink, account.clone());
                                 },
                             ),
                         )
@@ -92,5 +95,11 @@ async fn add_account(event_sink: druid::ExtEventSink, pkce_verifier: PkceCodeVer
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.accounts = accounts;
         data.current_view = View::Accounts;
+    });
+}
+
+fn update_active_account(event_sink: druid::ExtEventSink, active_account: Account) {
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.active_account = Some(active_account);
     });
 }
