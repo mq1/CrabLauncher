@@ -9,7 +9,7 @@ use tokio::fs;
 use super::{
     download_file,
     minecraft_version_meta::{MinecraftVersionMeta, VERSIONS_DIR},
-    USER_AGENT,
+    HTTP_CLIENT,
 };
 
 const VERSION_MANIFEST_URL: &str =
@@ -69,9 +69,7 @@ pub enum VersionType {
 }
 
 pub async fn fetch_manifest() -> Result<MinecraftVersionManifest> {
-    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
-
-    let manifest = client
+    let manifest = HTTP_CLIENT
         .get(VERSION_MANIFEST_URL)
         .send()
         .await?

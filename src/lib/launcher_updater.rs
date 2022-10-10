@@ -5,7 +5,7 @@ use color_eyre::Result;
 use serde::Deserialize;
 use version_compare::Version;
 
-use super::USER_AGENT;
+use super::HTTP_CLIENT;
 
 const LATEST_RELEASE_URL: &str = "https://api.github.com/repos/mq1/ice-launcher/releases/latest";
 
@@ -15,8 +15,12 @@ struct Release {
 }
 
 async fn get_latest_release() -> Result<Release> {
-    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
-    let resp = client.get(LATEST_RELEASE_URL).send().await?.json().await?;
+    let resp = HTTP_CLIENT
+        .get(LATEST_RELEASE_URL)
+        .send()
+        .await?
+        .json()
+        .await?;
 
     Ok(resp)
 }
