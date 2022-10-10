@@ -35,8 +35,8 @@ async fn write<A: AsRef<AccountsDocument>>(accounts: A) -> Result<()> {
 pub async fn read() -> Result<AccountsDocument> {
     if !ACCOUNTS_PATH.exists() {
         let default = AccountsDocument::default();
+        write(&default).await?;
 
-        let _ = write(default.clone());
         return Ok(default);
     }
 
