@@ -7,7 +7,7 @@ use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
     Color, LensExt, Widget, WidgetExt,
 };
-use oauth2::PkceCodeVerifier;
+use oauth2::{PkceCodeVerifier, CsrfToken};
 
 use crate::{
     lib::{self, msa::Account},
@@ -77,19 +77,19 @@ pub fn build_widget() -> impl Widget<AppState> {
                 data.loading_message = "Waiting for authentication...".to_string();
                 data.current_view = View::Loading;
 
-                let (auth_url, pkce_verifier) = lib::msa::get_auth_url();
+                let (auth_url, csfr_token, pkce_verifier) = lib::msa::get_auth_url();
                 open::that(auth_url.to_string()).expect("Failed to open auth url");
 
                 let event_sink = ctx.get_external_handle();
-                tokio::spawn(add_account(event_sink, pkce_verifier));
+                tokio::spawn(add_account(event_sink, csfr_token, pkce_verifier));
             }),
         )
         .with_flex_spacer(1.)
         .padding(10.)
 }
 
-async fn add_account(event_sink: druid::ExtEventSink, pkce_verifier: PkceCodeVerifier) {
-    lib::accounts::add(pkce_verifier).await.unwrap();
+async fn add_account(event_sink: druid::ExtEventSink, csrf_token: CsrfToken, pkce_verifier: PkceCodeVerifier) {
+    lib::accounts::add(csrf_token, pkce_verifier).await.unwrap();
     let accounts = lib::accounts::read().await.unwrap().accounts;
 
     event_sink.add_idle_callback(move |data: &mut AppState| {

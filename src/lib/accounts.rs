@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use color_eyre::eyre::Result;
 use druid::im::Vector;
-use oauth2::PkceCodeVerifier;
+use oauth2::{PkceCodeVerifier, CsrfToken};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
@@ -70,9 +70,9 @@ pub async fn set_active(account: msa::Account) -> Result<()> {
     Ok(())
 }
 
-pub async fn add(pkce_verifier: PkceCodeVerifier) -> Result<()> {
+pub async fn add(csrf_token: CsrfToken, pkce_verifier: PkceCodeVerifier) -> Result<()> {
     let mut document = read().await?;
-    let account = msa::listen_login_callback(pkce_verifier).await?;
+    let account = msa::listen_login_callback(csrf_token, pkce_verifier).await?;
     document.accounts.push_back(account);
     write(&document).await?;
 
