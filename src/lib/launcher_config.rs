@@ -46,7 +46,10 @@ pub async fn write<L: AsRef<LauncherConfig>>(config: L) -> Result<()> {
 
 pub async fn read() -> Result<LauncherConfig> {
     if !LAUNCHER_CONFIG_PATH.exists() {
-        write(&LauncherConfig::default()).await?;
+        let default = LauncherConfig::default();
+        write(&default).await?;
+
+        return Ok(default);
     }
 
     let content = fs::read_to_string(LAUNCHER_CONFIG_PATH.as_path()).await?;
