@@ -6,7 +6,7 @@ use std::{collections::HashMap, path::PathBuf};
 use color_eyre::eyre::Result;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use tokio::fs;
+use tokio::{fs, try_join};
 use url::Url;
 
 use super::{download_file, BASE_DIR};
@@ -41,15 +41,11 @@ struct Index {
 
 impl AssetIndex {
     pub async fn install(&self) -> Result<()> {
-        let results = [
+        try_join!(
             fs::create_dir_all(ASSETS_DIR.as_path()),
             fs::create_dir_all(INDEXES_DIR.as_path()),
             fs::create_dir_all(OBJECTS_DIR.as_path()),
-        ];
-
-        for result in results.into_iter() {
-            result.await?;
-        }
+        )?;
 
         let url = Url::parse(&self.url)?;
         let index_file_name = url.path_segments().unwrap().last().unwrap();
