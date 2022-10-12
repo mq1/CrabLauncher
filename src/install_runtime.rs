@@ -66,7 +66,7 @@ async fn install_runtime(event_sink: druid::ExtEventSink, runtime: i32) {
         downloaded_bytes += chunk.len();
 
         event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_progress = (downloaded_bytes / package.size) as f64;
+            data.current_progress = downloaded_bytes as f64 / package.size as f64;
         });
     }
 
