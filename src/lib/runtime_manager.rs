@@ -19,8 +19,6 @@ use tar::Archive;
 #[cfg(not(target_os = "windows"))]
 use flate2::read::GzDecoder;
 
-use crate::lib::download_file;
-
 use super::{BASE_DIR, HTTP_CLIENT};
 
 const ADOPTIUM_API_ENDPOINT: &str = "https://api.adoptium.net";
@@ -46,9 +44,10 @@ pub struct AvailableReleases {
 }
 
 #[derive(Deserialize)]
-struct Package {
-    link: Url,
+pub struct Package {
+    pub link: Url,
     name: String,
+    pub size: usize,
 }
 
 #[derive(Deserialize)]
@@ -132,24 +131,17 @@ fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub async fn install(java_version: &i32) -> Result<()> {
-    println!("Installing Java {}", java_version);
-
+pub async fn get_download(java_version: &i32) -> Result<(Package, PathBuf)> {
     let assets = get_assets_info(java_version).await?;
-    println!("Downloading {}", assets.binary.package.link);
+    let download_path = RUNTIMES_DIR.join(&assets.binary.package.name);
 
-    let download_path = RUNTIMES_DIR.join(assets.binary.package.name);
+    Ok((assets.binary.package, download_path))
+}
 
-    download_file(
-        assets.binary.package.link.as_str(),
-        &download_path,
-        None, // hash is sha256, TODO support this
-    )
-    .await?;
+pub async fn install(download_path: &Path) -> Result<()> {
     extract_archive(&download_path, RUNTIMES_DIR.as_path())?;
     fs::remove_file(download_path).await?;
 
-    println!("Java {} installed", java_version);
     Ok(())
 }
 

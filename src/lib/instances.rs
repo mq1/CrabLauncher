@@ -117,11 +117,13 @@ pub async fn launch(instance: Instance, account: msa::Account) -> Result<()> {
         instance.info.jre_version.parse()?
     };
 
+    /*
     let is_updated = runtime_manager::is_updated(&jre_version).await?;
     if !is_updated {
         println!("Installing JRE {}", jre_version);
         runtime_manager::install(&jre_version).await?;
     }
+    */
 
     let java_path = runtime_manager::get_java_path(&jre_version).await?;
 
