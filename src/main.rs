@@ -17,6 +17,7 @@ mod news;
 mod root;
 mod runtimes;
 mod settings;
+mod progress;
 
 use std::{fs, process::exit};
 
@@ -29,6 +30,7 @@ enum View {
     #[default]
     Instances,
     Loading,
+    Progress,
     InstanceTypeSelection,
     InstanceVersionSelection,
     InstanceNameSelection,
@@ -52,6 +54,7 @@ pub struct NewInstanceState {
 pub struct AppState {
     is_update_available: bool,
     loading_message: String,
+    current_progress: f64,
     config: lib::launcher_config::LauncherConfig,
     current_view: View,
     instances: Vector<lib::instances::Instance>,
