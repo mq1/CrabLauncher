@@ -9,7 +9,10 @@ use druid::{
 use futures_util::StreamExt;
 use tokio::{fs::File, io::AsyncWriteExt};
 
-use crate::{lib::{self, HTTP_CLIENT}, AppState, View};
+use crate::{
+    lib::{self, HTTP_CLIENT},
+    AppState, View,
+};
 
 pub fn build_widget(available_runtimes: &Vector<i32>) -> impl Widget<AppState> {
     Flex::column()
@@ -32,7 +35,7 @@ pub fn build_widget(available_runtimes: &Vector<i32>) -> impl Widget<AppState> {
         .with_flex_spacer(1.)
         .with_child(Flex::row().with_flex_spacer(1.).with_child(
             Button::<AppState>::new("⬇️ Install").on_click(|ctx, data, _| {
-                data.loading_message = "Installing runtime...".to_string();
+                data.loading_message = "Downloading runtime...".to_string();
                 data.current_progress = 0.;
                 data.current_view = View::Progress;
 
@@ -47,7 +50,13 @@ pub fn build_widget(available_runtimes: &Vector<i32>) -> impl Widget<AppState> {
 async fn install_runtime(event_sink: druid::ExtEventSink, runtime: i32) {
     let (package, download_path) = lib::runtime_manager::get_download(&runtime).await.unwrap();
 
-    let mut stream = HTTP_CLIENT.get(package.link).send().await.unwrap().bytes_stream();
+    let mut stream = HTTP_CLIENT
+        .get(package.link)
+        .send()
+        .await
+        .unwrap()
+        .bytes_stream();
+
     let mut file = File::create(&download_path).await.unwrap();
     let mut downloaded_bytes = 0;
 
@@ -60,6 +69,11 @@ async fn install_runtime(event_sink: druid::ExtEventSink, runtime: i32) {
             data.current_progress = (downloaded_bytes / package.size) as f64;
         });
     }
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.loading_message = "Installing runtime".to_string();
+        data.current_view = View::Loading;
+    });
 
     lib::runtime_manager::install(&download_path).await.unwrap();
     let list = lib::runtime_manager::list().await.unwrap();
