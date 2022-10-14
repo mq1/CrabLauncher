@@ -15,7 +15,7 @@ use tokio::{
 
 use color_eyre::eyre::Result;
 
-use crate::lib::launcher_config;
+use crate::lib::{launcher_config, minecraft_assets::ASSETS_DIR};
 
 use super::{
     minecraft_version_manifest::Version, minecraft_version_meta, msa, runtime_manager, BASE_DIR,
@@ -171,7 +171,7 @@ pub async fn launch(instance: Instance, account: msa::Account) -> Result<()> {
         "--gameDir".to_string(),
         ".".to_string(),
         "--assetsDir".to_string(),
-        "../../assets".to_string(),
+        ASSETS_DIR.to_string_lossy().to_string(),
         "--assetIndex".to_string(),
         version.assets,
         "--uuid".to_string(),
