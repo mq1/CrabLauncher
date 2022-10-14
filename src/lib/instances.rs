@@ -92,8 +92,6 @@ pub async fn new(instance_name: &str, minecraft_version: &Version) -> Result<()>
     let content = toml::to_string_pretty(&info)?;
     fs::write(&path, content).await?;
 
-    minecraft_version.install().await?;
-
     Ok(())
 }
 

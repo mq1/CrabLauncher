@@ -7,14 +7,16 @@ use color_eyre::eyre::Result;
 use directories::ProjectDirs;
 use futures_util::StreamExt;
 use once_cell::sync::Lazy;
+use reqwest::IntoUrl;
 use sha1::{Digest, Sha1};
-use tokio::{fs::File, io::AsyncWriteExt};
+use tokio::{fs::{File, self}, io::AsyncWriteExt};
+use url::Url;
 
 pub mod accounts;
 pub mod instances;
 pub mod launcher_config;
 pub mod launcher_updater;
-mod minecraft_assets;
+pub mod minecraft_assets;
 mod minecraft_libraries;
 pub mod minecraft_news;
 mod minecraft_rules;
@@ -39,20 +41,8 @@ pub static HTTP_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
         .expect("Could not create HTTP client")
 });
 
-pub async fn download_file(url: &str, path: &Path, sha1: Option<&str>) -> Result<()> {
-    if path.exists() {
-        if let Some(sha1) = sha1 {
-            let mut file = std::fs::File::open(&path)?;
-            let mut hasher = Sha1::new();
-            std::io::copy(&mut file, &mut hasher)?;
-            let hash = hasher.finalize();
-            if format!("{:x}", hash) == sha1 {
-                return Ok(());
-            }
-        } else {
-            return Ok(());
-        }
-    }
+pub async fn download_file<U: IntoUrl>(url: U, path: &Path) -> Result<()> {
+    fs::create_dir_all(path.parent().unwrap()).await?;
 
     let mut stream = HTTP_CLIENT.get(url).send().await?.bytes_stream();
     let mut file = File::create(path).await?;
@@ -62,4 +52,21 @@ pub async fn download_file(url: &str, path: &Path, sha1: Option<&str>) -> Result
     }
 
     Ok(())
+}
+
+pub fn check_hash<D: Digest + std::io::Write>(path: &Path, known_hash: &str) -> bool {
+    fn check<D: Digest + std::io::Write>(path: &Path, known_hash: &str) -> Result<bool> {
+        let mut file = std::fs::File::open(&path)?;
+        let mut hasher = D::new();
+        std::io::copy(&mut file, &mut hasher)?;
+        let hash = hasher.finalize();
+        let hex_hash = base16ct::lower::encode_string(&hash);
+
+        Ok(hex_hash == known_hash)
+    }
+
+    match check::<D>(path, known_hash) {
+        Ok(result) => result,
+        Err(err) => false,
+    }
 }

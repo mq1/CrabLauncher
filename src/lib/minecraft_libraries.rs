@@ -29,7 +29,7 @@ const NATIVES_STRING: &str = "natives-windows";
 pub struct Artifact {
     pub path: String,
     pub sha1: String,
-    pub size: i32,
+    pub size: usize,
     pub url: String,
 }
 
@@ -50,6 +50,10 @@ impl Artifact {
         }
 
         return true;
+    }
+
+    pub fn get_path(&self) -> PathBuf {
+        LIBRARIES_DIR.join(&self.path)
     }
 }
 
