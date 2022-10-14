@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use druid::{
+    im::Vector,
+    lens,
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
-    Color, Widget, WidgetExt,
+    Color, LensExt, Widget, WidgetExt,
 };
 
 use crate::{lib, AppState, View};
@@ -19,19 +21,34 @@ pub fn build_widget() -> impl Widget<AppState> {
                     Flex::row()
                         .with_child(Label::new("☕️"))
                         .with_default_spacer()
-                        .with_child(Label::<String>::dynamic(|runtime, _| runtime.to_string()))
+                        .with_child(Label::<(_, String)>::dynamic(|(_, runtime), _| {
+                            runtime.to_string()
+                        }))
                         .with_flex_spacer(1.)
                         .with_child(
-                            Button::<String>::new("💣 Delete").on_click(|_, runtime, _| {
-                                smol::block_on(lib::runtime_manager::remove(runtime)).unwrap();
-                            }),
+                            Button::<(Vector<String>, String)>::new("💣 Delete").on_click(
+                                |_, (runtimes, runtime), _| {
+                                    tokio::spawn(lib::runtime_manager::remove(runtime.clone()));
+                                    runtimes.retain(|r| r != runtime);
+                                },
+                            ),
                         )
                         .padding(5.)
                         .border(Color::GRAY, 1.)
                         .rounded(5.)
                 })
                 .with_spacing(10.)
-                .lens(AppState::installed_runtimes),
+                .lens(lens::Identity.map(
+                    |data: &AppState| {
+                        (
+                            data.installed_runtimes.clone(),
+                            data.installed_runtimes.clone(),
+                        )
+                    },
+                    |data: &mut AppState, (installed_runtimes, _)| {
+                        data.installed_runtimes = installed_runtimes;
+                    },
+                )),
             )
             .vertical(),
             1.,
@@ -44,7 +61,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                     data.current_view = View::Loading;
 
                     let event_sink = ctx.get_external_handle();
-                    smol::spawn(update_runtimes(event_sink)).detach();
+                    tokio::spawn(update_runtimes(event_sink));
                 } else {
                     data.current_view = View::InstallRuntime;
                 }

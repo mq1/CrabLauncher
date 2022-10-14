@@ -1,18 +1,24 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::{path::PathBuf, process::Stdio};
+
 use druid::{im::Vector, Data};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use smol::{fs, stream::StreamExt};
-use std::{path::PathBuf, process::Command};
 use strum_macros::Display;
+use tokio::{
+    fs,
+    io::{AsyncBufReadExt, BufReader},
+    process::Command,
+};
 
 use color_eyre::eyre::Result;
 
+use crate::lib::launcher_config;
+
 use super::{
-    minecraft_assets::ASSETS_DIR, minecraft_version_manifest::Version, minecraft_version_meta, msa,
-    runtime_manager, BASE_DIR,
+    minecraft_version_manifest::Version, minecraft_version_meta, msa, runtime_manager, BASE_DIR,
 };
 
 const INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("instances"));
@@ -48,6 +54,12 @@ pub struct Instance {
     pub info: InstanceInfo,
 }
 
+impl Instance {
+    pub fn get_path(&self) -> PathBuf {
+        INSTANCES_DIR.join(&self.name)
+    }
+}
+
 async fn read_info(instance_name: &str) -> Result<InstanceInfo> {
     let path = INSTANCES_DIR.join(instance_name).join("instance.toml");
     let content = fs::read_to_string(path).await?;
@@ -62,15 +74,18 @@ pub async fn list() -> Result<Vector<Instance>> {
     fs::create_dir_all(INSTANCES_DIR.as_path()).await?;
     let mut entries = fs::read_dir(INSTANCES_DIR.as_path()).await?;
 
-    while let Some(entry) = entries.try_next().await? {
-        if entry.path().is_dir() {
-            let file_name = entry.file_name().to_string_lossy().to_string();
-            let info = read_info(&file_name).await?;
-            instances.push_back(Instance {
-                name: file_name,
-                info,
-            });
+    while let Some(entry) = entries.next_entry().await? {
+        if !entry.path().is_dir() {
+            continue;
         }
+
+        let instance_name = entry.file_name().into_string().unwrap();
+        let info = read_info(&instance_name).await?;
+
+        instances.push_back(Instance {
+            name: instance_name,
+            info,
+        });
     }
 
     Ok(instances)
@@ -89,8 +104,6 @@ pub async fn new(instance_name: &str, minecraft_version: &Version) -> Result<()>
     let content = toml::to_string_pretty(&info)?;
     fs::write(&path, content).await?;
 
-    minecraft_version.install().await?;
-
     Ok(())
 }
 
@@ -104,6 +117,8 @@ pub async fn remove(instance: Instance) -> Result<()> {
 pub async fn launch(instance: Instance, account: msa::Account) -> Result<()> {
     println!("Launching instance {}", instance.name);
 
+    let config = launcher_config::read().await?;
+
     let version = minecraft_version_meta::get(&instance.info.minecraft_version).await?;
 
     let jre_version = if instance.info.jre_version == "latest" {
@@ -114,62 +129,86 @@ pub async fn launch(instance: Instance, account: msa::Account) -> Result<()> {
         instance.info.jre_version.parse()?
     };
 
+    /*
     let is_updated = runtime_manager::is_updated(&jre_version).await?;
     if !is_updated {
         println!("Installing JRE {}", jre_version);
         runtime_manager::install(&jre_version).await?;
     }
+    */
 
     let java_path = runtime_manager::get_java_path(&jre_version).await?;
 
-    let mut game_args = Vec::new();
-    for arg in &version.arguments.game {
-        let arg = match arg {
-            minecraft_version_meta::Argument::Simple(arg) => Some(arg),
-            minecraft_version_meta::Argument::Complex { value } => None,
-        };
-
-        if let Some(arg) = arg {
-            let arg = match arg.as_str() {
-                "${auth_player_name}" => account.mc_username.to_owned(),
-                "${version_name}" => instance.info.minecraft_version.to_string(),
-                "${game_directory}" => INSTANCES_DIR
-                    .join(&instance.name)
-                    .to_string_lossy()
-                    .to_string(),
-                "${assets_root}" => ASSETS_DIR.to_string_lossy().to_string(),
-                "${assets_index_name}" => version.assets.to_string(),
-                "${auth_uuid}" => account.mc_id.to_owned(),
-                "${auth_access_token}" => account.mc_access_token.to_owned(),
-                "${clientid}" => format!("ice-launcher/{}", env!("CARGO_PKG_VERSION")),
-                "${auth_xuid}" => "0".to_string(),
-                "${user_type}" => "mojang".to_string(),
-                "${version_type}" => instance.info.instance_type.to_string(),
-                &_ => arg.to_string(),
-            };
-
-            game_args.push(arg);
-        }
-    }
-
     let mut jvm_args = vec![
-        "-Djava.library.path=natives".to_string(),
         "-Dminecraft.launcher.brand=ice-launcher".to_string(),
         format!("-Dminecraft.launcher.version={}", env!("CARGO_PKG_VERSION")),
+        format!("-Xmx{}", config.jvm_memory),
+        format!("-Xms{}", config.jvm_memory),
+        "-cp".to_string(),
+        version.get_classpath(),
     ];
 
     #[cfg(target_os = "macos")]
     jvm_args.push("-XstartOnFirstThread".to_string());
 
-    jvm_args.push("-cp".to_string());
-    jvm_args.push(version.get_classpath());
+    if config.automatically_optimize_jvm_arguments {
+        let args = "-XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions -XX:+AlwaysActAsServerClassMachine -XX:+AlwaysPreTouch -XX:+DisableExplicitGC -XX:+UseNUMA -XX:NmethodSweepActivity=1 -XX:ReservedCodeCacheSize=400M -XX:NonNMethodCodeHeapSize=12M -XX:ProfiledCodeHeapSize=194M -XX:NonProfiledCodeHeapSize=194M -XX:-DontCompileHugeMethods -XX:MaxNodeLimit=240000 -XX:NodeLimitFudgeFactor=8000 -XX:+UseVectorCmov -XX:+PerfDisableSharedMem -XX:+UseFastUnorderedTimeStamps -XX:+UseCriticalJavaThreadPriority -XX:ThreadPriorityPolicy=1 -XX:AllocatePrefetchStyle=3 -XX:+UseShenandoahGC -XX:ShenandoahGCMode=iu -XX:ShenandoahGuaranteedGCInterval=1000000 -XX:AllocatePrefetchStyle=1".split_whitespace().map(|s| s.to_string()).collect::<Vec<_>>();
+        jvm_args.extend(args);
+    }
 
-    Command::new(java_path)
+    let game_args = vec![
+        "--username".to_string(),
+        account.mc_username,
+        "--version".to_string(),
+        instance.info.minecraft_version.to_owned(),
+        "--gameDir".to_string(),
+        ".".to_string(),
+        "--assetsDir".to_string(),
+        "../../assets".to_string(),
+        "--assetIndex".to_string(),
+        version.assets,
+        "--uuid".to_string(),
+        account.mc_id,
+        "--accessToken".to_string(),
+        account.mc_access_token,
+        "--clientId".to_string(),
+        format!("ice-launcher/{}", env!("CARGO_PKG_VERSION")),
+        "--userType".to_string(),
+        "mojang".to_string(),
+        "--versionType".to_string(),
+        instance.info.instance_type.to_string(),
+    ];
+
+    let mut cmd = Command::new(java_path);
+
+    cmd.stdout(Stdio::piped());
+
+    let mut child = cmd
+        .current_dir(instance.get_path())
         .args(jvm_args)
         .arg(version.main_class)
         .args(game_args)
-        .current_dir(INSTANCES_DIR.join(instance.name))
-        .spawn()?;
+        .spawn()
+        .expect("failed to spawn command");
 
+    let stdout = child
+        .stdout
+        .take()
+        .expect("child did not have a handle to stdout");
+
+    let mut reader = BufReader::new(stdout).lines();
+
+    tokio::spawn(async move {
+        let status = child
+            .wait()
+            .await
+            .expect("child process encountered an error");
+
+        println!("child status was: {}", status);
+    });
+
+    while let Some(line) = reader.next_line().await? {
+        println!("Line: {}", line);
+    }
     Ok(())
 }

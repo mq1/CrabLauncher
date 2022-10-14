@@ -8,7 +8,8 @@ use druid::{
 
 use crate::{
     about, accounts, install_runtime, instance_name_selection, instance_type_selection,
-    instance_version_selection, instances, lib, loading, news, runtimes, settings, AppState, View,
+    instance_version_selection, instances, lib, loading, news, progress, runtimes, settings,
+    AppState, View,
 };
 
 pub fn build_widget() -> impl Widget<AppState> {
@@ -27,7 +28,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                 data.current_view = View::Loading;
 
                 let event_sink = ctx.get_external_handle();
-                smol::spawn(update_news(event_sink)).detach();
+                tokio::spawn(update_news(event_sink));
             } else {
                 data.current_view = View::News;
             }
@@ -58,6 +59,7 @@ pub fn build_widget() -> impl Widget<AppState> {
             View::Instances => Box::new(instances::build_widget()),
             View::InstanceTypeSelection => Box::new(instance_type_selection::build_widget()),
             View::Loading => Box::new(loading::build_widget()),
+            View::Progress => Box::new(progress::build_widget()),
             View::InstanceVersionSelection => Box::new(instance_version_selection::build_widget(
                 &data.new_instance_state.available_minecraft_versions,
             )),
