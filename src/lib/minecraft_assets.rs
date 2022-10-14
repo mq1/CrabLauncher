@@ -52,6 +52,6 @@ pub struct AssetIndex {
 
 impl AssetIndexInfo {
     pub fn get_path(&self) -> PathBuf {
-        INDEXES_DIR.join(&self.id).with_extension("json")
+        INDEXES_DIR.join(format!("{}.json", &self.id))
     }
 }
