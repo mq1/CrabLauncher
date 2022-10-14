@@ -131,6 +131,7 @@ async fn install_version(event_sink: druid::ExtEventSink, name: String, version:
                 .unwrap();
 
             let mut stream = resp.bytes_stream();
+            fs::create_dir_all(index_path.parent().unwrap()).await.unwrap();
             let mut file = File::create(&index_path).await.unwrap();
             let mut raw_index = Vec::new();
 
@@ -163,6 +164,7 @@ async fn install_version(event_sink: druid::ExtEventSink, name: String, version:
             let resp = HTTP_CLIENT.get(object.get_url()).send().await.unwrap();
 
             let mut stream = resp.bytes_stream();
+            fs::create_dir_all(path.parent().unwrap()).await.unwrap();
             let mut file = File::create(&path).await.unwrap();
 
             while let Some(chunk) = stream.next().await {
@@ -208,6 +210,7 @@ async fn install_version(event_sink: druid::ExtEventSink, name: String, version:
                 .unwrap();
 
             let mut stream = resp.bytes_stream();
+            fs::create_dir_all(path.parent().unwrap()).await.unwrap();
             let mut file = File::create(&path).await.unwrap();
 
             while let Some(chunk) = stream.next().await {

@@ -39,9 +39,7 @@ impl Object {
 
     pub fn get_url(&self) -> Url {
         ASSETS_DOWNLOAD_ENDPOINT
-            .join(&self.hash[..2])
-            .unwrap()
-            .join(&self.hash)
+            .join(&format!("{}/{}", &self.hash[..2], &self.hash))
             .unwrap()
     }
 }
