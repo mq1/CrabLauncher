@@ -5,9 +5,10 @@ use std::path::PathBuf;
 
 use color_eyre::eyre::Result;
 use druid::im::Vector;
+use oauth2::{PkceCodeVerifier, CsrfToken};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use smol::fs;
+use tokio::fs;
 
 use super::{msa, BASE_DIR};
 
@@ -24,8 +25,8 @@ impl AsRef<AccountsDocument> for AccountsDocument {
     }
 }
 
-async fn write<A: AsRef<AccountsDocument>>(accounts: A) -> Result<()> {
-    let content = toml::to_string_pretty(accounts.as_ref())?;
+async fn write(accounts: &AccountsDocument) -> Result<()> {
+    let content = toml::to_string_pretty(accounts)?;
     fs::write(ACCOUNTS_PATH.as_path(), content).await?;
 
     Ok(())
@@ -34,8 +35,8 @@ async fn write<A: AsRef<AccountsDocument>>(accounts: A) -> Result<()> {
 pub async fn read() -> Result<AccountsDocument> {
     if !ACCOUNTS_PATH.exists() {
         let default = AccountsDocument::default();
+        write(&default).await?;
 
-        smol::spawn(write(default.clone())).detach();
         return Ok(default);
     }
 
@@ -64,16 +65,16 @@ pub async fn set_active(account: msa::Account) -> Result<()> {
         a.is_active = a.mc_id == account.mc_id;
     }
 
-    write(document).await?;
+    write(&document).await?;
 
     Ok(())
 }
 
-pub async fn add() -> Result<()> {
-    let account = msa::login().await?;
+pub async fn add(csrf_token: CsrfToken, pkce_verifier: PkceCodeVerifier) -> Result<()> {
     let mut document = read().await?;
+    let account = msa::listen_login_callback(csrf_token, pkce_verifier).await?;
     document.accounts.push_back(account);
-    write(document).await?;
+    write(&document).await?;
 
     Ok(())
 }
@@ -82,7 +83,7 @@ pub async fn remove(account: msa::Account) -> Result<()> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path()).await?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
     document.accounts.retain(|a| a.mc_id != account.mc_id);
-    write(document).await?;
+    write(&document).await?;
 
     Ok(())
 }

@@ -3,11 +3,10 @@
 
 use color_eyre::eyre::Result;
 use druid::{im::Vector, Data, Lens};
-use isahc::{AsyncReadResponseExt, Request, RequestExt};
 use serde::Deserialize;
 use url::Url;
 
-use super::USER_AGENT;
+use super::HTTP_CLIENT;
 
 const MINECRAFT_NEWS_URL: &str =
     "https://www.minecraft.net/content/minecraft-net/_jcr_content.articles.grid";
@@ -102,16 +101,13 @@ pub enum TileSize {
 /// Get the news from minecraft.net
 pub async fn fetch(page_size: Option<i32>) -> Result<News> {
     let page_size = page_size.unwrap_or(20);
-
     let url = Url::parse_with_params(MINECRAFT_NEWS_URL, &[("pageSize", page_size.to_string())])?;
-
-    let news = Request::get(url.to_string())
-        .header("user-agent", USER_AGENT)
-        .body(())?
-        .send_async()
+    let resp = HTTP_CLIENT
+        .get(url.to_string())
+        .send()
         .await?
         .json()
         .await?;
 
-    Ok(news)
+    Ok(resp)
 }

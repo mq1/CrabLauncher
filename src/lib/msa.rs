@@ -1,20 +1,22 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::collections::HashMap;
-
-use color_eyre::eyre::{bail, eyre, Result};
+use color_eyre::eyre::{bail, Result};
 use druid::Data;
-use isahc::{AsyncReadResponseExt, Request, RequestExt};
+use oauth2::basic::BasicClient;
+use oauth2::reqwest::async_http_client;
+use oauth2::{
+    AuthUrl, AuthorizationCode, ClientId, CsrfToken, PkceCodeChallenge, PkceCodeVerifier,
+    RedirectUrl, RefreshToken, Scope, TokenResponse, TokenUrl,
+};
 use once_cell::sync::Lazy;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sha2::{Digest, Sha256};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::TcpListener;
 use url::Url;
 
-use super::USER_AGENT;
+use super::HTTP_CLIENT;
 
 const MSA_AUTHORIZATION_ENDPOINT: &str =
     "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
@@ -24,55 +26,36 @@ const XSTS_AUTHORIZATION_ENDPOINT: &str = "https://xsts.auth.xboxlive.com/xsts/a
 const MINECRAFT_AUTH_ENDPOINT: &str =
     "https://api.minecraftservices.com/authentication/login_with_xbox";
 const MINECRAFT_PROFILE_ENDPOINT: &str = "https://api.minecraftservices.com/minecraft/profile";
-const CLIENT_ID: &str = "2000ea79-d993-4591-b9c4-e678f82ae1db";
-const SCOPE: &str = "XboxLive.signin offline_access";
-const REDIRECT_URI: &str = "http://127.0.0.1:3003";
+const CLIENT_ID: &str = "ae26ac80-2153-4801-94f6-8859ce8e058a";
+const REDIRECT_URI: &str = "http://127.0.0.1:3003/login";
 
-static CODE_VERIFIER: Lazy<String> = Lazy::new(|| {
-    thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(128)
-        .map(char::from)
-        .collect()
+static OAUTH2_CLIENT: Lazy<BasicClient> = Lazy::new(|| {
+    BasicClient::new(
+        ClientId::new(CLIENT_ID.to_string()),
+        None,
+        AuthUrl::new(MSA_AUTHORIZATION_ENDPOINT.to_string()).unwrap(),
+        Some(TokenUrl::new(MSA_TOKEN_ENDPOINT.to_string()).unwrap()),
+    )
+    .set_redirect_uri(RedirectUrl::new(REDIRECT_URI.to_string()).unwrap())
 });
 
-static CODE_CHALLENGE: Lazy<String> = Lazy::new(|| {
-    let hash = Sha256::digest(CODE_VERIFIER.as_bytes());
-    base64_url::encode(&hash)
-});
+pub fn get_auth_url() -> (Url, CsrfToken, PkceCodeVerifier) {
+    let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
-static STATE: Lazy<String> = Lazy::new(|| {
-    thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(8)
-        .map(char::from)
-        .collect()
-});
+    let (auth_url, csfr_token) = OAUTH2_CLIENT
+        .authorize_url(CsrfToken::new_random)
+        .add_scope(Scope::new("XboxLive.signin".to_string()))
+        .add_scope(Scope::new("offline_access".to_string()))
+        .set_pkce_challenge(pkce_challenge)
+        .url();
 
-pub static AUTH_URL: Lazy<Url> = Lazy::new(|| {
-    let params = [
-        ("client_id", CLIENT_ID),
-        ("response_type", "code"),
-        ("redirect_uri", REDIRECT_URI),
-        ("response_mode", "query"),
-        ("scope", SCOPE),
-        ("state", STATE.as_ref()),
-        ("code_challenge", CODE_CHALLENGE.as_ref()),
-        ("code_challenge_method", "S256"),
-    ];
-
-    let url = Url::parse_with_params(MSA_AUTHORIZATION_ENDPOINT, &params).unwrap();
-
-    url
-});
-
-#[derive(Deserialize)]
-struct OAuth2Token {
-    access_token: String,
-    refresh_token: String,
+    (auth_url, csfr_token, pkce_verifier)
 }
 
-async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
+async fn get_minecraft_account_data(
+    access_token: String,
+    refresh_token: String,
+) -> Result<Account> {
     // Authenticate with Xbox Live
 
     #[derive(Deserialize)]
@@ -97,20 +80,19 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
         "Properties": {
             "AuthMethod": "RPS",
             "SiteName": "user.auth.xboxlive.com",
-            "RpsTicket": format!("d={}", msa_token.access_token),
+            "RpsTicket": format!("d={}", access_token),
         },
         "RelyingParty": "http://auth.xboxlive.com",
         "TokenType": "JWT",
     });
 
-    let xbl_response: XBLResponse = Request::post(XBOXLIVE_AUTH_ENDPOINT)
-        .header("Content-Type", "application/json")
+    let xbl_response = HTTP_CLIENT
+        .post(XBOXLIVE_AUTH_ENDPOINT)
         .header("Accept", "application/json")
-        .header("User-Agent", USER_AGENT)
-        .body(params.to_string())?
-        .send_async()
+        .json(&params)
+        .send()
         .await?
-        .json()
+        .json::<XBLResponse>()
         .await?;
 
     // Authenticate with XSTS
@@ -130,14 +112,13 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
         "TokenType": "JWT",
     });
 
-    let xsts_response: XSTSResponse = Request::post(XSTS_AUTHORIZATION_ENDPOINT)
-        .header("Content-Type", "application/json")
+    let xsts_response = HTTP_CLIENT
+        .post(XSTS_AUTHORIZATION_ENDPOINT)
         .header("Accept", "application/json")
-        .header("User-Agent", USER_AGENT)
-        .body(params.to_string())?
-        .send_async()
+        .json(&params)
+        .send()
         .await?
-        .json()
+        .json::<XSTSResponse>()
         .await?;
 
     // Authenticate with Minecraft
@@ -155,14 +136,13 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
             )
     });
 
-    let minecraft_response: MinecraftResponse = Request::post(MINECRAFT_AUTH_ENDPOINT)
-        .header("Content-Type", "application/json")
+    let minecraft_response = HTTP_CLIENT
+        .post(MINECRAFT_AUTH_ENDPOINT)
         .header("Accept", "application/json")
-        .header("User-Agent", USER_AGENT)
-        .body(params.to_string())?
-        .send_async()
+        .json(&params)
+        .send()
         .await?
-        .json()
+        .json::<MinecraftResponse>()
         .await?;
 
     // Get Minecraft profile
@@ -173,49 +153,23 @@ async fn get_minecraft_account_data(msa_token: OAuth2Token) -> Result<Account> {
         name: String,
     }
 
-    let minecraft_profile: MinecraftProfile = Request::get(MINECRAFT_PROFILE_ENDPOINT)
-        .header(
-            "Authorization",
-            format!("Bearer {}", minecraft_response.access_token),
-        )
-        .header("User-Agent", USER_AGENT)
-        .body(())?
-        .send_async()
+    let minecraft_profile = HTTP_CLIENT
+        .get(MINECRAFT_PROFILE_ENDPOINT)
+        .bearer_auth(&minecraft_response.access_token)
+        .send()
         .await?
-        .json()
+        .json::<MinecraftProfile>()
         .await?;
 
     let account = Account {
-        ms_refresh_token: msa_token.refresh_token,
+        ms_refresh_token: refresh_token,
         mc_id: minecraft_profile.id,
         mc_access_token: minecraft_response.access_token,
         mc_username: minecraft_profile.name,
-        is_active: false
+        is_active: false,
     };
 
     Ok(account)
-}
-
-fn listen_login_callback() -> Result<String> {
-    let server = tiny_http::Server::http("127.0.0.1:3003").unwrap();
-    let request = server.recv()?;
-
-    let url = Url::parse(&format!("{}{}", REDIRECT_URI, request.url()))?;
-    let hash_query: HashMap<_, _> = url.query_pairs().into_owned().collect();
-
-    let state = hash_query
-        .get("state")
-        .ok_or(eyre!("Auth2 state not found"))?;
-
-    if state.ne(STATE.as_str()) {
-        bail!("Invalid auth2 state");
-    }
-
-    let code = hash_query.get("code").ok_or(eyre!("Code not found"))?;
-
-    request.respond(tiny_http::Response::from_string("You can close this tab"))?;
-
-    Ok(code.to_string())
 }
 
 #[derive(Serialize, Deserialize, Clone, Data)]
@@ -227,52 +181,99 @@ pub struct Account {
     pub is_active: bool,
 }
 
-pub async fn login() -> Result<Account> {
-    let code = listen_login_callback()?;
-
-    let form = url::form_urlencoded::Serializer::new(String::new())
-        .append_pair("client_id", CLIENT_ID)
-        .append_pair("scope", SCOPE)
-        .append_pair("code", &code)
-        .append_pair("redirect_uri", REDIRECT_URI)
-        .append_pair("grant_type", "authorization_code")
-        .append_pair("code_verifier", CODE_VERIFIER.as_ref())
-        .finish();
-
-    let resp: OAuth2Token = Request::post(MSA_TOKEN_ENDPOINT)
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .header("Accept", "application/json")
-        .header("User-Agent", USER_AGENT)
-        .body(form)?
-        .send_async()
-        .await?
-        .json()
+async fn login(code: AuthorizationCode, pkce_verifier: PkceCodeVerifier) -> Result<Account> {
+    let token_result = OAUTH2_CLIENT
+        .exchange_code(code)
+        .set_pkce_verifier(pkce_verifier)
+        .request_async(async_http_client)
         .await?;
 
-    let entry = get_minecraft_account_data(resp).await?;
+    let access_token = token_result.access_token().secret().clone();
+    let refresh_token = token_result.refresh_token().unwrap().secret().clone();
+
+    let entry = get_minecraft_account_data(access_token, refresh_token).await?;
 
     Ok(entry)
 }
 
 pub async fn refresh(account: Account) -> Result<Account> {
-    let form = url::form_urlencoded::Serializer::new(String::new())
-        .append_pair("client_id", CLIENT_ID)
-        .append_pair("scope", SCOPE)
-        .append_pair("refresh_token", &account.ms_refresh_token)
-        .append_pair("grant_type", "refresh_token")
-        .finish();
+    let refresh_token = RefreshToken::new(account.ms_refresh_token.clone());
 
-    let resp: OAuth2Token = Request::post(MSA_TOKEN_ENDPOINT)
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .header("Accept", "application/json")
-        .header("User-Agent", USER_AGENT)
-        .body(form)?
-        .send_async()
-        .await?
-        .json()
+    let token_result = OAUTH2_CLIENT
+        .exchange_refresh_token(&refresh_token)
+        .request_async(async_http_client)
         .await?;
 
-    let entry = get_minecraft_account_data(resp).await?;
+    let access_token = token_result.access_token().secret().clone();
+    let refresh_token = token_result.refresh_token().unwrap().secret().clone();
+
+    let entry = get_minecraft_account_data(access_token, refresh_token).await?;
 
     Ok(entry)
+}
+
+pub async fn listen_login_callback(
+    csrf_token: CsrfToken,
+    pkce_verifier: PkceCodeVerifier,
+) -> Result<Account> {
+    let listener = TcpListener::bind("127.0.0.1:3003").await.unwrap();
+    loop {
+        if let Ok((mut stream, _)) = listener.accept().await {
+            let code;
+            let state;
+            {
+                let mut reader = BufReader::new(&mut stream);
+
+                let mut request_line = String::new();
+                reader.read_line(&mut request_line).await.unwrap();
+
+                let redirect_url = request_line.split_whitespace().nth(1).unwrap();
+                let url = Url::parse(&("http://localhost".to_string() + redirect_url)).unwrap();
+
+                let code_pair = url
+                    .query_pairs()
+                    .find(|pair| {
+                        let &(ref key, _) = pair;
+                        key == "code"
+                    })
+                    .unwrap();
+
+                let (_, value) = code_pair;
+                code = AuthorizationCode::new(value.into_owned());
+
+                let state_pair = url
+                    .query_pairs()
+                    .find(|pair| {
+                        let &(ref key, _) = pair;
+                        key == "state"
+                    })
+                    .unwrap();
+
+                let (_, value) = state_pair;
+                state = CsrfToken::new(value.into_owned());
+            }
+
+            if state.secret() != csrf_token.secret() {
+                let message = "Invalid state";
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
+                    message.len(),
+                    message
+                );
+                stream.write_all(response.as_bytes()).await.unwrap();
+
+                bail!("Invalid CSRF token");
+            }
+
+            let message = "You can close this tab now.";
+            let response = format!(
+                "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
+                message.len(),
+                message
+            );
+            stream.write_all(response.as_bytes()).await.unwrap();
+
+            return login(code, pkce_verifier).await;
+        }
+    }
 }
