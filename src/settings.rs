@@ -33,12 +33,10 @@ pub fn build_widget() -> impl Widget<AppState> {
                     .with_default_spacer()
                     .with_child(
                         Flex::row()
-                            .with_child(Label::new("JVM arguments"))
-                            .with_default_spacer()
-                            .with_flex_child(
-                                Scroll::new(TextBox::new().lens(LauncherConfig::jvm_arguments))
-                                    .horizontal(),
-                                1.,
+                            .with_child(Label::new("Automatically optimize JVM arguments"))
+                            .with_flex_spacer(1.)
+                            .with_child(
+                                Switch::new().lens(LauncherConfig::automatically_optimize_jvm_arguments),
                             )
                             .padding(5.)
                             .border(Color::GRAY, 1.)

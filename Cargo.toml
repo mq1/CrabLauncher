@@ -15,7 +15,7 @@ copyright = "Copyright (C) 2022 Manuel Quarneti"
 
 [dependencies]
 druid = { git = "https://github.com/linebender/druid.git", features = ["im", "image", "png", "serde"] }
-tokio = { version = "1", features = ["rt", "macros"] }
+tokio = { version = "1", features = ["rt", "macros", "process", "io-util"] }
 reqwest = { version = "0.11", features = ["native-tls", "json", "stream"] }
 futures-util = "0.3"
 serde = { version = "1", features = ["derive"] }
