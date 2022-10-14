@@ -1,16 +1,13 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::path::PathBuf;
+
 use color_eyre::Result;
 use druid::{im::Vector, Data, Lens};
 use serde::Deserialize;
-use tokio::fs;
 
-use super::{
-    download_file,
-    minecraft_version_meta::{MinecraftVersionMeta, VERSIONS_DIR},
-    HTTP_CLIENT,
-};
+use super::{minecraft_version_meta::META_DIR, HTTP_CLIENT};
 
 const VERSION_MANIFEST_URL: &str =
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
@@ -42,17 +39,11 @@ pub struct Version {
 }
 
 impl Version {
-    pub async fn install(&self) -> Result<()> {
-        let version_dir = VERSIONS_DIR.join(&self.id);
-        fs::create_dir_all(&version_dir).await?;
-
-        let meta_path = version_dir.join("meta.json");
-        download_file(&self.url, &meta_path, Some(&self.sha1)).await?;
-        let meta = fs::read_to_string(meta_path).await?;
-        let meta: MinecraftVersionMeta = serde_json::from_str(&meta)?;
-        meta.install().await?;
-
-        Ok(())
+    pub fn get_meta_path(&self) -> PathBuf {
+        META_DIR
+            .join("net.minecraft")
+            .join(&self.id)
+            .with_extension("json")
     }
 }
 
