@@ -15,10 +15,13 @@ use tokio::{
 
 use color_eyre::eyre::Result;
 
-use crate::lib::{launcher_config, minecraft_assets::ASSETS_DIR};
+use crate::{
+    lib::{accounts, launcher_config, minecraft_assets::ASSETS_DIR},
+    AppState, View,
+};
 
 use super::{
-    minecraft_version_manifest::Version, minecraft_version_meta, msa, runtime_manager, BASE_DIR,
+    minecraft_version_manifest::Version, minecraft_version_meta, runtime_manager, BASE_DIR,
 };
 
 // https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks
@@ -117,8 +120,10 @@ pub async fn remove(instance: Instance) -> Result<()> {
     Ok(())
 }
 
-pub async fn launch(instance: Instance, account: msa::Account) -> Result<()> {
+pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()> {
     println!("Launching instance {}", instance.name);
+
+    let account = accounts::get_active().await?.unwrap();
 
     let config = launcher_config::read().await?;
 
@@ -212,6 +217,10 @@ pub async fn launch(instance: Instance, account: msa::Account) -> Result<()> {
             .expect("child process encountered an error");
 
         println!("child status was: {}", status);
+
+        event_sink.add_idle_callback(move |data: &mut AppState| {
+            data.current_view = View::Instances;
+        })
     });
 
     while let Some(line) = reader.next_line().await? {

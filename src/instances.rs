@@ -92,8 +92,11 @@ pub fn build_widget() -> impl Widget<AppState> {
 }
 
 async fn launch_instance(event_sink: druid::ExtEventSink, instance: Instance) {
+    let instance_name = instance.name.clone();
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        let account = data.active_account.clone().unwrap();
-        tokio::spawn(lib::instances::launch(instance, account));
+        data.loading_message = format!("Running {}", instance_name);
+        data.current_view = View::Loading;
     });
+
+    lib::instances::launch(instance, event_sink).await.unwrap();
 }
