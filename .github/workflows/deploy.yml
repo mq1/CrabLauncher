@@ -23,6 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: |
+          sudo apt-get install -y libgtk-3-dev
           cargo build --release
           xz "target/release/ice-launcher" > "IceLauncher-${{github.ref_name}}-linux-x86_64.xz"
       - uses: softprops/action-gh-release@v1
