@@ -25,7 +25,8 @@ jobs:
       - run: |
           sudo apt-get install -y libgtk-3-dev
           cargo build --release
-          xz "target/release/ice-launcher" > "IceLauncher-${{github.ref_name}}-linux-x86_64.xz"
+          xz -k target/release/ice-launcher
+          mv target/release/ice-launcher IceLauncher-${{github.ref_name}}-linux-x86_64.xz
       - uses: softprops/action-gh-release@v1
         with:
           files: IceLauncher-${{github.ref_name}}-linux-x86_64.tar.xz
