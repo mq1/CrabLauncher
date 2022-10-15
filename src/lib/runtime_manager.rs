@@ -114,7 +114,7 @@ pub async fn list() -> Result<Vector<String>> {
 
 #[cfg(target_os = "windows")]
 fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
-    let zip = File::open(archive)?;
+    let zip = std::fs::File::open(archive)?;
     let mut archive = ZipArchive::new(file)?;
     archive.extract(RUNTIMES_DIR.join(assets.version.semver))?;
 
