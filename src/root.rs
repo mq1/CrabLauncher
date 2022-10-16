@@ -24,11 +24,8 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_default_spacer()
         .with_child(Button::<AppState>::new("News").on_click(|ctx, data, _| {
             if data.news.article_count == 0 {
-                data.loading_message = "Loading news...".to_string();
-                data.current_view = View::Loading;
-
                 let event_sink = ctx.get_external_handle();
-                tokio::spawn(update_news(event_sink));
+                tokio::spawn(lib::minecraft_news::update_news(event_sink));
             } else {
                 data.current_view = View::News;
             }
@@ -79,13 +76,4 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_child(switcher_column)
         .with_flex_child(view_switcher, 1.0)
         .expand_height()
-}
-
-async fn update_news(event_sink: druid::ExtEventSink) {
-    let news = lib::minecraft_news::fetch(None).await.unwrap();
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.news = news;
-        data.current_view = View::News;
-    });
 }
