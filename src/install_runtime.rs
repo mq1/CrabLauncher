@@ -6,12 +6,8 @@ use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, RadioGroup, Scroll},
     Widget, WidgetExt,
 };
-use tokio::{fs::File, io::AsyncWriteExt};
 
-use crate::{
-    lib::{self, HTTP_CLIENT},
-    AppState, View,
-};
+use crate::{lib, AppState};
 
 pub fn build_widget(available_runtimes: &Vector<i32>) -> impl Widget<AppState> {
     Flex::column()
@@ -34,45 +30,10 @@ pub fn build_widget(available_runtimes: &Vector<i32>) -> impl Widget<AppState> {
         .with_flex_spacer(1.)
         .with_child(Flex::row().with_flex_spacer(1.).with_child(
             Button::<AppState>::new("⬇️ Install").on_click(|ctx, data, _| {
-                data.loading_message = "Downloading runtime...".to_string();
-                data.current_progress = 0.;
-                data.current_view = View::Progress;
-
                 let runtime = data.selected_runtime.clone().unwrap();
                 let event_sink = ctx.get_external_handle();
-                tokio::spawn(install_runtime(event_sink, runtime));
+                tokio::spawn(lib::runtime_manager::install(runtime, event_sink));
             }),
         ))
         .padding(10.)
-}
-
-async fn install_runtime(event_sink: druid::ExtEventSink, runtime: i32) {
-    let (package, download_path) = lib::runtime_manager::get_download(&runtime).await.unwrap();
-
-    let mut resp = HTTP_CLIENT.get(package.link).send().await.unwrap();
-
-    let mut file = File::create(&download_path).await.unwrap();
-    let mut downloaded_bytes = 0;
-
-    while let Some(chunk) = resp.chunk().await.unwrap() {
-        file.write_all(&chunk).await.unwrap();
-        downloaded_bytes += chunk.len();
-
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_progress = downloaded_bytes as f64 / package.size as f64;
-        });
-    }
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.loading_message = "Installing runtime".to_string();
-        data.current_view = View::Loading;
-    });
-
-    lib::runtime_manager::install(&download_path).await.unwrap();
-    let list = lib::runtime_manager::list().await.unwrap();
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.installed_runtimes = list;
-        data.current_view = View::Runtimes;
-    });
 }
