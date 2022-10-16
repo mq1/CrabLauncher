@@ -5,10 +5,11 @@ use std::path::PathBuf;
 
 use color_eyre::eyre::Result;
 use druid::im::Vector;
-use oauth2::{PkceCodeVerifier, CsrfToken};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
+
+use crate::{AppState, View};
 
 use super::{msa, BASE_DIR};
 
@@ -58,7 +59,7 @@ pub async fn get_active() -> Result<Option<msa::Account>> {
     Ok(None)
 }
 
-pub async fn set_active(account: msa::Account) -> Result<()> {
+pub async fn set_active(account: msa::Account, event_sink: druid::ExtEventSink) -> Result<()> {
     let mut document = read().await?;
 
     for a in document.accounts.iter_mut() {
@@ -67,14 +68,31 @@ pub async fn set_active(account: msa::Account) -> Result<()> {
 
     write(&document).await?;
 
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.active_account = Some(account);
+    });
+
     Ok(())
 }
 
-pub async fn add(csrf_token: CsrfToken, pkce_verifier: PkceCodeVerifier) -> Result<()> {
+pub async fn add(event_sink: druid::ExtEventSink) -> Result<()> {
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.loading_message = "Waiting for authentication...".to_string();
+        data.current_view = View::Loading;
+    });
+
+    let (auth_url, csrf_token, pkce_verifier) = msa::get_auth_url();
+    open::that(auth_url.to_string())?;
+
     let mut document = read().await?;
     let account = msa::listen_login_callback(csrf_token, pkce_verifier).await?;
     document.accounts.push_back(account);
     write(&document).await?;
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.accounts = document.accounts;
+        data.current_view = View::Accounts;
+    });
 
     Ok(())
 }

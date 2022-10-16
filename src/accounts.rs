@@ -7,11 +7,10 @@ use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
     Color, LensExt, Widget, WidgetExt,
 };
-use oauth2::{PkceCodeVerifier, CsrfToken};
 
 use crate::{
     lib::{self, msa::Account},
-    AppState, View,
+    AppState,
 };
 
 pub fn build_widget() -> impl Widget<AppState> {
@@ -46,14 +45,15 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_child(
                             Button::<(Vector<Account>, Account)>::new("Select ✅").on_click(
                                 |ctx, (accounts, account), _| {
-                                    tokio::spawn(lib::accounts::set_active(account.clone()));
-
                                     accounts.iter_mut().for_each(|a| {
                                         a.is_active = a.mc_id == account.mc_id;
                                     });
 
                                     let event_sink = ctx.get_external_handle();
-                                    update_active_account(event_sink, account.clone());
+                                    tokio::spawn(lib::accounts::set_active(
+                                        account.clone(),
+                                        event_sink,
+                                    ));
                                 },
                             ),
                         )
@@ -73,33 +73,11 @@ pub fn build_widget() -> impl Widget<AppState> {
         )
         .with_default_spacer()
         .with_child(
-            Button::<AppState>::new("New Account 🎉").on_click(|ctx, data, _| {
-                data.loading_message = "Waiting for authentication...".to_string();
-                data.current_view = View::Loading;
-
-                let (auth_url, csfr_token, pkce_verifier) = lib::msa::get_auth_url();
-                open::that(auth_url.to_string()).expect("Failed to open auth url");
-
+            Button::<AppState>::new("New Account 🎉").on_click(|ctx, _, _| {
                 let event_sink = ctx.get_external_handle();
-                tokio::spawn(add_account(event_sink, csfr_token, pkce_verifier));
+                tokio::spawn(lib::accounts::add(event_sink));
             }),
         )
         .with_flex_spacer(1.)
         .padding(10.)
-}
-
-async fn add_account(event_sink: druid::ExtEventSink, csrf_token: CsrfToken, pkce_verifier: PkceCodeVerifier) {
-    lib::accounts::add(csrf_token, pkce_verifier).await.unwrap();
-    let accounts = lib::accounts::read().await.unwrap().accounts;
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.accounts = accounts;
-        data.current_view = View::Accounts;
-    });
-}
-
-fn update_active_account(event_sink: druid::ExtEventSink, active_account: Account) {
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.active_account = Some(active_account);
-    });
 }
