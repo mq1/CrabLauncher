@@ -7,7 +7,10 @@ use color_eyre::eyre::{bail, Result};
 use druid::im::Vector;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use tokio::fs;
+use tokio::{
+    fs::{self, File},
+    io::AsyncWriteExt,
+};
 use url::Url;
 
 #[cfg(target_os = "windows")]
@@ -18,6 +21,8 @@ use tar::Archive;
 
 #[cfg(not(target_os = "windows"))]
 use flate2::read::GzDecoder;
+
+use crate::{AppState, View};
 
 use super::{BASE_DIR, HTTP_CLIENT};
 
@@ -131,16 +136,37 @@ fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub async fn get_download(java_version: &i32) -> Result<(Package, PathBuf)> {
-    let assets = get_assets_info(java_version).await?;
+pub async fn install(java_version: i32, event_sink: druid::ExtEventSink) -> Result<()> {
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.loading_message = "Downloading runtime...".to_string();
+        data.current_progress = 0.;
+        data.current_view = View::Progress;
+    });
+
+    let assets = get_assets_info(&java_version).await?;
     let download_path = RUNTIMES_DIR.join(&assets.binary.package.name);
 
-    Ok((assets.binary.package, download_path))
-}
+    let mut resp = HTTP_CLIENT.get(assets.binary.package.link).send().await?;
+    let mut file = File::create(&download_path).await?;
+    let mut downloaded_bytes = 0;
 
-pub async fn install(download_path: &Path) -> Result<()> {
+    while let Some(chunk) = resp.chunk().await? {
+        file.write_all(&chunk).await.unwrap();
+        downloaded_bytes += chunk.len();
+
+        event_sink.add_idle_callback(move |data: &mut AppState| {
+            data.current_progress = downloaded_bytes as f64 / assets.binary.package.size as f64;
+        });
+    }
+
     extract_archive(&download_path, RUNTIMES_DIR.as_path())?;
     fs::remove_file(download_path).await?;
+    let runtimes = list().await?;
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.installed_runtimes = runtimes;
+        data.current_view = View::Runtimes;
+    });
 
     Ok(())
 }
