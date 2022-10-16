@@ -4,12 +4,14 @@
 use std::{path::PathBuf, process::Stdio};
 
 use druid::{im::Vector, Data};
+use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use sha1::Sha1;
 use strum_macros::Display;
 use tokio::{
-    fs,
-    io::{AsyncBufReadExt, BufReader},
+    fs::{self, File},
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
     process::Command,
 };
 
@@ -21,7 +23,11 @@ use crate::{
 };
 
 use super::{
-    minecraft_version_manifest::Version, minecraft_version_meta, runtime_manager, BASE_DIR,
+    check_hash,
+    minecraft_assets::AssetIndex,
+    minecraft_version_manifest::Version,
+    minecraft_version_meta::{self, MinecraftVersionMeta},
+    runtime_manager, BASE_DIR, HTTP_CLIENT,
 };
 
 // https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks
@@ -97,18 +103,243 @@ pub async fn list() -> Result<Vector<Instance>> {
     Ok(instances)
 }
 
-pub async fn new(instance_name: &str, minecraft_version: &Version) -> Result<()> {
-    let instance_dir = INSTANCES_DIR.join(instance_name);
-    fs::create_dir_all(&instance_dir).await?;
+pub async fn new(
+    instance_name: String,
+    minecraft_version: Version,
+    event_sink: druid::ExtEventSink,
+) -> Result<()> {
+    async fn create_instance(name: String, version_id: String) -> Result<Vector<Instance>> {
+        let instance_dir = INSTANCES_DIR.join(name);
+        fs::create_dir_all(&instance_dir).await?;
 
-    let info = InstanceInfo {
-        minecraft_version: minecraft_version.id.clone(),
-        ..Default::default()
-    };
+        let info = InstanceInfo {
+            minecraft_version: version_id,
+            ..Default::default()
+        };
 
-    let path = instance_dir.join("instance.toml");
-    let content = toml::to_string_pretty(&info)?;
-    fs::write(&path, content).await?;
+        let path = instance_dir.join("instance.toml");
+        let content = toml::to_string_pretty(&info)?;
+        fs::write(&path, content).await?;
+        list().await
+    }
+
+    let instances = tokio::spawn(create_instance(
+        instance_name.to_owned(),
+        minecraft_version.id.to_owned(),
+    ));
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.current_view = View::Progress;
+        data.loading_message = "Downloading version meta...".to_string();
+        data.current_progress = 0.;
+    });
+
+    let meta_path = minecraft_version.get_meta_path();
+    let meta: MinecraftVersionMeta =
+        if meta_path.exists() && check_hash::<Sha1>(&meta_path, &minecraft_version.sha1) {
+            let raw_meta = fs::read_to_string(meta_path).await.unwrap();
+
+            event_sink.add_idle_callback(move |data: &mut AppState| {
+                data.current_progress = 1.;
+            });
+
+            serde_json::from_str(&raw_meta).unwrap()
+        } else {
+            let _ = fs::remove_file(&meta_path).await;
+
+            let resp = HTTP_CLIENT
+                .get(&minecraft_version.url)
+                .send()
+                .await
+                .unwrap();
+
+            let size = resp.content_length().unwrap();
+            let mut stream = resp.bytes_stream();
+
+            fs::create_dir_all(meta_path.parent().unwrap())
+                .await
+                .unwrap();
+            let mut file = File::create(&meta_path).await.unwrap();
+            let mut meta = Vec::new();
+            let mut downloaded_bytes = 0;
+
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk.unwrap();
+                file.write_all(&chunk).await.unwrap();
+                meta.extend_from_slice(&chunk);
+                downloaded_bytes += chunk.len();
+
+                event_sink.add_idle_callback(move |data: &mut AppState| {
+                    data.current_progress = downloaded_bytes as f64 / size as f64;
+                });
+            }
+
+            serde_json::from_slice(&meta).unwrap()
+        };
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.loading_message = "Downloading assets...".to_string();
+        data.current_progress = 0.;
+    });
+
+    let total_size = meta.asset_index.size + meta.asset_index.total_size.unwrap();
+    let mut downloaded_bytes = 0;
+    let index_path = meta.asset_index.get_path();
+
+    let asset_index: AssetIndex =
+        if index_path.exists() && check_hash::<Sha1>(&index_path, &meta.asset_index.sha1) {
+            let raw_index = fs::read_to_string(index_path).await.unwrap();
+            downloaded_bytes += meta.asset_index.size;
+
+            event_sink.add_idle_callback(move |data: &mut AppState| {
+                data.current_progress = downloaded_bytes as f64 / total_size as f64;
+            });
+
+            serde_json::from_str(&raw_index).unwrap()
+        } else {
+            let _ = fs::remove_file(&index_path).await;
+
+            let resp = HTTP_CLIENT
+                .get(meta.asset_index.url.clone())
+                .send()
+                .await
+                .unwrap();
+
+            let mut stream = resp.bytes_stream();
+            fs::create_dir_all(index_path.parent().unwrap())
+                .await
+                .unwrap();
+            let mut file = File::create(&index_path).await.unwrap();
+            let mut raw_index = Vec::new();
+
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk.unwrap();
+                file.write_all(&chunk).await.unwrap();
+                raw_index.extend_from_slice(&chunk);
+                downloaded_bytes += chunk.len();
+
+                event_sink.add_idle_callback(move |data: &mut AppState| {
+                    data.current_progress = downloaded_bytes as f64 / total_size as f64;
+                });
+            }
+
+            serde_json::from_slice(&raw_index).unwrap()
+        };
+
+    // download all objects
+    for object in asset_index.objects.values() {
+        let path = object.get_path();
+        if path.exists() && check_hash::<Sha1>(&path, &object.hash) {
+            downloaded_bytes += object.size;
+
+            event_sink.add_idle_callback(move |data: &mut AppState| {
+                data.current_progress = downloaded_bytes as f64 / total_size as f64;
+            });
+        } else {
+            let _ = fs::remove_file(&path).await;
+
+            let resp = HTTP_CLIENT.get(object.get_url()).send().await.unwrap();
+
+            let mut stream = resp.bytes_stream();
+            fs::create_dir_all(path.parent().unwrap()).await.unwrap();
+            let mut file = File::create(&path).await.unwrap();
+
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk.unwrap();
+                file.write_all(&chunk).await.unwrap();
+                downloaded_bytes += chunk.len();
+
+                event_sink.add_idle_callback(move |data: &mut AppState| {
+                    data.current_progress = downloaded_bytes as f64 / total_size as f64;
+                });
+            }
+        }
+    }
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.loading_message = "Downloading libraries...".to_string();
+        data.current_progress = 0.;
+    });
+
+    let mut downloaded_bytes = 0;
+    let total_size = meta
+        .libraries
+        .iter()
+        .map(|lib| lib.downloads.artifact.size)
+        .sum::<usize>()
+        + meta.downloads.client.size;
+
+    for library in meta.libraries.iter() {
+        let path = library.downloads.artifact.get_path();
+        if path.exists() && check_hash::<Sha1>(&path, &library.downloads.artifact.sha1) {
+            downloaded_bytes += library.downloads.artifact.size;
+
+            event_sink.add_idle_callback(move |data: &mut AppState| {
+                data.current_progress = downloaded_bytes as f64 / total_size as f64;
+            });
+        } else {
+            let _ = fs::remove_file(&path).await;
+
+            let resp = HTTP_CLIENT
+                .get(&library.downloads.artifact.url)
+                .send()
+                .await
+                .unwrap();
+
+            let mut stream = resp.bytes_stream();
+            fs::create_dir_all(path.parent().unwrap()).await.unwrap();
+            let mut file = File::create(&path).await.unwrap();
+
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk.unwrap();
+                file.write_all(&chunk).await.unwrap();
+                downloaded_bytes += chunk.len();
+
+                event_sink.add_idle_callback(move |data: &mut AppState| {
+                    data.current_progress = downloaded_bytes as f64 / total_size as f64;
+                });
+            }
+        }
+    }
+
+    let path = meta.get_client_path();
+    if path.exists() && check_hash::<Sha1>(&path, &meta.downloads.client.sha1) {
+        downloaded_bytes += meta.downloads.client.size;
+
+        event_sink.add_idle_callback(move |data: &mut AppState| {
+            data.current_progress = downloaded_bytes as f64 / total_size as f64;
+        });
+    } else {
+        let _ = fs::remove_file(&path).await;
+
+        let resp = HTTP_CLIENT
+            .get(&meta.downloads.client.url)
+            .send()
+            .await
+            .unwrap();
+
+        let mut stream = resp.bytes_stream();
+        fs::create_dir_all(path.parent().unwrap()).await.unwrap();
+        let mut file = File::create(&path).await.unwrap();
+
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk.unwrap();
+            file.write_all(&chunk).await.unwrap();
+            downloaded_bytes += chunk.len();
+
+            event_sink.add_idle_callback(move |data: &mut AppState| {
+                data.current_progress = downloaded_bytes as f64 / total_size as f64;
+            });
+        }
+    }
+
+    let instances = instances.await??;
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.new_instance_state.available_minecraft_versions = Vector::new();
+        data.instances = instances;
+        data.current_view = View::Instances;
+    });
 
     Ok(())
 }

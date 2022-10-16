@@ -8,15 +8,17 @@ use directories::ProjectDirs;
 use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use reqwest::IntoUrl;
-use sha1::{Digest, Sha1};
-use tokio::{fs::{File, self}, io::AsyncWriteExt};
-use url::Url;
+use sha1::Digest;
+use tokio::{
+    fs::{self, File},
+    io::AsyncWriteExt,
+};
 
 pub mod accounts;
 pub mod instances;
 pub mod launcher_config;
 pub mod launcher_updater;
-pub mod minecraft_assets;
+mod minecraft_assets;
 mod minecraft_libraries;
 pub mod minecraft_news;
 mod minecraft_rules;
