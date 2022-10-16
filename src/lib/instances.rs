@@ -4,7 +4,6 @@
 use std::{path::PathBuf, process::Stdio};
 
 use druid::{im::Vector, Data};
-use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use sha1::Sha1;
@@ -147,14 +146,13 @@ pub async fn new(
         } else {
             let _ = fs::remove_file(&meta_path).await;
 
-            let resp = HTTP_CLIENT
+            let mut resp = HTTP_CLIENT
                 .get(&minecraft_version.url)
                 .send()
                 .await
                 .unwrap();
 
             let size = resp.content_length().unwrap();
-            let mut stream = resp.bytes_stream();
 
             fs::create_dir_all(meta_path.parent().unwrap())
                 .await
@@ -163,8 +161,7 @@ pub async fn new(
             let mut meta = Vec::new();
             let mut downloaded_bytes = 0;
 
-            while let Some(chunk) = stream.next().await {
-                let chunk = chunk.unwrap();
+            while let Some(chunk) = resp.chunk().await? {
                 file.write_all(&chunk).await.unwrap();
                 meta.extend_from_slice(&chunk);
                 downloaded_bytes += chunk.len();
@@ -199,21 +196,20 @@ pub async fn new(
         } else {
             let _ = fs::remove_file(&index_path).await;
 
-            let resp = HTTP_CLIENT
+            let mut resp = HTTP_CLIENT
                 .get(meta.asset_index.url.clone())
                 .send()
                 .await
                 .unwrap();
 
-            let mut stream = resp.bytes_stream();
             fs::create_dir_all(index_path.parent().unwrap())
                 .await
                 .unwrap();
+
             let mut file = File::create(&index_path).await.unwrap();
             let mut raw_index = Vec::new();
 
-            while let Some(chunk) = stream.next().await {
-                let chunk = chunk.unwrap();
+            while let Some(chunk) = resp.chunk().await? {
                 file.write_all(&chunk).await.unwrap();
                 raw_index.extend_from_slice(&chunk);
                 downloaded_bytes += chunk.len();
@@ -238,14 +234,12 @@ pub async fn new(
         } else {
             let _ = fs::remove_file(&path).await;
 
-            let resp = HTTP_CLIENT.get(object.get_url()).send().await.unwrap();
+            let mut resp = HTTP_CLIENT.get(object.get_url()).send().await.unwrap();
 
-            let mut stream = resp.bytes_stream();
             fs::create_dir_all(path.parent().unwrap()).await.unwrap();
             let mut file = File::create(&path).await.unwrap();
 
-            while let Some(chunk) = stream.next().await {
-                let chunk = chunk.unwrap();
+            while let Some(chunk) = resp.chunk().await? {
                 file.write_all(&chunk).await.unwrap();
                 downloaded_bytes += chunk.len();
 
@@ -280,18 +274,16 @@ pub async fn new(
         } else {
             let _ = fs::remove_file(&path).await;
 
-            let resp = HTTP_CLIENT
+            let mut resp = HTTP_CLIENT
                 .get(&library.downloads.artifact.url)
                 .send()
                 .await
                 .unwrap();
 
-            let mut stream = resp.bytes_stream();
             fs::create_dir_all(path.parent().unwrap()).await.unwrap();
             let mut file = File::create(&path).await.unwrap();
 
-            while let Some(chunk) = stream.next().await {
-                let chunk = chunk.unwrap();
+            while let Some(chunk) = resp.chunk().await? {
                 file.write_all(&chunk).await.unwrap();
                 downloaded_bytes += chunk.len();
 
@@ -312,18 +304,16 @@ pub async fn new(
     } else {
         let _ = fs::remove_file(&path).await;
 
-        let resp = HTTP_CLIENT
+        let mut resp = HTTP_CLIENT
             .get(&meta.downloads.client.url)
             .send()
             .await
             .unwrap();
 
-        let mut stream = resp.bytes_stream();
         fs::create_dir_all(path.parent().unwrap()).await.unwrap();
         let mut file = File::create(&path).await.unwrap();
 
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk.unwrap();
+        while let Some(chunk) = resp.chunk().await? {
             file.write_all(&chunk).await.unwrap();
             downloaded_bytes += chunk.len();
 
