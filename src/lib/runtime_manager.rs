@@ -159,6 +159,11 @@ pub async fn install(java_version: i32, event_sink: druid::ExtEventSink) -> Resu
         });
     }
 
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.loading_message = "Extracting runtime...".to_string();
+        data.current_view = View::Loading;
+    });
+
     extract_archive(&download_path, RUNTIMES_DIR.as_path())?;
     fs::remove_file(download_path).await?;
     let runtimes = list().await?;
