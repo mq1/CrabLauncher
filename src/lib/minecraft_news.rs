@@ -6,6 +6,8 @@ use druid::{im::Vector, Data, Lens};
 use serde::Deserialize;
 use url::Url;
 
+use crate::{AppState, View};
+
 use super::HTTP_CLIENT;
 
 const MINECRAFT_NEWS_URL: &str =
@@ -99,7 +101,7 @@ pub enum TileSize {
 }
 
 /// Get the news from minecraft.net
-pub async fn fetch(page_size: Option<i32>) -> Result<News> {
+async fn fetch(page_size: Option<i32>) -> Result<News> {
     let page_size = page_size.unwrap_or(20);
     let url = Url::parse_with_params(MINECRAFT_NEWS_URL, &[("pageSize", page_size.to_string())])?;
     let resp = HTTP_CLIENT
@@ -110,4 +112,20 @@ pub async fn fetch(page_size: Option<i32>) -> Result<News> {
         .await?;
 
     Ok(resp)
+}
+
+pub async fn update_news(event_sink: druid::ExtEventSink) -> Result<()> {
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.loading_message = "Loading news...".to_string();
+        data.current_view = View::Loading;
+    });
+
+    let news = fetch(None).await?;
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.news = news;
+        data.current_view = View::News;
+    });
+
+    Ok(())
 }
