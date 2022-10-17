@@ -342,7 +342,11 @@ pub async fn remove(instance: Instance) -> Result<()> {
 }
 
 pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()> {
-    println!("Launching instance {}", instance.name);
+    let instance_name = instance.name.clone();
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.loading_message = format!("Running {}", instance_name);
+        data.current_view = View::Loading;
+    });
 
     let account = accounts::get_active().await?.unwrap();
 
