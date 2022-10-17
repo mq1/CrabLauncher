@@ -53,7 +53,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_child(Button::<(_, Instance)>::new("Launch 🚀").on_click(
                             |ctx, (_, instance), _| {
                                 let event_sink = ctx.get_external_handle();
-                                tokio::spawn(launch_instance(event_sink, instance.clone()));
+                                tokio::spawn(lib::instances::launch(instance.clone(), event_sink));
                             },
                         ))
                         .padding(5.)
@@ -89,14 +89,4 @@ pub fn build_widget() -> impl Widget<AppState> {
             ),
         )
         .padding(10.)
-}
-
-async fn launch_instance(event_sink: druid::ExtEventSink, instance: Instance) {
-    let instance_name = instance.name.clone();
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.loading_message = format!("Running {}", instance_name);
-        data.current_view = View::Loading;
-    });
-
-    lib::instances::launch(instance, event_sink).await.unwrap();
 }
