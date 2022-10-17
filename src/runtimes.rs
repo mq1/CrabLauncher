@@ -57,26 +57,12 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_child(
             Button::<AppState>::new("Install ⬇️").on_click(|ctx, data, _| {
                 if data.available_runtimes.is_empty() {
-                    data.loading_message = "Loading available runtimes...".to_string();
-                    data.current_view = View::Loading;
-
                     let event_sink = ctx.get_external_handle();
-                    tokio::spawn(update_runtimes(event_sink));
+                    tokio::spawn(lib::runtime_manager::update_runtimes(event_sink));
                 } else {
                     data.current_view = View::InstallRuntime;
                 }
             }),
         )
         .padding(10.)
-}
-
-async fn update_runtimes(event_sink: druid::ExtEventSink) {
-    let runtimes = lib::runtime_manager::fetch_available_releases()
-        .await
-        .unwrap();
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.available_runtimes = runtimes.available_releases;
-        data.current_view = View::InstallRuntime;
-    });
 }

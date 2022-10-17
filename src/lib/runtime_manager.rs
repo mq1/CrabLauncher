@@ -66,7 +66,7 @@ struct Assets {
     release_name: String,
 }
 
-pub async fn fetch_available_releases() -> Result<AvailableReleases> {
+async fn fetch_available_releases() -> Result<AvailableReleases> {
     let url = format!("{ADOPTIUM_API_ENDPOINT}/v3/info/available_releases");
     let response = HTTP_CLIENT.get(url).send().await?.json().await?;
 
@@ -186,7 +186,7 @@ pub async fn remove(runtime: String) -> Result<()> {
     Ok(())
 }
 
-pub async fn get_java_path(java_version: &i32) -> Result<PathBuf> {
+pub async fn get_java_path(java_version: &u32) -> Result<PathBuf> {
     let java_version = java_version.to_string();
 
     let mut runtime: Option<PathBuf> = None;
@@ -219,4 +219,20 @@ pub async fn get_java_path(java_version: &i32) -> Result<PathBuf> {
     let runtime_path = runtime.join("bin").join("java");
 
     Ok(runtime_path)
+}
+
+pub async fn update_runtimes(event_sink: druid::ExtEventSink) -> Result<()> {
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.loading_message = "Loading available runtimes...".to_string();
+        data.current_view = View::Loading;
+    });
+
+    let runtimes = fetch_available_releases().await?;
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.available_runtimes = runtimes.available_releases;
+        data.current_view = View::InstallRuntime;
+    });
+
+    Ok(())
 }
