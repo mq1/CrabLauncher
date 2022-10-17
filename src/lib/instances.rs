@@ -46,7 +46,7 @@ pub enum InstanceType {
 pub struct InstanceInfo {
     pub instance_type: InstanceType,
     pub minecraft_version: String,
-    pub jre_version: String,
+    pub jre_version: u32,
 }
 
 impl Default for InstanceInfo {
@@ -54,7 +54,7 @@ impl Default for InstanceInfo {
         Self {
             instance_type: InstanceType::default(),
             minecraft_version: "".to_string(),
-            jre_version: "latest".to_string(),
+            jre_version: 17,
         }
     }
 }
@@ -354,14 +354,6 @@ pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Resu
 
     let version = minecraft_version_meta::get(&instance.info.minecraft_version).await?;
 
-    let jre_version = if instance.info.jre_version == "latest" {
-        runtime_manager::fetch_available_releases()
-            .await?
-            .most_recent_feature_release
-    } else {
-        instance.info.jre_version.parse()?
-    };
-
     /*
     let is_updated = runtime_manager::is_updated(&jre_version).await?;
     if !is_updated {
@@ -370,7 +362,7 @@ pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Resu
     }
     */
 
-    let java_path = runtime_manager::get_java_path(&jre_version).await?;
+    let java_path = runtime_manager::get_java_path(&instance.info.jre_version).await?;
 
     let mut jvm_args = vec![
         "-Dminecraft.launcher.brand=ice-launcher".to_string(),
