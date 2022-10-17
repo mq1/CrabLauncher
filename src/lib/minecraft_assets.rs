@@ -3,6 +3,7 @@
 
 use std::{collections::HashMap, path::PathBuf};
 
+use color_eyre::Result;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use url::Url;

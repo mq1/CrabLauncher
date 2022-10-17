@@ -24,7 +24,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                         "{MINECRAFT_NEWS_BASE_URL}{url}",
                         url = article.article_url
                     ))
-                    .unwrap();
+                    .expect("Failed to open article in browser");
                 }))
                 .padding(5.)
                 .border(Color::GRAY, 1.)
