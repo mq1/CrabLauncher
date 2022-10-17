@@ -151,7 +151,7 @@ pub async fn install(java_version: i32, event_sink: druid::ExtEventSink) -> Resu
     let mut downloaded_bytes = 0;
 
     while let Some(chunk) = resp.chunk().await? {
-        file.write_all(&chunk).await.unwrap();
+        file.write_all(&chunk).await?;
         downloaded_bytes += chunk.len();
 
         event_sink.add_idle_callback(move |data: &mut AppState| {

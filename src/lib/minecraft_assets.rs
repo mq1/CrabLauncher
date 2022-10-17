@@ -37,10 +37,8 @@ impl Object {
         OBJECTS_DIR.join(&self.hash[..2]).join(&self.hash)
     }
 
-    pub fn get_url(&self) -> Url {
-        ASSETS_DOWNLOAD_ENDPOINT
-            .join(&format!("{}/{}", &self.hash[..2], &self.hash))
-            .unwrap()
+    pub fn get_url(&self) -> Result<Url, url::ParseError> {
+        ASSETS_DOWNLOAD_ENDPOINT.join(&format!("{}/{}", &self.hash[..2], &self.hash))
     }
 }
 
