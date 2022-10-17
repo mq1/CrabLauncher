@@ -14,10 +14,10 @@ mod instances;
 mod lib;
 mod loading;
 mod news;
+mod progress;
 mod root;
 mod runtimes;
 mod settings;
-mod progress;
 
 use std::{fs, process::exit};
 
@@ -118,7 +118,7 @@ async fn main() -> Result<()> {
     // Spawn a task to check for updates.
     if initial_state.config.automatically_check_for_updates {
         let event_sink = launcher.get_external_handle();
-        tokio::spawn(check_for_updates(event_sink));
+        tokio::spawn(lib::launcher_updater::check_for_updates(event_sink));
     }
 
     launcher
@@ -127,17 +127,4 @@ async fn main() -> Result<()> {
         .launch(initial_state)?;
 
     Ok(())
-}
-
-async fn check_for_updates(event_sink: druid::ExtEventSink) {
-    match lib::launcher_updater::check_for_updates().await {
-        Ok(update) => {
-            if update.is_some() {
-                event_sink.add_idle_callback(|data: &mut AppState| {
-                    data.is_update_available = true;
-                })
-            }
-        }
-        Err(_) => {}
-    }
 }
