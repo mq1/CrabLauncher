@@ -216,7 +216,7 @@ pub async fn listen_login_callback(
     csrf_token: CsrfToken,
     pkce_verifier: PkceCodeVerifier,
 ) -> Result<Account> {
-    let listener = TcpListener::bind("127.0.0.1:3003").await.unwrap();
+    let listener = TcpListener::bind("127.0.0.1:3003").await?;
     loop {
         if let Ok((mut stream, _)) = listener.accept().await {
             let code;
@@ -225,10 +225,10 @@ pub async fn listen_login_callback(
                 let mut reader = BufReader::new(&mut stream);
 
                 let mut request_line = String::new();
-                reader.read_line(&mut request_line).await.unwrap();
+                reader.read_line(&mut request_line).await?;
 
                 let redirect_url = request_line.split_whitespace().nth(1).unwrap();
-                let url = Url::parse(&("http://localhost".to_string() + redirect_url)).unwrap();
+                let url = Url::parse(&("http://localhost".to_string() + redirect_url))?;
 
                 let code_pair = url
                     .query_pairs()
@@ -260,7 +260,7 @@ pub async fn listen_login_callback(
                     message.len(),
                     message
                 );
-                stream.write_all(response.as_bytes()).await.unwrap();
+                stream.write_all(response.as_bytes()).await?;
 
                 bail!("Invalid CSRF token");
             }
@@ -271,7 +271,7 @@ pub async fn listen_login_callback(
                 message.len(),
                 message
             );
-            stream.write_all(response.as_bytes()).await.unwrap();
+            stream.write_all(response.as_bytes()).await?;
 
             return login(code, pkce_verifier).await;
         }

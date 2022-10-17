@@ -104,11 +104,11 @@ async fn main() -> Result<()> {
         let installed_runtimes = lib::runtime_manager::list();
 
         AppState {
-            config: config.await.unwrap(),
-            instances: instances.await.unwrap(),
-            accounts: accounts.await.unwrap().accounts,
-            active_account: active_account.await.unwrap(),
-            installed_runtimes: installed_runtimes.await.unwrap(),
+            config: config.await?,
+            instances: instances.await?,
+            accounts: accounts.await?.accounts,
+            active_account: active_account.await?,
+            installed_runtimes: installed_runtimes.await?,
             ..Default::default()
         }
     };

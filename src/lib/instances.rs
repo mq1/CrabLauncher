@@ -136,33 +136,27 @@ pub async fn new(
     let meta_path = minecraft_version.get_meta_path();
     let meta: MinecraftVersionMeta =
         if meta_path.exists() && check_hash::<Sha1>(&meta_path, &minecraft_version.sha1) {
-            let raw_meta = fs::read_to_string(meta_path).await.unwrap();
+            let raw_meta = fs::read_to_string(meta_path).await?;
 
             event_sink.add_idle_callback(move |data: &mut AppState| {
                 data.current_progress = 1.;
             });
 
-            serde_json::from_str(&raw_meta).unwrap()
+            serde_json::from_str(&raw_meta)?
         } else {
             let _ = fs::remove_file(&meta_path).await;
 
-            let mut resp = HTTP_CLIENT
-                .get(&minecraft_version.url)
-                .send()
-                .await
-                .unwrap();
+            let mut resp = HTTP_CLIENT.get(&minecraft_version.url).send().await?;
 
             let size = resp.content_length().unwrap();
 
-            fs::create_dir_all(meta_path.parent().unwrap())
-                .await
-                .unwrap();
-            let mut file = File::create(&meta_path).await.unwrap();
+            fs::create_dir_all(meta_path.parent().unwrap()).await?;
+            let mut file = File::create(&meta_path).await?;
             let mut meta = Vec::new();
             let mut downloaded_bytes = 0;
 
             while let Some(chunk) = resp.chunk().await? {
-                file.write_all(&chunk).await.unwrap();
+                file.write_all(&chunk).await?;
                 meta.extend_from_slice(&chunk);
                 downloaded_bytes += chunk.len();
 
@@ -171,7 +165,7 @@ pub async fn new(
                 });
             }
 
-            serde_json::from_slice(&meta).unwrap()
+            serde_json::from_slice(&meta)?
         };
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
@@ -185,32 +179,26 @@ pub async fn new(
 
     let asset_index: AssetIndex =
         if index_path.exists() && check_hash::<Sha1>(&index_path, &meta.asset_index.sha1) {
-            let raw_index = fs::read_to_string(index_path).await.unwrap();
+            let raw_index = fs::read_to_string(index_path).await?;
             downloaded_bytes += meta.asset_index.size;
 
             event_sink.add_idle_callback(move |data: &mut AppState| {
                 data.current_progress = downloaded_bytes as f64 / total_size as f64;
             });
 
-            serde_json::from_str(&raw_index).unwrap()
+            serde_json::from_str(&raw_index)?
         } else {
             let _ = fs::remove_file(&index_path).await;
 
-            let mut resp = HTTP_CLIENT
-                .get(meta.asset_index.url.clone())
-                .send()
-                .await
-                .unwrap();
+            let mut resp = HTTP_CLIENT.get(meta.asset_index.url.clone()).send().await?;
 
-            fs::create_dir_all(index_path.parent().unwrap())
-                .await
-                .unwrap();
+            fs::create_dir_all(index_path.parent().unwrap()).await?;
 
-            let mut file = File::create(&index_path).await.unwrap();
+            let mut file = File::create(&index_path).await?;
             let mut raw_index = Vec::new();
 
             while let Some(chunk) = resp.chunk().await? {
-                file.write_all(&chunk).await.unwrap();
+                file.write_all(&chunk).await?;
                 raw_index.extend_from_slice(&chunk);
                 downloaded_bytes += chunk.len();
 
@@ -219,7 +207,7 @@ pub async fn new(
                 });
             }
 
-            serde_json::from_slice(&raw_index).unwrap()
+            serde_json::from_slice(&raw_index)?
         };
 
     // download all objects
@@ -234,13 +222,13 @@ pub async fn new(
         } else {
             let _ = fs::remove_file(&path).await;
 
-            let mut resp = HTTP_CLIENT.get(object.get_url()).send().await.unwrap();
+            let mut resp = HTTP_CLIENT.get(object.get_url()?).send().await?;
 
-            fs::create_dir_all(path.parent().unwrap()).await.unwrap();
-            let mut file = File::create(&path).await.unwrap();
+            fs::create_dir_all(path.parent().unwrap()).await?;
+            let mut file = File::create(&path).await?;
 
             while let Some(chunk) = resp.chunk().await? {
-                file.write_all(&chunk).await.unwrap();
+                file.write_all(&chunk).await?;
                 downloaded_bytes += chunk.len();
 
                 event_sink.add_idle_callback(move |data: &mut AppState| {
@@ -277,14 +265,13 @@ pub async fn new(
             let mut resp = HTTP_CLIENT
                 .get(&library.downloads.artifact.url)
                 .send()
-                .await
-                .unwrap();
+                .await?;
 
-            fs::create_dir_all(path.parent().unwrap()).await.unwrap();
-            let mut file = File::create(&path).await.unwrap();
+            fs::create_dir_all(path.parent().unwrap()).await?;
+            let mut file = File::create(&path).await?;
 
             while let Some(chunk) = resp.chunk().await? {
-                file.write_all(&chunk).await.unwrap();
+                file.write_all(&chunk).await?;
                 downloaded_bytes += chunk.len();
 
                 event_sink.add_idle_callback(move |data: &mut AppState| {
@@ -304,17 +291,13 @@ pub async fn new(
     } else {
         let _ = fs::remove_file(&path).await;
 
-        let mut resp = HTTP_CLIENT
-            .get(&meta.downloads.client.url)
-            .send()
-            .await
-            .unwrap();
+        let mut resp = HTTP_CLIENT.get(&meta.downloads.client.url).send().await?;
 
-        fs::create_dir_all(path.parent().unwrap()).await.unwrap();
-        let mut file = File::create(&path).await.unwrap();
+        fs::create_dir_all(path.parent().unwrap()).await?;
+        let mut file = File::create(&path).await?;
 
         while let Some(chunk) = resp.chunk().await? {
-            file.write_all(&chunk).await.unwrap();
+            file.write_all(&chunk).await?;
             downloaded_bytes += chunk.len();
 
             event_sink.add_idle_callback(move |data: &mut AppState| {
