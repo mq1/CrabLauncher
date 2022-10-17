@@ -7,6 +7,8 @@ use color_eyre::Result;
 use druid::{im::Vector, Data, Lens};
 use serde::Deserialize;
 
+use crate::{AppState, View};
+
 use super::{minecraft_version_meta::META_DIR, HTTP_CLIENT};
 
 const VERSION_MANIFEST_URL: &str =
@@ -59,7 +61,7 @@ pub enum VersionType {
     Snapshot,
 }
 
-pub async fn fetch_manifest() -> Result<MinecraftVersionManifest> {
+async fn fetch_manifest() -> Result<MinecraftVersionManifest> {
     let manifest = HTTP_CLIENT
         .get(VERSION_MANIFEST_URL)
         .send()
@@ -70,9 +72,28 @@ pub async fn fetch_manifest() -> Result<MinecraftVersionManifest> {
     Ok(manifest)
 }
 
-pub async fn fetch_versions() -> Result<Vector<Version>> {
+async fn fetch_versions() -> Result<Vector<Version>> {
     let manifest = fetch_manifest().await?;
     let versions = manifest.versions;
 
     Ok(versions)
+}
+
+pub async fn update_available_versions(event_sink: druid::ExtEventSink) -> Result<()> {
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.new_instance_state.available_minecraft_versions = Vector::new();
+        data.loading_message = "Fetching available Minecraft versions...".to_string();
+        data.current_view = View::Loading;
+    });
+
+    let available_versions = fetch_versions().await?;
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.new_instance_state.available_minecraft_versions = available_versions;
+        data.new_instance_state.selected_version =
+            Some(data.new_instance_state.available_minecraft_versions[0].clone());
+        data.current_view = View::InstanceVersionSelection;
+    });
+
+    Ok(())
 }
