@@ -5,22 +5,16 @@ use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::{bail, Result};
 use druid::im::Vector;
+use flate2::read::GzDecoder;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
+use tar::Archive;
 use tokio::{
     fs::{self, File},
     io::AsyncWriteExt,
 };
 use url::Url;
-
-#[cfg(target_os = "windows")]
 use zip::ZipArchive;
-
-#[cfg(not(target_os = "windows"))]
-use tar::Archive;
-
-#[cfg(not(target_os = "windows"))]
-use flate2::read::GzDecoder;
 
 use crate::{AppState, View};
 
@@ -117,21 +111,17 @@ pub async fn list() -> Result<Vector<String>> {
     Ok(runtimes)
 }
 
-#[cfg(target_os = "windows")]
 fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
-    let zip = std::fs::File::open(archive)?;
-    let mut archive = ZipArchive::new(file)?;
-    archive.extract(RUNTIMES_DIR.join(assets.version.semver))?;
-
-    Ok(())
-}
-
-#[cfg(not(target_os = "windows"))]
-fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
-    let tar_gz = std::fs::File::open(archive_path)?;
-    let tar = GzDecoder::new(tar_gz);
-    let mut archive = Archive::new(tar);
-    archive.unpack(destination_path)?;
+    if cfg!(target_os = "windows") {
+        let zip = std::fs::File::open(archive_path)?;
+        let mut archive = ZipArchive::new(zip)?;
+        archive.extract(destination_path)?;
+    } else {
+        let tar_gz = std::fs::File::open(archive_path)?;
+        let tar = GzDecoder::new(tar_gz);
+        let mut archive = Archive::new(tar);
+        archive.unpack(destination_path)?;
+    }
 
     Ok(())
 }
@@ -205,18 +195,17 @@ pub async fn get_java_path(java_version: &u32) -> Result<PathBuf> {
 
     let runtime = runtime.unwrap();
 
-    #[cfg(target_os = "windows")]
-    let runtime_path = runtime.join("bin").join("java.exe");
-
-    #[cfg(target_os = "macos")]
-    let runtime_path = runtime
-        .join("Contents")
-        .join("Home")
-        .join("bin")
-        .join("java");
-
-    #[cfg(target_os = "linux")]
-    let runtime_path = runtime.join("bin").join("java");
+    let runtime_path = if cfg!(target_os = "windows") {
+        runtime.join("bin").join("java.exe")
+    } else if cfg!(target_os = "macos") {
+        runtime
+            .join("Contents")
+            .join("Home")
+            .join("bin")
+            .join("java")
+    } else {
+        runtime.join("bin").join("java")
+    };
 
     Ok(runtime_path)
 }
