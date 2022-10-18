@@ -1131,7 +1131,7 @@ dependencies = [
 
 [[package]]
 name = "ice-launcher"
-version = "0.0.19"
+version = "0.0.20"
 dependencies = [
  "base16ct",
  "color-eyre",
