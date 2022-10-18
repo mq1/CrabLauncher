@@ -14,13 +14,12 @@ jobs:
           rustup target add aarch64-apple-darwin
           cargo build --release --target=x86_64-apple-darwin
           cargo build --release --target=aarch64-apple-darwin
-          mv ./target/x86_64-apple-darwin/release/ice-launcher ./IceLauncher-${{github.ref_name}}-macos-x86_64
-          mv ./target/aarch64-apple-darwin/release/ice-launcher ./IceLauncher-${{github.ref_name}}-macos-aarch64
+          mkdir "macos/Ice Launcher.app/Contents/MacOS"
+          lipo target/x86_64-apple-darwin/release/ice-launcher target/aarch64-apple-darwin/release/ice-launcher -create -output "macos/Ice Launcher.app/Contents/MacOS/ice-launcher"
+          zip -r IceLauncher-${{github.ref_name}}-macos.zip "macos/Ice Launcher.app"
       - uses: softprops/action-gh-release@v1
         with:
-          files: |
-            IceLauncher-${{github.ref_name}}-macos-x86_64
-            IceLauncher-${{github.ref_name}}-macos-aarch64
+          files: IceLauncher-${{github.ref_name}}-macos.zip
   build-ubuntu:
     runs-on: ubuntu-latest
     steps:
