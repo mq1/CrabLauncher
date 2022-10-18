@@ -7,12 +7,6 @@ repository = "https://github.com/mq1/ice-launcher"
 license = "GPL-3.0-only"
 description = "An unofficial launcher for Minecraft: Java Edition"
 
-[package.metadata.bundle]
-name = "Ice Launcher"
-identifier = "eu.mq1.ice-launcher"
-icon = ["ice-launcher.png"]
-copyright = "Copyright (C) 2022 Manuel Quarneti"
-
 [dependencies]
 druid = { git = "https://github.com/linebender/druid.git", features = ["im", "image", "png", "serde"] }
 tokio = { version = "1", features = ["rt", "macros", "process", "io-util", "fs"] }
