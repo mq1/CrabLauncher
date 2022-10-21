@@ -33,10 +33,23 @@ pub fn build_widget() -> impl Widget<AppState> {
                     .with_default_spacer()
                     .with_child(
                         Flex::row()
+                            .with_child(Label::new("Automatically update JVM"))
+                            .with_flex_spacer(1.)
+                            .with_child(
+                                Switch::new().lens(LauncherConfig::automatically_update_jvm),
+                            )
+                            .padding(5.)
+                            .border(Color::GRAY, 1.)
+                            .rounded(5.),
+                    )
+                    .with_default_spacer()
+                    .with_child(
+                        Flex::row()
                             .with_child(Label::new("Automatically optimize JVM arguments"))
                             .with_flex_spacer(1.)
                             .with_child(
-                                Switch::new().lens(LauncherConfig::automatically_optimize_jvm_arguments),
+                                Switch::new()
+                                    .lens(LauncherConfig::automatically_optimize_jvm_arguments),
                             )
                             .padding(5.)
                             .border(Color::GRAY, 1.)
