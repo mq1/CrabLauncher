@@ -6,7 +6,6 @@
 
 mod about;
 mod accounts;
-mod install_runtime;
 mod instance_name_selection;
 mod instance_type_selection;
 mod instance_version_selection;
@@ -16,7 +15,6 @@ mod loading;
 mod news;
 mod progress;
 mod root;
-mod runtimes;
 mod settings;
 
 use std::{fs, process::exit};
@@ -35,8 +33,6 @@ enum View {
     InstanceVersionSelection,
     InstanceNameSelection,
     Accounts,
-    Runtimes,
-    InstallRuntime,
     News,
     Settings,
     About,
@@ -62,9 +58,6 @@ pub struct AppState {
     accounts: Vector<lib::msa::Account>,
     active_account: Option<lib::msa::Account>,
     news: lib::minecraft_news::News,
-    installed_runtimes: Vector<String>,
-    available_runtimes: Vector<i32>,
-    selected_runtime: Option<i32>,
 }
 
 struct Delegate;
@@ -101,14 +94,12 @@ async fn main() -> Result<()> {
         let instances = lib::instances::list();
         let accounts = lib::accounts::read();
         let active_account = lib::accounts::get_active();
-        let installed_runtimes = lib::runtime_manager::list();
 
         AppState {
             config: config.await?,
             instances: instances.await?,
             accounts: accounts.await?.accounts,
             active_account: active_account.await?,
-            installed_runtimes: installed_runtimes.await?,
             ..Default::default()
         }
     };
