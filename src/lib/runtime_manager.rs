@@ -42,24 +42,24 @@ pub struct AvailableReleases {
     pub tip_version: i32,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Package {
     pub link: Url,
     name: String,
     pub size: usize,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct Binary {
     package: Package,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct Version {
     major: i32,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Assets {
     binary: Binary,
     release_name: String,
@@ -115,6 +115,7 @@ async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()
     });
 
     let version_dir = RUNTIMES_DIR.join(assets.version.major.to_string());
+    fs::create_dir_all(&version_dir).await?;
     let download_path = version_dir.join(&assets.binary.package.name);
 
     let mut resp = HTTP_CLIENT.get(assets.binary.package.link.to_owned()).send().await?;
