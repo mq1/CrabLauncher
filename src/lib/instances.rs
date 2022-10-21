@@ -42,21 +42,10 @@ pub enum InstanceType {
     Forge,
 }
 
-#[derive(Serialize, Deserialize, Clone, Data)]
+#[derive(Serialize, Deserialize, Clone, Data, Default)]
 pub struct InstanceInfo {
     pub instance_type: InstanceType,
     pub minecraft_version: String,
-    pub jre_version: u32,
-}
-
-impl Default for InstanceInfo {
-    fn default() -> Self {
-        Self {
-            instance_type: InstanceType::default(),
-            minecraft_version: "".to_string(),
-            jre_version: 17,
-        }
-    }
 }
 
 #[derive(Clone, Data)]
@@ -306,12 +295,10 @@ pub async fn new(
         }
     }
 
-    let event_sink = if !runtime_manager::is_updated(&17).await? {
-        runtime_manager::remove_all().await?;
-        runtime_manager::install(17, event_sink).await?
-    } else {
-        event_sink
-    };
+    let jvm_assets = runtime_manager::get_assets_info("17").await?;
+    if !runtime_manager::is_updated(&jvm_assets).await? {
+        runtime_manager::update(&jvm_assets, &event_sink).await?
+    }
 
     let instances = instances.await??;
 
@@ -344,15 +331,23 @@ pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Resu
 
     let version = minecraft_version_meta::get(&instance.info.minecraft_version).await?;
 
-    /*
-    let is_updated = runtime_manager::is_updated(&jre_version).await?;
-    if !is_updated {
-        println!("Installing JRE {}", jre_version);
-        runtime_manager::install(&jre_version).await?;
-    }
-    */
+    if config.automatically_update_jvm {
+        event_sink.add_idle_callback(move |data: &mut AppState| {
+            data.loading_message = "Checking for JVM updates...".to_string();
+        });
 
-    let java_path = runtime_manager::get_java_path(&instance.info.jre_version).await?;
+        let jvm_assets = runtime_manager::get_assets_info("17").await?;
+        if !runtime_manager::is_updated(&jvm_assets).await? {
+            runtime_manager::update(&jvm_assets, &event_sink).await?
+        }
+
+        let instance_name = instance.name.clone();
+        event_sink.add_idle_callback(move |data: &mut AppState| {
+            data.loading_message = format!("Running {}", instance_name);
+        });
+    }
+
+    let java_path = runtime_manager::get_java_path("17").await?;
 
     let mut jvm_args = vec![
         "-Dminecraft.launcher.brand=ice-launcher".to_string(),

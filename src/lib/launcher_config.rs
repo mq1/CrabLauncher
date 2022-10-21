@@ -16,6 +16,7 @@ const LAUNCHER_CONFIG_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("config.t
 #[derive(Serialize, Deserialize, Data, Clone, Lens)]
 pub struct LauncherConfig {
     pub automatically_check_for_updates: bool,
+    pub automatically_update_jvm: bool,
     pub automatically_optimize_jvm_arguments: bool,
     pub jvm_memory: String,
 }
@@ -24,6 +25,7 @@ impl Default for LauncherConfig {
     fn default() -> Self {
         Self {
             automatically_check_for_updates: true,
+            automatically_update_jvm: true,
             automatically_optimize_jvm_arguments: true,
             jvm_memory: "2G".to_string(),
         }

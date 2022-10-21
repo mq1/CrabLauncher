@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::Result;
 use druid::im::Vector;
 use flate2::read::GzDecoder;
 use once_cell::sync::Lazy;
@@ -55,22 +55,19 @@ struct Binary {
 }
 
 #[derive(Deserialize)]
-struct Assets {
+struct Version {
+    major: i32,
+}
+
+#[derive(Deserialize)]
+pub struct Assets {
     binary: Binary,
     release_name: String,
+    version: Version
 }
 
-async fn fetch_available_releases() -> Result<AvailableReleases> {
-    let url = format!("{ADOPTIUM_API_ENDPOINT}/v3/info/available_releases");
-    let response = HTTP_CLIENT.get(url).send().await?.json().await?;
-
-    Ok(response)
-}
-
-async fn get_assets_info(java_version: &i32) -> Result<Assets> {
+pub async fn get_assets_info(java_version: &str) -> Result<Assets> {
     let url = format!("{ADOPTIUM_API_ENDPOINT}/v3/assets/latest/{java_version}/hotspot?architecture={ARCH_STRING}&image_type=jre&os={OS_STRING}&vendor=eclipse");
-
-    println!("Fetching {url}");
 
     let mut response = HTTP_CLIENT
         .get(url)
@@ -84,38 +81,15 @@ async fn get_assets_info(java_version: &i32) -> Result<Assets> {
     Ok(assets)
 }
 
-pub async fn is_updated(java_version: &i32) -> Result<bool> {
-    let assets = get_assets_info(java_version).await?;
+pub async fn is_updated(assets: &Assets) -> Result<bool> {
     let dir = format!("{}-jre", assets.release_name);
-    let runtime_path = RUNTIMES_DIR.join(dir);
+    let runtime_path = RUNTIMES_DIR.join(assets.version.major.to_string()).join(dir);
 
     if !runtime_path.exists() {
         return Ok(false);
     }
 
     Ok(true)
-}
-
-pub async fn list() -> Result<Vector<String>> {
-    let mut runtimes = Vector::new();
-
-    fs::create_dir_all(RUNTIMES_DIR.as_path()).await?;
-    let mut entries = fs::read_dir(RUNTIMES_DIR.as_path()).await?;
-
-    while let Some(entry) = entries.next_entry().await? {
-        if entry.path().is_dir() {
-            runtimes.push_back(entry.file_name().to_string_lossy().to_string());
-        }
-    }
-
-    Ok(runtimes)
-}
-
-pub async fn remove_all() -> Result<()> {
-    fs::remove_dir_all(RUNTIMES_DIR.as_path()).await?;
-    fs::create_dir_all(RUNTIMES_DIR.as_path()).await?;
-
-    Ok(())
 }
 
 fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
@@ -133,17 +107,17 @@ fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub async fn install(java_version: i32, event_sink: druid::ExtEventSink) -> Result<druid::ExtEventSink> {
+async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()> {
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.loading_message = "Downloading runtime...".to_string();
         data.current_progress = 0.;
         data.current_view = View::Progress;
     });
 
-    let assets = get_assets_info(&java_version).await?;
-    let download_path = RUNTIMES_DIR.join(&assets.binary.package.name);
+    let version_dir = RUNTIMES_DIR.join(assets.version.major.to_string());
+    let download_path = version_dir.join(&assets.binary.package.name);
 
-    let mut resp = HTTP_CLIENT.get(assets.binary.package.link).send().await?;
+    let mut resp = HTTP_CLIENT.get(assets.binary.package.link.to_owned()).send().await?;
     let mut file = File::create(&download_path).await?;
     let mut downloaded_bytes = 0;
 
@@ -151,8 +125,9 @@ pub async fn install(java_version: i32, event_sink: druid::ExtEventSink) -> Resu
         file.write_all(&chunk).await?;
         downloaded_bytes += chunk.len();
 
+        let package_size = assets.binary.package.size as f64;
         event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_progress = downloaded_bytes as f64 / assets.binary.package.size as f64;
+            data.current_progress = downloaded_bytes as f64 / package_size;
         });
     }
 
@@ -161,51 +136,31 @@ pub async fn install(java_version: i32, event_sink: druid::ExtEventSink) -> Resu
         data.current_view = View::Loading;
     });
 
-    extract_archive(&download_path, RUNTIMES_DIR.as_path())?;
+    extract_archive(&download_path, &version_dir)?;
     fs::remove_file(download_path).await?;
 
-    Ok(event_sink)
-}
-
-pub async fn remove(runtime: String) -> Result<()> {
-    println!("Removing {runtime}");
-
-    let runtime_path = RUNTIMES_DIR.join(&runtime);
-    fs::remove_dir_all(runtime_path).await?;
-
-    println!("{runtime} removed");
     Ok(())
 }
 
-pub async fn get_java_path(java_version: &u32) -> Result<PathBuf> {
-    let java_version = java_version.to_string();
+pub async fn update(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()> {
+    fs::remove_dir_all(&RUNTIMES_DIR.join(assets.version.major.to_string())).await?;
+    install(assets, event_sink).await
+}
 
-    let mut runtime: Option<PathBuf> = None;
-
-    let mut entries = fs::read_dir(RUNTIMES_DIR.as_path()).await?;
-    while let Some(entry) = entries.next_entry().await? {
-        if entry.file_name().to_string_lossy().contains(&java_version) {
-            runtime = Some(entry.path());
-            break;
-        }
-    }
-
-    if runtime.is_none() {
-        bail!("No runtime found");
-    }
-
-    let runtime = runtime.unwrap();
+pub async fn get_java_path(java_version: &str) -> Result<PathBuf> {
+    let mut entries = fs::read_dir(RUNTIMES_DIR.join(java_version)).await?;
+    let runtime_dir = entries.next_entry().await?.unwrap().path();
 
     let runtime_path = if cfg!(target_os = "windows") {
-        runtime.join("bin").join("java.exe")
+        runtime_dir.join("bin").join("java.exe")
     } else if cfg!(target_os = "macos") {
-        runtime
+        runtime_dir
             .join("Contents")
             .join("Home")
             .join("bin")
             .join("java")
     } else {
-        runtime.join("bin").join("java")
+        runtime_dir.join("bin").join("java")
     };
 
     Ok(runtime_path)
