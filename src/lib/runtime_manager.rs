@@ -111,6 +111,13 @@ pub async fn list() -> Result<Vector<String>> {
     Ok(runtimes)
 }
 
+pub async fn remove_all() -> Result<()> {
+    fs::remove_dir_all(RUNTIMES_DIR.as_path()).await?;
+    fs::create_dir_all(RUNTIMES_DIR.as_path()).await?;
+
+    Ok(())
+}
+
 fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
     if cfg!(target_os = "windows") {
         let zip = std::fs::File::open(archive_path)?;
@@ -126,7 +133,7 @@ fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub async fn install(java_version: i32, event_sink: druid::ExtEventSink) -> Result<()> {
+pub async fn install(java_version: i32, event_sink: druid::ExtEventSink) -> Result<druid::ExtEventSink> {
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.loading_message = "Downloading runtime...".to_string();
         data.current_progress = 0.;
@@ -156,14 +163,8 @@ pub async fn install(java_version: i32, event_sink: druid::ExtEventSink) -> Resu
 
     extract_archive(&download_path, RUNTIMES_DIR.as_path())?;
     fs::remove_file(download_path).await?;
-    let runtimes = list().await?;
 
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.installed_runtimes = runtimes;
-        data.current_view = View::Runtimes;
-    });
-
-    Ok(())
+    Ok(event_sink)
 }
 
 pub async fn remove(runtime: String) -> Result<()> {
@@ -208,20 +209,4 @@ pub async fn get_java_path(java_version: &u32) -> Result<PathBuf> {
     };
 
     Ok(runtime_path)
-}
-
-pub async fn update_runtimes(event_sink: druid::ExtEventSink) -> Result<()> {
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.loading_message = "Loading available runtimes...".to_string();
-        data.current_view = View::Loading;
-    });
-
-    let runtimes = fetch_available_releases().await?;
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.available_runtimes = runtimes.available_releases;
-        data.current_view = View::InstallRuntime;
-    });
-
-    Ok(())
 }

@@ -306,6 +306,13 @@ pub async fn new(
         }
     }
 
+    let event_sink = if !runtime_manager::is_updated(&17).await? {
+        runtime_manager::remove_all().await?;
+        runtime_manager::install(17, event_sink).await?
+    } else {
+        event_sink
+    };
+
     let instances = instances.await??;
 
     event_sink.add_idle_callback(move |data: &mut AppState| {

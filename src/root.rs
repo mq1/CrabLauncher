@@ -7,19 +7,14 @@ use druid::{
 };
 
 use crate::{
-    about, accounts, install_runtime, instance_name_selection, instance_type_selection,
-    instance_version_selection, instances, lib, loading, news, progress, runtimes, settings,
-    AppState, View,
+    about, accounts, instance_name_selection, instance_type_selection, instance_version_selection,
+    instances, lib, loading, news, progress, settings, AppState, View,
 };
 
 pub fn build_widget() -> impl Widget<AppState> {
     let switcher_column = Flex::column()
         .with_child(Button::<AppState>::new("Instances").on_click(|_, data, _| {
             data.current_view = View::Instances;
-        }))
-        .with_default_spacer()
-        .with_child(Button::<AppState>::new("Runtimes").on_click(|_, data, _| {
-            data.current_view = View::Runtimes;
         }))
         .with_default_spacer()
         .with_child(Button::<AppState>::new("News").on_click(|ctx, data, _| {
@@ -62,10 +57,6 @@ pub fn build_widget() -> impl Widget<AppState> {
             )),
             View::InstanceNameSelection => Box::new(instance_name_selection::build_widget()),
             View::Accounts => Box::new(accounts::build_widget()),
-            View::Runtimes => Box::new(runtimes::build_widget()),
-            View::InstallRuntime => {
-                Box::new(install_runtime::build_widget(&data.available_runtimes))
-            }
             View::News => Box::new(news::build_widget()),
             View::Settings => Box::new(settings::build_widget()),
             View::About => Box::new(about::build_widget()),
