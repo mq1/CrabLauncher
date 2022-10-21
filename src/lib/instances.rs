@@ -297,7 +297,7 @@ pub async fn new(
 
     let jvm_assets = runtime_manager::get_assets_info("17").await?;
     if !runtime_manager::is_updated(&jvm_assets).await? {
-        runtime_manager::update(&jvm_assets, &event_sink).await?
+        runtime_manager::update(&jvm_assets, &event_sink).await?;
     }
 
     let instances = instances.await??;
@@ -338,7 +338,7 @@ pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Resu
 
         let jvm_assets = runtime_manager::get_assets_info("17").await?;
         if !runtime_manager::is_updated(&jvm_assets).await? {
-            runtime_manager::update(&jvm_assets, &event_sink).await?
+            runtime_manager::update(&jvm_assets, &event_sink).await?;
         }
 
         let instance_name = instance.name.clone();
