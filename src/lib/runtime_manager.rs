@@ -109,7 +109,7 @@ fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
 
 async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()> {
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.loading_message = "Downloading runtime...".to_string();
+        data.current_message = "Downloading runtime...".to_string();
         data.current_progress = 0.;
         data.current_view = View::Progress;
     });
@@ -133,7 +133,7 @@ async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()
     }
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.loading_message = "Extracting runtime...".to_string();
+        data.current_message = "Extracting runtime...".to_string();
         data.current_view = View::Loading;
     });
 
