@@ -8,11 +8,11 @@ use druid::{
 
 use crate::{
     lib::launcher_config::{self, LauncherConfig},
-    AppState,
+    navbar, AppState,
 };
 
 pub fn build_widget() -> impl Widget<AppState> {
-    Flex::column()
+    let settings = Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(Label::new("⚙️ Settings").with_text_size(32.))
         .with_default_spacer()
@@ -87,5 +87,9 @@ pub fn build_widget() -> impl Widget<AppState> {
                 )),
         )
         .padding(10.)
-        .lens(AppState::config)
+        .lens(AppState::config);
+
+    Flex::row()
+        .with_child(navbar::build_widget())
+        .with_flex_child(settings, 1.)
 }

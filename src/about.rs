@@ -6,7 +6,7 @@ use druid::{
     ImageBuf, Widget, WidgetExt,
 };
 
-use crate::AppState;
+use crate::{navbar, AppState};
 
 const APP_VERSION: &str = concat!("Ice Launcher version ", env!("CARGO_PKG_VERSION"));
 const REPOSITORY: &str = "https://github.com/mq1/ice-launcher";
@@ -32,7 +32,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         Label::new("No updates available"),
     );
 
-    Flex::column()
+    let about = Flex::column()
         .with_flex_spacer(1.)
         .with_child(image)
         .with_default_spacer()
@@ -54,5 +54,9 @@ pub fn build_widget() -> impl Widget<AppState> {
                 .with_flex_spacer(1.)
                 .with_child(Label::new(COPYRIGHT)),
         )
-        .padding(10.)
+        .padding(10.);
+
+    Flex::row()
+        .with_child(navbar::build_widget())
+        .with_flex_child(about, 1.)
 }

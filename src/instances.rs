@@ -13,7 +13,7 @@ use crate::{
         self,
         instances::{Instance, InstanceType},
     },
-    AppState, View,
+    navbar, AppState, View,
 };
 
 fn get_instance_icon(instance_type: &InstanceType) -> String {
@@ -25,7 +25,7 @@ fn get_instance_icon(instance_type: &InstanceType) -> String {
 }
 
 pub fn build_widget() -> impl Widget<AppState> {
-    Flex::column()
+    let instances = Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(Label::new("🧊 Instances").with_text_size(32.))
         .with_default_spacer()
@@ -88,5 +88,9 @@ pub fn build_widget() -> impl Widget<AppState> {
                 }),
             ),
         )
-        .padding(10.)
+        .padding(10.);
+
+    Flex::row()
+        .with_child(navbar::build_widget())
+        .with_flex_child(instances, 1.)
 }
