@@ -17,6 +17,7 @@ mod progress;
 mod view;
 mod settings;
 mod navbar;
+mod confirm_instance_delete;
 
 use std::{fs, process::exit};
 
@@ -33,6 +34,7 @@ enum View {
     InstanceTypeSelection,
     InstanceVersionSelection,
     InstanceNameSelection,
+    ConfirmInstanceDelete,
     Accounts,
     News,
     Settings,
@@ -55,6 +57,7 @@ pub struct AppState {
     config: lib::launcher_config::LauncherConfig,
     current_view: View,
     instances: Vector<lib::instances::Instance>,
+    selected_instance: Option<lib::instances::Instance>,
     new_instance_state: NewInstanceState,
     accounts: Vector<lib::msa::Account>,
     active_account: Option<lib::msa::Account>,

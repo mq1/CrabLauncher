@@ -33,25 +33,31 @@ pub fn build_widget() -> impl Widget<AppState> {
             Scroll::new(
                 List::new(|| {
                     Flex::row()
-                        .with_child(Label::<(_, Instance)>::dynamic(|(_, instance), _| {
+                        .with_child(Label::<Instance>::dynamic(|instance, _| {
                             get_instance_icon(&instance.info.instance_type)
                         }))
                         .with_default_spacer()
-                        .with_child(Label::<(_, Instance)>::dynamic(|(_, instance), _| {
+                        .with_child(Label::<Instance>::dynamic(|instance, _| {
                             instance.name.to_owned()
                         }))
                         .with_flex_spacer(1.)
-                        .with_child(
-                            Button::<(Vector<Instance>, Instance)>::new("Delete ❌").on_click(
-                                |_, (instances, instance), _| {
-                                    tokio::spawn(lib::instances::remove(instance.clone()));
-                                    instances.retain(|i| i.name != instance.name);
-                                },
-                            ),
-                        )
+                        .with_child(Button::<Instance>::new("Delete ❌").on_click(
+                            |ctx, instance, _| {
+                                let event_sink = ctx.get_external_handle();
+                                let instance = instance.to_owned();
+                                event_sink.add_idle_callback(move |data: &mut AppState| {
+                                    data.current_view = View::ConfirmInstanceDelete;
+                                    data.current_message = format!(
+                                        "Are you sure you want to delete {}?",
+                                        instance.name
+                                    );
+                                    data.selected_instance = Some(instance);
+                                });
+                            },
+                        ))
                         .with_default_spacer()
-                        .with_child(Button::<(_, Instance)>::new("Launch 🚀").on_click(
-                            |ctx, (_, instance), _| {
+                        .with_child(Button::<Instance>::new("Launch 🚀").on_click(
+                            |ctx, instance, _| {
                                 let event_sink = ctx.get_external_handle();
                                 tokio::spawn(lib::instances::launch(instance.clone(), event_sink));
                             },
@@ -61,12 +67,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .rounded(5.)
                 })
                 .with_spacing(10.)
-                .lens(lens::Identity.map(
-                    |data: &AppState| (data.instances.clone(), data.instances.clone()),
-                    |data: &mut AppState, (instances, _)| {
-                        data.instances = instances;
-                    },
-                )),
+                .lens(AppState::instances),
             )
             .vertical(),
         )

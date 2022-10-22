@@ -4,8 +4,8 @@
 use druid::{widget::ViewSwitcher, Widget};
 
 use crate::{
-    about, accounts, instance_name_selection, instance_type_selection, instance_version_selection,
-    instances, loading, news, progress, settings, AppState, View,
+    about, accounts, confirm_instance_delete, instance_name_selection, instance_type_selection,
+    instance_version_selection, instances, loading, news, progress, settings, AppState, View,
 };
 
 pub fn build_widget() -> impl Widget<AppState> {
@@ -20,6 +20,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                 &data.new_instance_state.available_minecraft_versions,
             )),
             View::InstanceNameSelection => Box::new(instance_name_selection::build_widget()),
+            View::ConfirmInstanceDelete => Box::new(confirm_instance_delete::build_widget()),
             View::Accounts => Box::new(accounts::build_widget()),
             View::News => Box::new(news::build_widget()),
             View::Settings => Box::new(settings::build_widget()),
