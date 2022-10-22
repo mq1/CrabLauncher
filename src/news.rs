@@ -8,37 +8,42 @@ use druid::{
 
 use crate::{
     lib::minecraft_news::{Article, News, MINECRAFT_NEWS_BASE_URL},
-    AppState,
+    navbar, AppState,
 };
 
 pub fn build_widget() -> impl Widget<AppState> {
-    let news = Scroll::new(
-        List::new(|| {
-            Flex::row()
-                .with_child(Label::<Article>::dynamic(|article, _| {
-                    article.default_tile.title.to_owned()
-                }))
-                .with_flex_spacer(1.)
-                .with_child(Button::<Article>::new("Open ↗️").on_click(|_, article, _| {
-                    open::that(format!(
-                        "{MINECRAFT_NEWS_BASE_URL}{url}",
-                        url = article.article_url
-                    ))
-                    .expect("Failed to open article in browser");
-                }))
-                .padding(5.)
-                .border(Color::GRAY, 1.)
-                .rounded(5.)
-        })
-        .with_spacing(10.)
-        .lens(AppState::news.then(News::article_grid)),
-    )
-    .vertical();
-
-    Flex::column()
+    let news = Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
         .with_child(Label::new("🌎 News").with_text_size(32.))
         .with_default_spacer()
+        .with_flex_child(
+            Scroll::new(
+                List::new(|| {
+                    Flex::row()
+                        .with_child(Label::<Article>::dynamic(|article, _| {
+                            article.default_tile.title.to_owned()
+                        }))
+                        .with_flex_spacer(1.)
+                        .with_child(Button::<Article>::new("Open ↗️").on_click(|_, article, _| {
+                            open::that(format!(
+                                "{MINECRAFT_NEWS_BASE_URL}{url}",
+                                url = article.article_url
+                            ))
+                            .expect("Failed to open article in browser");
+                        }))
+                        .padding(5.)
+                        .border(Color::GRAY, 1.)
+                        .rounded(5.)
+                })
+                .with_spacing(10.)
+                .lens(AppState::news.then(News::article_grid)),
+            )
+            .vertical(),
+            1.,
+        )
+        .padding(10.);
+
+    Flex::row()
+        .with_child(navbar::build_widget())
         .with_flex_child(news, 1.)
-        .padding(10.)
 }

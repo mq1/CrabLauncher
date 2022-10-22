@@ -8,7 +8,7 @@ use druid::{
 
 use crate::{
     lib::{self, instances::InstanceType},
-    AppState, NewInstanceState,
+    AppState, NewInstanceState, View,
 };
 
 pub fn build_widget() -> impl Widget<AppState> {
@@ -25,13 +25,22 @@ pub fn build_widget() -> impl Widget<AppState> {
                 .expand_width(),
         )
         .with_flex_spacer(1.)
-        .with_child(Flex::row().with_flex_spacer(1.).with_child(
-            Button::<AppState>::new("Select version 📦 >").on_click(|ctx, _, _| {
-                let event_sink = ctx.get_external_handle();
-                tokio::spawn(lib::minecraft_version_manifest::update_available_versions(
-                    event_sink,
-                ));
-            }),
-        ))
+        .with_child(
+            Flex::row()
+                .with_child(
+                    Button::<AppState>::new("< Cancel ❌").on_click(|_, data, _| {
+                        data.current_view = View::Instances;
+                    }),
+                )
+                .with_flex_spacer(1.)
+                .with_child(Button::<AppState>::new("Select version 📦 >").on_click(
+                    |ctx, _, _| {
+                        let event_sink = ctx.get_external_handle();
+                        tokio::spawn(lib::minecraft_version_manifest::update_available_versions(
+                            event_sink,
+                        ));
+                    },
+                )),
+        )
         .padding(10.)
 }
