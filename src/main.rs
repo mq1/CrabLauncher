@@ -50,7 +50,7 @@ pub struct NewInstanceState {
 #[derive(Data, Clone, Lens, Default)]
 pub struct AppState {
     is_update_available: bool,
-    loading_message: String,
+    current_message: String,
     current_progress: f64,
     config: lib::launcher_config::LauncherConfig,
     current_view: View,

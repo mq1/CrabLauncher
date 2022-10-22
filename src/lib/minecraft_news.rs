@@ -116,7 +116,7 @@ async fn fetch(page_size: Option<i32>) -> Result<News> {
 
 pub async fn update_news(event_sink: druid::ExtEventSink) -> Result<()> {
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.loading_message = "Loading news...".to_string();
+        data.current_message = "Loading news...".to_string();
         data.current_view = View::Loading;
     });
 

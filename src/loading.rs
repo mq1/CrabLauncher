@@ -13,7 +13,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_flex_child(
             Flex::column()
                 .with_child(Label::<AppState>::dynamic(|data, _| {
-                    data.loading_message.to_owned()
+                    data.current_message.to_owned()
                 }))
                 .with_default_spacer()
                 .with_child(Spinner::new())

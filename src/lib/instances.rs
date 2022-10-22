@@ -118,7 +118,7 @@ pub async fn new(
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.current_view = View::Progress;
-        data.loading_message = "Downloading version meta...".to_string();
+        data.current_message = "Downloading version meta...".to_string();
         data.current_progress = 0.;
     });
 
@@ -158,7 +158,7 @@ pub async fn new(
         };
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.loading_message = "Downloading assets...".to_string();
+        data.current_message = "Downloading assets...".to_string();
         data.current_progress = 0.;
     });
 
@@ -228,7 +228,7 @@ pub async fn new(
     }
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.loading_message = "Downloading libraries...".to_string();
+        data.current_message = "Downloading libraries...".to_string();
         data.current_progress = 0.;
     });
 
@@ -321,7 +321,7 @@ pub async fn remove(instance: Instance) -> Result<()> {
 pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()> {
     let instance_name = instance.name.clone();
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.loading_message = format!("Running {}", instance_name);
+        data.current_message = format!("Running {}", instance_name);
         data.current_view = View::Loading;
     });
 
@@ -333,7 +333,7 @@ pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Resu
 
     if config.automatically_update_jvm {
         event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.loading_message = "Checking for JVM updates...".to_string();
+            data.current_message = "Checking for JVM updates...".to_string();
         });
 
         let jvm_assets = runtime_manager::get_assets_info("17").await?;
@@ -343,7 +343,7 @@ pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Resu
 
         let instance_name = instance.name.clone();
         event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.loading_message = format!("Running {}", instance_name);
+            data.current_message = format!("Running {}", instance_name);
         });
     }
 

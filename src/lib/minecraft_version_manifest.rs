@@ -82,7 +82,7 @@ async fn fetch_versions() -> Result<Vector<Version>> {
 pub async fn update_available_versions(event_sink: druid::ExtEventSink) -> Result<()> {
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.new_instance_state.available_minecraft_versions = Vector::new();
-        data.loading_message = "Fetching available Minecraft versions...".to_string();
+        data.current_message = "Fetching available Minecraft versions...".to_string();
         data.current_view = View::Loading;
     });
 

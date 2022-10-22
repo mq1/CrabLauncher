@@ -77,7 +77,7 @@ pub async fn set_active(account: msa::Account, event_sink: druid::ExtEventSink) 
 
 pub async fn add(event_sink: druid::ExtEventSink) -> Result<()> {
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.loading_message = "Waiting for authentication...".to_string();
+        data.current_message = "Waiting for authentication...".to_string();
         data.current_view = View::Loading;
     });
 
