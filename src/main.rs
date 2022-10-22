@@ -90,7 +90,7 @@ async fn main() -> Result<()> {
     fs::create_dir_all(BASE_DIR.as_path()).expect("Could not create base directory");
 
     let window = WindowDesc::new(view::build_widget())
-        .title("Ice Launcher")
+        .title("🧊 Ice Launcher")
         .window_size((800.0, 600.0));
 
     let initial_state = {
