@@ -144,7 +144,11 @@ async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()
 }
 
 pub async fn update(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()> {
-    fs::remove_dir_all(&RUNTIMES_DIR.join(assets.version.major.to_string())).await?;
+    let runtime_dir = RUNTIMES_DIR.join(assets.version.major.to_string());
+    if runtime_dir.exists() {
+        fs::remove_dir_all(runtime_dir).await?;
+    }
+
     install(assets, event_sink).await
 }
 
