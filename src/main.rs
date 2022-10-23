@@ -18,6 +18,7 @@ mod view;
 mod settings;
 mod navbar;
 mod confirm_instance_delete;
+mod confirm_account_remove;
 
 use std::{fs, process::exit};
 
@@ -36,6 +37,7 @@ enum View {
     InstanceNameSelection,
     ConfirmInstanceDelete,
     Accounts,
+    ConfirmAccountRemove,
     News,
     Settings,
     About,
@@ -61,6 +63,7 @@ pub struct AppState {
     new_instance_state: NewInstanceState,
     accounts: Vector<lib::msa::Account>,
     active_account: Option<lib::msa::Account>,
+    selected_account: Option<lib::msa::Account>,
     news: lib::minecraft_news::News,
 }
 

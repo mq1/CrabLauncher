@@ -311,9 +311,13 @@ pub async fn new(
     Ok(())
 }
 
-pub async fn remove(instance: Instance) -> Result<()> {
-    let instance_dir = INSTANCES_DIR.join(instance.name);
+pub async fn remove(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()> {
+    let instance_dir = INSTANCES_DIR.join(&instance.name);
     fs::remove_dir_all(&instance_dir).await?;
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.instances.retain(|i| i.name != instance.name);
+    });
 
     Ok(())
 }

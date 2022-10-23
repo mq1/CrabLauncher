@@ -14,23 +14,23 @@ pub fn build_widget() -> impl Widget<AppState> {
             Flex::column()
                 .with_child(Label::<AppState>::dynamic(|data, _| {
                     format!(
-                        "Are you sure you want to delete {}?",
-                        data.selected_instance.as_ref().unwrap().name
+                        "Are you sure you want to remove {}",
+                        data.selected_account.as_ref().unwrap().mc_username
                     )
                 }))
                 .with_default_spacer()
                 .with_child(
                     Flex::row()
                         .with_child(Button::<AppState>::new("Cancel ❌").on_click(|_, data, _| {
-                            data.current_view = View::Instances;
+                            data.current_view = View::Accounts;
                         }))
                         .with_default_spacer()
                         .with_child(Button::<AppState>::new("Confirm ✅").on_click(
                             |ctx, data, _| {
                                 let event_sink = ctx.get_external_handle();
-                                let instance = data.selected_instance.as_ref().unwrap().to_owned();
-                                tokio::spawn(lib::instances::remove(instance, event_sink));
-                                data.current_view = View::Instances;
+                                let account = data.active_account.as_ref().unwrap().to_owned();
+                                tokio::spawn(lib::accounts::remove(account, event_sink));
+                                data.current_view = View::Accounts;
                             },
                         )),
                 )

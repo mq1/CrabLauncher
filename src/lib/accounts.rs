@@ -69,6 +69,7 @@ pub async fn set_active(account: msa::Account, event_sink: druid::ExtEventSink) 
     write(&document).await?;
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.accounts = document.accounts;
         data.active_account = Some(account);
     });
 
@@ -97,11 +98,15 @@ pub async fn add(event_sink: druid::ExtEventSink) -> Result<()> {
     Ok(())
 }
 
-pub async fn remove(account: msa::Account) -> Result<()> {
+pub async fn remove(account: msa::Account, event_sink: druid::ExtEventSink) -> Result<()> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path()).await?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
     document.accounts.retain(|a| a.mc_id != account.mc_id);
     write(&document).await?;
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.accounts = document.accounts;
+    });
 
     Ok(())
 }
