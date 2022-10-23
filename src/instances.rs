@@ -46,12 +46,8 @@ pub fn build_widget() -> impl Widget<AppState> {
                                 let event_sink = ctx.get_external_handle();
                                 let instance = instance.to_owned();
                                 event_sink.add_idle_callback(move |data: &mut AppState| {
-                                    data.current_view = View::ConfirmInstanceDelete;
-                                    data.current_message = format!(
-                                        "Are you sure you want to delete {}?",
-                                        instance.name
-                                    );
                                     data.selected_instance = Some(instance);
+                                    data.current_view = View::ConfirmInstanceDelete;
                                 });
                             },
                         ))
