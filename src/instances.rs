@@ -2,10 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use druid::{
-    im::Vector,
-    lens,
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
-    Color, LensExt, Widget, WidgetExt,
+    Color, Widget, WidgetExt,
 };
 
 use crate::{
