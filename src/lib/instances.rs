@@ -341,6 +341,7 @@ pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Resu
     });
 
     let account = accounts::get_active().await?.unwrap();
+    let account = accounts::refresh(account).await?;
 
     let config = launcher_config::read().await?;
 

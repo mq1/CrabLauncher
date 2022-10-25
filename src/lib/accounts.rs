@@ -110,3 +110,18 @@ pub async fn remove(account: msa::Account, event_sink: druid::ExtEventSink) -> R
 
     Ok(())
 }
+
+pub async fn refresh(account: msa::Account) -> Result<msa::Account> {
+    let account = msa::refresh(account).await?;
+
+    let content = fs::read_to_string(ACCOUNTS_PATH.as_path()).await?;
+    let mut document: AccountsDocument = toml::from_str(&content)?;
+    document.accounts.iter_mut().for_each(|a| {
+        if a.mc_id == account.mc_id {
+            *a = account.clone();
+        }
+    });
+    write(&document).await?;
+
+    Ok(account)
+}
