@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::Result;
 use directories::ProjectDirs;
+use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use reqwest::IntoUrl;
 use sha1::Digest;
@@ -45,11 +46,11 @@ pub static HTTP_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
 pub async fn download_file<U: IntoUrl>(url: U, path: &Path) -> Result<()> {
     fs::create_dir_all(path.parent().unwrap()).await?;
 
-    let mut resp = HTTP_CLIENT.get(url).send().await?;
+    let mut stream = HTTP_CLIENT.get(url).send().await?.bytes_stream();
     let mut file = File::create(path).await?;
 
-    while let Some(chunk) = resp.chunk().await? {
-        file.write_all(&chunk).await?;
+    while let Some(chunk) = stream.next().await {
+        file.write_all(&chunk?).await?;
     }
 
     Ok(())
