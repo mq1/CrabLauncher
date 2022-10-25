@@ -66,7 +66,6 @@ pub struct LibraryDownloads {
 #[derive(Deserialize)]
 pub struct Library {
     pub downloads: LibraryDownloads,
-    name: String,
 }
 
 impl Library {
@@ -83,6 +82,9 @@ impl Library {
     }
 
     pub fn get_path(&self) -> String {
-        LIBRARIES_DIR.join(&self.downloads.artifact.path).to_string_lossy().to_string()
+        LIBRARIES_DIR
+            .join(&self.downloads.artifact.path)
+            .to_string_lossy()
+            .to_string()
     }
 }

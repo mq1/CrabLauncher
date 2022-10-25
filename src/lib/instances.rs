@@ -3,7 +3,7 @@
 
 use std::{path::PathBuf, process::Stdio};
 
-use druid::{im::Vector, image::EncodableLayout, Data};
+use druid::{im::Vector, Data};
 use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
