@@ -191,7 +191,7 @@ pub async fn new(
     });
 
     let mut downloaded_bytes = 0;
-    let total_size = meta.asset_index.total_size.unwrap();
+    let total_size = meta.asset_index.total_size.unwrap() as f64;
 
     for object in asset_index.objects.values() {
         let path = object.get_path();
@@ -199,7 +199,7 @@ pub async fn new(
             downloaded_bytes += object.size;
 
             event_sink.add_idle_callback(move |data: &mut AppState| {
-                data.current_progress = downloaded_bytes as f64 / total_size as f64;
+                data.current_progress = downloaded_bytes as f64 / total_size;
             });
         } else {
             if path.exists() {
@@ -221,7 +221,7 @@ pub async fn new(
                 downloaded_bytes += chunk.len();
 
                 event_sink.add_idle_callback(move |data: &mut AppState| {
-                    data.current_progress = downloaded_bytes as f64 / total_size as f64;
+                    data.current_progress = downloaded_bytes as f64 / total_size;
                 });
             }
         }
