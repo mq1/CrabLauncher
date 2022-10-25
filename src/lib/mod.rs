@@ -5,14 +5,8 @@ use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::Result;
 use directories::ProjectDirs;
-use futures_util::StreamExt;
 use once_cell::sync::Lazy;
-use reqwest::IntoUrl;
 use sha1::Digest;
-use tokio::{
-    fs::{self, File},
-    io::AsyncWriteExt,
-};
 
 pub mod accounts;
 pub mod instances;
@@ -56,6 +50,6 @@ pub fn check_hash<D: Digest + std::io::Write>(path: &Path, known_hash: &str) -> 
 
     match check::<D>(path, known_hash) {
         Ok(result) => result,
-        Err(err) => false,
+        Err(_err) => false,
     }
 }
