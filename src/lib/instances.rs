@@ -3,7 +3,8 @@
 
 use std::{path::PathBuf, process::Stdio};
 
-use druid::{im::Vector, Data};
+use druid::{im::Vector, image::EncodableLayout, Data};
+use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use sha1::Sha1;
@@ -117,89 +118,81 @@ pub async fn new(
     ));
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.current_view = View::Progress;
+        data.current_view = View::Loading;
         data.current_message = "Downloading version meta...".to_string();
-        data.current_progress = 0.;
     });
 
     let meta_path = minecraft_version.get_meta_path();
     let meta: MinecraftVersionMeta =
         if meta_path.exists() && check_hash::<Sha1>(&meta_path, &minecraft_version.sha1) {
             let raw_meta = fs::read_to_string(meta_path).await?;
-
-            event_sink.add_idle_callback(move |data: &mut AppState| {
-                data.current_progress = 1.;
-            });
-
             serde_json::from_str(&raw_meta)?
         } else {
-            let _ = fs::remove_file(&meta_path).await;
-
-            let mut resp = HTTP_CLIENT.get(&minecraft_version.url).send().await?;
-
-            let size = resp.content_length().unwrap();
-
+            if meta_path.exists() {
+                fs::remove_file(&meta_path).await?;
+            }
             fs::create_dir_all(meta_path.parent().unwrap()).await?;
+
+            let mut stream = HTTP_CLIENT
+                .get(&minecraft_version.url)
+                .send()
+                .await?
+                .bytes_stream();
+
             let mut file = File::create(&meta_path).await?;
-            let mut meta = Vec::new();
-            let mut downloaded_bytes = 0;
+            let mut buffer = Vec::new();
 
-            while let Some(chunk) = resp.chunk().await? {
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk?;
                 file.write_all(&chunk).await?;
-                meta.extend_from_slice(&chunk);
-                downloaded_bytes += chunk.len();
-
-                event_sink.add_idle_callback(move |data: &mut AppState| {
-                    data.current_progress = downloaded_bytes as f64 / size as f64;
-                });
+                buffer.extend_from_slice(&chunk);
             }
 
-            serde_json::from_slice(&meta)?
+            serde_json::from_slice(&buffer)?
         };
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.current_message = "Downloading asset index...".to_string();
+    });
+
+    let index_path = meta.asset_index.get_path();
+    let asset_index: AssetIndex =
+        if index_path.exists() && check_hash::<Sha1>(&index_path, &meta.asset_index.sha1) {
+            let raw_index = fs::read_to_string(index_path).await?;
+            serde_json::from_str(&raw_index)?
+        } else {
+            if index_path.exists() {
+                fs::remove_file(&index_path).await?;
+            }
+            fs::create_dir_all(index_path.parent().unwrap()).await?;
+
+            let mut stream = HTTP_CLIENT
+                .get(meta.asset_index.url.clone())
+                .send()
+                .await?
+                .bytes_stream();
+
+            let mut file = File::create(&index_path).await?;
+            let mut buffer = Vec::new();
+
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk?;
+                file.write_all(&chunk).await?;
+                buffer.extend_from_slice(&chunk);
+            }
+
+            serde_json::from_slice(&buffer)?
+        };
+
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.current_view = View::Progress;
         data.current_message = "Downloading assets...".to_string();
         data.current_progress = 0.;
     });
 
-    let total_size = meta.asset_index.size + meta.asset_index.total_size.unwrap();
     let mut downloaded_bytes = 0;
-    let index_path = meta.asset_index.get_path();
+    let total_size = meta.asset_index.total_size.unwrap();
 
-    let asset_index: AssetIndex =
-        if index_path.exists() && check_hash::<Sha1>(&index_path, &meta.asset_index.sha1) {
-            let raw_index = fs::read_to_string(index_path).await?;
-            downloaded_bytes += meta.asset_index.size;
-
-            event_sink.add_idle_callback(move |data: &mut AppState| {
-                data.current_progress = downloaded_bytes as f64 / total_size as f64;
-            });
-
-            serde_json::from_str(&raw_index)?
-        } else {
-            let _ = fs::remove_file(&index_path).await;
-
-            let mut resp = HTTP_CLIENT.get(meta.asset_index.url.clone()).send().await?;
-
-            fs::create_dir_all(index_path.parent().unwrap()).await?;
-
-            let mut file = File::create(&index_path).await?;
-            let mut raw_index = Vec::new();
-
-            while let Some(chunk) = resp.chunk().await? {
-                file.write_all(&chunk).await?;
-                raw_index.extend_from_slice(&chunk);
-                downloaded_bytes += chunk.len();
-
-                event_sink.add_idle_callback(move |data: &mut AppState| {
-                    data.current_progress = downloaded_bytes as f64 / total_size as f64;
-                });
-            }
-
-            serde_json::from_slice(&raw_index)?
-        };
-
-    // download all objects
     for object in asset_index.objects.values() {
         let path = object.get_path();
         if path.exists() && check_hash::<Sha1>(&path, &object.hash) {
@@ -209,14 +202,21 @@ pub async fn new(
                 data.current_progress = downloaded_bytes as f64 / total_size as f64;
             });
         } else {
-            let _ = fs::remove_file(&path).await;
-
-            let mut resp = HTTP_CLIENT.get(object.get_url()?).send().await?;
-
+            if path.exists() {
+                fs::remove_file(&path).await?;
+            }
             fs::create_dir_all(path.parent().unwrap()).await?;
+
+            let mut stream = HTTP_CLIENT
+                .get(object.get_url()?)
+                .send()
+                .await?
+                .bytes_stream();
+
             let mut file = File::create(&path).await?;
 
-            while let Some(chunk) = resp.chunk().await? {
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk?;
                 file.write_all(&chunk).await?;
                 downloaded_bytes += chunk.len();
 
@@ -249,17 +249,21 @@ pub async fn new(
                 data.current_progress = downloaded_bytes as f64 / total_size as f64;
             });
         } else {
-            let _ = fs::remove_file(&path).await;
+            if path.exists() {
+                fs::remove_file(&path).await?;
+            }
+            fs::create_dir_all(path.parent().unwrap()).await?;
 
-            let mut resp = HTTP_CLIENT
+            let mut stream = HTTP_CLIENT
                 .get(&library.downloads.artifact.url)
                 .send()
-                .await?;
+                .await?
+                .bytes_stream();
 
-            fs::create_dir_all(path.parent().unwrap()).await?;
             let mut file = File::create(&path).await?;
 
-            while let Some(chunk) = resp.chunk().await? {
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk?;
                 file.write_all(&chunk).await?;
                 downloaded_bytes += chunk.len();
 
@@ -278,14 +282,21 @@ pub async fn new(
             data.current_progress = downloaded_bytes as f64 / total_size as f64;
         });
     } else {
-        let _ = fs::remove_file(&path).await;
-
-        let mut resp = HTTP_CLIENT.get(&meta.downloads.client.url).send().await?;
-
+        if path.exists() {
+            fs::remove_file(&path).await?;
+        }
         fs::create_dir_all(path.parent().unwrap()).await?;
+
+        let mut stream = HTTP_CLIENT
+            .get(&meta.downloads.client.url)
+            .send()
+            .await?
+            .bytes_stream();
+
         let mut file = File::create(&path).await?;
 
-        while let Some(chunk) = resp.chunk().await? {
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk?;
             file.write_all(&chunk).await?;
             downloaded_bytes += chunk.len();
 

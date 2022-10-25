@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use color_eyre::eyre::Result;
 use druid::im::Vector;
 use flate2::read::GzDecoder;
+use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use tar::Archive;
@@ -63,7 +64,7 @@ struct Version {
 pub struct Assets {
     binary: Binary,
     release_name: String,
-    version: Version
+    version: Version,
 }
 
 pub async fn get_assets_info(java_version: &str) -> Result<Assets> {
@@ -83,7 +84,9 @@ pub async fn get_assets_info(java_version: &str) -> Result<Assets> {
 
 pub async fn is_updated(assets: &Assets) -> Result<bool> {
     let dir = format!("{}-jre", assets.release_name);
-    let runtime_path = RUNTIMES_DIR.join(assets.version.major.to_string()).join(dir);
+    let runtime_path = RUNTIMES_DIR
+        .join(assets.version.major.to_string())
+        .join(dir);
 
     if !runtime_path.exists() {
         return Ok(false);
@@ -118,11 +121,17 @@ async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()
     fs::create_dir_all(&version_dir).await?;
     let download_path = version_dir.join(&assets.binary.package.name);
 
-    let mut resp = HTTP_CLIENT.get(assets.binary.package.link.to_owned()).send().await?;
+    let mut stream = HTTP_CLIENT
+        .get(assets.binary.package.link.to_owned())
+        .send()
+        .await?
+        .bytes_stream();
+
     let mut file = File::create(&download_path).await?;
     let mut downloaded_bytes = 0;
 
-    while let Some(chunk) = resp.chunk().await? {
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
         file.write_all(&chunk).await?;
         downloaded_bytes += chunk.len();
 
