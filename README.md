@@ -7,6 +7,8 @@
 <p align="center">
 <a href="https://github.com/mq1/ice-launcher/blob/main/LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/github/license/mq1/ice-launcher"></a>
 
+<img alt="screenshot" src="screenshot.png">
+
 -----
 
 An unofficial WIP launcher for Minecraft 1.19+
