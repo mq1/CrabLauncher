@@ -119,6 +119,7 @@ pub async fn refresh(account: msa::Account) -> Result<msa::Account> {
     document.accounts.iter_mut().for_each(|a| {
         if a.mc_id == account.mc_id {
             *a = account.clone();
+            a.is_active = true;
         }
     });
     write(&document).await?;
