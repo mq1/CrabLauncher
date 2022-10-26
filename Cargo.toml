@@ -29,6 +29,7 @@ oauth2 = "4"
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
 flate2 = "1"
 tar = "0.4"
+tempfile = "3"
 
 [profile.release]
 opt-level = "z"
