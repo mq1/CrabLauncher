@@ -7,12 +7,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use color_eyre::eyre::Result;
-use druid::im::Vector;
+use color_eyre::eyre::{bail, Result};
 use flate2::read::GzDecoder;
 use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 use tar::Archive;
 use tempfile::tempfile;
 use tokio::fs;
@@ -35,20 +35,11 @@ const OS_STRING: &str = std::env::consts::OS;
 #[cfg(target_os = "macos")]
 const OS_STRING: &str = "mac";
 
-#[derive(Deserialize)]
-pub struct AvailableReleases {
-    pub available_lts_releases: Vector<i32>,
-    pub available_releases: Vector<i32>,
-    pub most_recent_feature_release: i32,
-    pub most_recent_feature_version: i32,
-    pub most_recent_lts: i32,
-    pub tip_version: i32,
-}
-
 #[derive(Deserialize, Debug)]
-pub struct Package {
-    pub link: Url,
-    pub size: usize,
+struct Package {
+    checksum: String,
+    link: Url,
+    size: usize,
 }
 
 #[derive(Deserialize, Debug)]
@@ -126,17 +117,30 @@ async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()
         .bytes_stream();
 
     let mut tmpfile = tempfile()?;
+    let mut hasher = Sha256::new();
     let mut downloaded_bytes = 0;
     let package_size = assets.binary.package.size as f64;
 
     while let Some(chunk) = stream.next().await {
         let chunk = chunk?;
         tmpfile.write_all(&chunk)?;
+        hasher.update(&chunk);
         downloaded_bytes += chunk.len();
 
         event_sink.add_idle_callback(move |data: &mut AppState| {
             data.current_progress = downloaded_bytes as f64 / package_size;
         });
+    }
+
+    let hash = hasher.finalize();
+    let hex_hash = base16ct::lower::encode_string(&hash);
+
+    if hex_hash != assets.binary.package.checksum {
+        bail!(
+            "Checksum mismatch: expected {}, got {}",
+            assets.binary.package.checksum,
+            hex_hash
+        );
     }
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
