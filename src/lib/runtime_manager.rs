@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::path::{Path, PathBuf};
+use std::{
+    fs::File,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use color_eyre::eyre::Result;
 use druid::im::Vector;
@@ -10,10 +14,8 @@ use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use tar::Archive;
-use tokio::{
-    fs::{self, File},
-    io::AsyncWriteExt,
-};
+use tempfile::tempfile;
+use tokio::fs;
 use url::Url;
 use zip::ZipArchive;
 
@@ -46,7 +48,6 @@ pub struct AvailableReleases {
 #[derive(Deserialize, Debug)]
 pub struct Package {
     pub link: Url,
-    name: String,
     pub size: usize,
 }
 
@@ -95,14 +96,12 @@ pub async fn is_updated(assets: &Assets) -> Result<bool> {
     Ok(true)
 }
 
-fn extract_archive(archive_path: &Path, destination_path: &Path) -> Result<()> {
+fn extract_archive(file: &File, destination_path: &Path) -> Result<()> {
     if cfg!(target_os = "windows") {
-        let zip = std::fs::File::open(archive_path)?;
-        let mut archive = ZipArchive::new(zip)?;
+        let mut archive = ZipArchive::new(file)?;
         archive.extract(destination_path)?;
     } else {
-        let tar_gz = std::fs::File::open(archive_path)?;
-        let tar = GzDecoder::new(tar_gz);
+        let tar = GzDecoder::new(file);
         let mut archive = Archive::new(tar);
         archive.unpack(destination_path)?;
     }
@@ -119,7 +118,6 @@ async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()
 
     let version_dir = RUNTIMES_DIR.join(assets.version.major.to_string());
     fs::create_dir_all(&version_dir).await?;
-    let download_path = version_dir.join(&assets.binary.package.name);
 
     let mut stream = HTTP_CLIENT
         .get(assets.binary.package.link.to_owned())
@@ -127,15 +125,15 @@ async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()
         .await?
         .bytes_stream();
 
-    let mut file = File::create(&download_path).await?;
+    let mut tmpfile = tempfile()?;
     let mut downloaded_bytes = 0;
+    let package_size = assets.binary.package.size as f64;
 
     while let Some(chunk) = stream.next().await {
         let chunk = chunk?;
-        file.write_all(&chunk).await?;
+        tmpfile.write_all(&chunk)?;
         downloaded_bytes += chunk.len();
 
-        let package_size = assets.binary.package.size as f64;
         event_sink.add_idle_callback(move |data: &mut AppState| {
             data.current_progress = downloaded_bytes as f64 / package_size;
         });
@@ -146,8 +144,7 @@ async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()
         data.current_view = View::Loading;
     });
 
-    extract_archive(&download_path, &version_dir)?;
-    fs::remove_file(download_path).await?;
+    extract_archive(&tmpfile, &version_dir)?;
 
     Ok(())
 }
