@@ -10,6 +10,7 @@ description = "An unofficial launcher for Minecraft: Java Edition"
 [dependencies]
 druid = { git = "https://github.com/linebender/druid.git", features = ["im", "image", "png", "serde"] }
 tokio = { version = "1", features = ["rt", "macros", "process", "io-util", "fs"] }
+async-trait = "0.1"
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls", "stream"] }
 futures-util = "0.3"
 serde = { version = "1", features = ["derive"] }

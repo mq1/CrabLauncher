@@ -1,15 +1,27 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::path::PathBuf;
+use std::{
+    io::{self, Seek, SeekFrom},
+    path::PathBuf,
+};
 
-use color_eyre::Result;
+use color_eyre::{eyre::bail, Result};
 use druid::{im::Vector, Data, Lens};
+use futures_util::StreamExt;
 use serde::Deserialize;
+use sha1::{Digest, Sha1};
+use tokio::{
+    fs::{self, File},
+    io::AsyncWriteExt,
+};
 
 use crate::{AppState, View};
 
-use super::{minecraft_version_meta::META_DIR, HTTP_CLIENT};
+use super::{
+    minecraft_version_meta::{MinecraftVersionMeta, META_DIR},
+    HTTP_CLIENT,
+};
 
 const VERSION_MANIFEST_URL: &str =
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
@@ -30,22 +42,75 @@ pub struct Latest {
 pub struct Version {
     pub id: String,
     #[serde(rename = "type")]
-    pub version_type: VersionType,
-    pub url: String,
-    pub time: String,
+    version_type: VersionType,
+    url: String,
+    time: String,
     #[serde(rename = "releaseTime")]
-    pub release_time: String,
-    pub sha1: String,
+    release_time: String,
+    sha1: String,
     #[serde(rename = "complianceLevel")]
-    pub compliance_level: i32,
+    compliance_level: i32,
 }
 
 impl Version {
-    pub fn get_meta_path(&self) -> PathBuf {
+    fn get_meta_path(&self) -> PathBuf {
         META_DIR
             .join("net.minecraft")
             .join(&self.id)
             .with_extension("json")
+    }
+
+    pub async fn get_meta(&self, event_sink: &druid::ExtEventSink) -> Result<MinecraftVersionMeta> {
+        event_sink.add_idle_callback(move |data: &mut AppState| {
+            data.current_view = View::Loading;
+            data.current_message = "Downloading version meta...".to_string();
+        });
+
+        let meta_path = self.get_meta_path();
+
+        if meta_path.exists() {
+            let mut file = std::fs::File::open(&meta_path)?;
+            let mut hasher = Sha1::new();
+            let mut buffer = Vec::new();
+
+            io::copy(&mut file, &mut hasher)?;
+            file.seek(SeekFrom::Start(0))?;
+            io::copy(&mut file, &mut buffer)?;
+
+            let hash = hasher.finalize();
+            let hex_hash = base16ct::lower::encode_string(&hash);
+
+            if hex_hash != self.sha1 {
+                fs::remove_file(&meta_path).await?;
+            } else {
+                let meta = serde_json::from_slice(&buffer)?;
+                return Ok(meta);
+            }
+        }
+
+        fs::create_dir_all(meta_path.parent().unwrap()).await?;
+        let mut stream = HTTP_CLIENT.get(&self.url).send().await?.bytes_stream();
+        let mut file = File::create(&meta_path).await?;
+        let mut hasher = Sha1::new();
+        let mut buffer = Vec::new();
+
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk?;
+            file.write_all(&chunk).await?;
+            buffer.write_all(&chunk).await?;
+            hasher.update(&chunk);
+        }
+
+        let hash = hasher.finalize();
+        let hex_hash = base16ct::lower::encode_string(&hash);
+
+        if hex_hash != self.sha1 {
+            fs::remove_file(&meta_path).await?;
+            bail!("Hash mismatch");
+        }
+
+        let meta = serde_json::from_slice(&buffer)?;
+        Ok(meta)
     }
 }
 

@@ -14,13 +14,13 @@ const CURRENT_OS: OsName = OsName::MacOS;
 #[cfg(target_os = "windows")]
 const CURRENT_OS: OsName = OsName::Windows;
 
-#[derive(Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, Clone, PartialEq, Eq)]
 enum Action {
     #[serde(rename = "allow")]
     Allow,
 }
 
-#[derive(Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, Clone, PartialEq, Eq)]
 enum OsName {
     #[serde(rename = "linux")]
     Linux,
@@ -30,12 +30,12 @@ enum OsName {
     Windows,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 struct Os {
     name: OsName,
 }
 
-#[derive(Deserialize, Hash, Eq, PartialEq)]
+#[derive(Deserialize, Clone, Hash, Eq, PartialEq)]
 enum Feature {
     #[serde(rename = "is_demo_user")]
     IsDemoUser,
@@ -43,7 +43,7 @@ enum Feature {
     HasCustomResolution,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct Rule {
     action: Action,
     os: Option<Os>,

@@ -3,15 +3,22 @@
 
 use std::path::PathBuf;
 
-use color_eyre::Result;
+use color_eyre::{eyre::bail, Result};
+use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use tokio::fs;
+use sha1::{Digest, Sha1};
+use tokio::{
+    fs::{self, File},
+    io::AsyncWriteExt,
+};
+
+use crate::{AppState, View};
 
 use super::{
     minecraft_assets::AssetIndexInfo,
-    minecraft_libraries::{Library, LIBRARIES_DIR},
-    BASE_DIR,
+    minecraft_libraries::{Libraries, LibrariesExt, LIBRARIES_DIR},
+    BASE_DIR, HTTP_CLIENT,
 };
 
 pub const META_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("meta"));
@@ -56,13 +63,13 @@ pub struct MinecraftVersionMeta {
     pub assets: String,
     pub id: String,
     pub downloads: Downloads,
-    pub libraries: Vec<Library>,
+    pub libraries: Libraries,
     #[serde(rename = "mainClass")]
     pub main_class: String,
 }
 
 impl MinecraftVersionMeta {
-    pub fn get_client_path(&self) -> PathBuf {
+    fn get_client_path(&self) -> PathBuf {
         LIBRARIES_DIR
             .join("com")
             .join("mojang")
@@ -70,6 +77,65 @@ impl MinecraftVersionMeta {
             .join(&self.id)
             .join(format!("minecraft-{}-client", &self.id))
             .with_extension("jar")
+    }
+
+    pub async fn download_client(&self, event_sink: &druid::ExtEventSink) -> Result<()> {
+        event_sink.add_idle_callback(move |data: &mut AppState| {
+            data.current_view = View::Progress;
+            data.current_message = "Downloading client...".to_string();
+            data.current_progress = 0.;
+        });
+
+        let path = self.get_client_path();
+        let mut downloaded_bytes = 0;
+        let total_bytes = self.downloads.client.size as f64;
+
+        if path.exists() {
+            let mut file = std::fs::File::open(&path)?;
+            let mut hasher = Sha1::new();
+
+            std::io::copy(&mut file, &mut hasher)?;
+
+            let hash = hasher.finalize();
+            let hex_hash = base16ct::lower::encode_string(&hash);
+
+            if hex_hash != self.downloads.client.sha1 {
+                fs::remove_file(&path).await?;
+            } else {
+                downloaded_bytes += self.downloads.client.size;
+                event_sink.add_idle_callback(move |data: &mut AppState| {
+                    data.current_progress = downloaded_bytes as f64 / total_bytes;
+                });
+                return Ok(());
+            }
+        }
+
+        fs::create_dir_all(path.parent().unwrap()).await?;
+        let url = &self.downloads.client.url;
+        let mut stream = HTTP_CLIENT.get(url).send().await?.bytes_stream();
+        let mut file = File::create(&path).await?;
+        let mut hasher = Sha1::new();
+
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk?;
+            file.write_all(&chunk).await?;
+            hasher.update(&chunk);
+            downloaded_bytes += chunk.len();
+
+            event_sink.add_idle_callback(move |data: &mut AppState| {
+                data.current_progress = downloaded_bytes as f64 / total_bytes;
+            });
+        }
+
+        let hash = hasher.finalize();
+        let hex_hash = base16ct::lower::encode_string(&hash);
+
+        if hex_hash != self.downloads.client.sha1 {
+            fs::remove_file(&path).await?;
+            bail!("Hash mismatch");
+        }
+
+        Ok(())
     }
 
     pub fn get_classpath(&self) -> String {
@@ -81,9 +147,9 @@ impl MinecraftVersionMeta {
 
         let mut jars = self
             .libraries
+            .get_valid_libraries()
             .iter()
-            .filter(|l| l.is_valid())
-            .map(|l| l.get_path())
+            .map(|l| l.get_path().to_string_lossy().to_string())
             .collect::<Vec<String>>();
 
         jars.push(self.get_client_path().to_string_lossy().to_string());
