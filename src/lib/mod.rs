@@ -1,12 +1,10 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use color_eyre::eyre::Result;
 use directories::ProjectDirs;
 use once_cell::sync::Lazy;
-use sha1::Digest;
 
 pub mod accounts;
 pub mod instances;
@@ -36,20 +34,3 @@ pub static HTTP_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
         .build()
         .expect("Could not create HTTP client")
 });
-
-pub fn check_hash<D: Digest + std::io::Write>(path: &Path, known_hash: &str) -> bool {
-    fn check<D: Digest + std::io::Write>(path: &Path, known_hash: &str) -> Result<bool> {
-        let mut file = std::fs::File::open(&path)?;
-        let mut hasher = D::new();
-        std::io::copy(&mut file, &mut hasher)?;
-        let hash = hasher.finalize();
-        let hex_hash = base16ct::lower::encode_string(&hash);
-
-        Ok(hex_hash == known_hash)
-    }
-
-    match check::<D>(path, known_hash) {
-        Ok(result) => result,
-        Err(_err) => false,
-    }
-}
