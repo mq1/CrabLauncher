@@ -3,7 +3,7 @@
 
 use std::{
     fs::File,
-    io::Write,
+    io::{Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
 
@@ -148,6 +148,7 @@ async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()
         data.current_view = View::Loading;
     });
 
+    tmpfile.seek(SeekFrom::Start(0))?;
     extract_archive(&tmpfile, &version_dir)?;
 
     Ok(())
