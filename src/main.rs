@@ -6,21 +6,21 @@
 
 mod about;
 mod accounts;
+mod confirm_account_remove;
+mod confirm_instance_delete;
 mod instance_name_selection;
 mod instance_type_selection;
 mod instance_version_selection;
 mod instances;
 mod lib;
 mod loading;
+mod navbar;
 mod news;
 mod progress;
-mod view;
 mod settings;
-mod navbar;
-mod confirm_instance_delete;
-mod confirm_account_remove;
+mod view;
 
-use std::{fs, process::exit};
+use std::{fs, process::exit, thread};
 
 use color_eyre::eyre::Result;
 use druid::{im::Vector, AppDelegate, AppLauncher, Data, Lens, WindowDesc};
@@ -86,8 +86,7 @@ impl AppDelegate<AppState> for Delegate {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     color_eyre::install()?;
 
     fs::create_dir_all(BASE_DIR.as_path()).expect("Could not create base directory");
@@ -96,19 +95,12 @@ async fn main() -> Result<()> {
         .title("🧊 Ice Launcher")
         .window_size((800.0, 600.0));
 
-    let initial_state = {
-        let config = lib::launcher_config::read();
-        let instances = lib::instances::list();
-        let accounts = lib::accounts::read();
-        let active_account = lib::accounts::get_active();
-
-        AppState {
-            config: config.await?,
-            instances: instances.await?,
-            accounts: accounts.await?.accounts,
-            active_account: active_account.await?,
-            ..Default::default()
-        }
+    let initial_state = AppState {
+        config: lib::launcher_config::read()?,
+        instances: lib::instances::list()?,
+        accounts: lib::accounts::read()?.accounts,
+        active_account: lib::accounts::get_active()?,
+        ..Default::default()
     };
 
     let launcher = AppLauncher::with_window(window);
@@ -116,7 +108,7 @@ async fn main() -> Result<()> {
     // Spawn a task to check for updates.
     if initial_state.config.automatically_check_for_updates {
         let event_sink = launcher.get_external_handle();
-        tokio::spawn(lib::launcher_updater::check_for_updates(event_sink));
+        thread::spawn(move || lib::launcher_updater::check_for_updates(event_sink));
     }
 
     launcher

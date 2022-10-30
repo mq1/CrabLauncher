@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::thread;
+
 use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, Scroll, Switch, TextBox},
     Color, Widget, WidgetExt,
@@ -82,7 +84,8 @@ pub fn build_widget() -> impl Widget<AppState> {
                 .with_default_spacer()
                 .with_child(Button::<LauncherConfig>::new("Save settings 📝").on_click(
                     |_, data, _| {
-                        tokio::spawn(launcher_config::write(data.clone()));
+                        let config = data.clone();
+                        thread::spawn(move || launcher_config::write(config));
                     },
                 )),
         )

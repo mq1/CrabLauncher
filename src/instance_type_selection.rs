@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::thread;
+
 use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, RadioGroup},
     Color, LensExt, Widget, WidgetExt,
@@ -36,9 +38,9 @@ pub fn build_widget() -> impl Widget<AppState> {
                 .with_child(Button::<AppState>::new("Select version 📦 >").on_click(
                     |ctx, _, _| {
                         let event_sink = ctx.get_external_handle();
-                        tokio::spawn(lib::minecraft_version_manifest::update_available_versions(
-                            event_sink,
-                        ));
+                        thread::spawn(move || {
+                            lib::minecraft_version_manifest::update_available_versions(event_sink)
+                        });
                     },
                 )),
         )
