@@ -101,10 +101,10 @@ impl Library {
         let url = &self.downloads.artifact.url;
 
         fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
-        let mut resp = HTTP_CLIENT.get(url).send()?;
+        let resp = HTTP_CLIENT.get(url).call()?;
         let file = File::create(&path)?;
         let mut writer = BufWriter::new(file);
-        io::copy(&mut resp, &mut writer)?;
+        io::copy(&mut resp.into_reader(), &mut writer)?;
 
         Ok(())
     }

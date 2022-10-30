@@ -64,10 +64,10 @@ impl Version {
         let url = &self.url;
 
         fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
-        let mut resp = HTTP_CLIENT.get(url).send()?;
+        let resp = HTTP_CLIENT.get(url).call()?;
         let file = File::create(&path)?;
         let mut writer = BufWriter::new(file);
-        io::copy(&mut resp, &mut writer)?;
+        io::copy(&mut resp.into_reader(), &mut writer)?;
 
         Ok(())
     }
@@ -126,7 +126,7 @@ pub enum VersionType {
 }
 
 async fn fetch_manifest() -> Result<MinecraftVersionManifest> {
-    let manifest = HTTP_CLIENT.get(VERSION_MANIFEST_URL).send()?.json()?;
+    let manifest = HTTP_CLIENT.get(VERSION_MANIFEST_URL).call()?.into_json()?;
 
     Ok(manifest)
 }
