@@ -1,19 +1,13 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{path::PathBuf, process::Stdio};
+use std::{fs, path::PathBuf, process::Command};
 
+use color_eyre::Result;
 use druid::{im::Vector, Data};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
-use tokio::{
-    fs,
-    io::{AsyncBufReadExt, BufReader},
-    process::Command,
-};
-
-use color_eyre::eyre::Result;
 
 use crate::{
     lib::{accounts, launcher_config, minecraft_assets::ASSETS_DIR},
@@ -56,32 +50,32 @@ impl Instance {
     }
 }
 
-async fn read_info(instance_name: &str) -> Result<InstanceInfo> {
+fn read_info(instance_name: &str) -> Result<InstanceInfo> {
     let path = INSTANCES_DIR.join(instance_name).join("instance.toml");
-    let content = fs::read_to_string(path).await?;
+    let content = fs::read_to_string(path)?;
     let info: InstanceInfo = toml::from_str(&content)?;
 
     Ok(info)
 }
 
-pub async fn list() -> Result<Vector<Instance>> {
+pub fn list() -> Result<Vector<Instance>> {
     let mut instances = Vector::new();
 
-    fs::create_dir_all(INSTANCES_DIR.as_path()).await?;
-    let mut entries = fs::read_dir(INSTANCES_DIR.as_path()).await?;
+    fs::create_dir_all(INSTANCES_DIR.as_path())?;
+    let mut entries = fs::read_dir(INSTANCES_DIR.as_path())?;
 
-    while let Some(entry) = entries.next_entry().await? {
-        if !entry.path().is_dir() {
+    while let Some(entry) = entries.next() {
+        let entry = entry?;
+        let path = entry.path();
+
+        if !path.is_dir() {
             continue;
         }
 
-        let instance_name = entry.file_name().into_string().unwrap();
-        let info = read_info(&instance_name).await?;
+        let name = path.file_name().unwrap().to_str().unwrap().to_string();
+        let info = read_info(&name)?;
 
-        instances.push_back(Instance {
-            name: instance_name,
-            info,
-        });
+        instances.push_back(Instance { name, info });
     }
 
     Ok(instances)
@@ -92,24 +86,23 @@ pub async fn new(
     minecraft_version: Version,
     event_sink: druid::ExtEventSink,
 ) -> Result<()> {
-    let meta = minecraft_version.get_meta(&event_sink).await?;
-    let asset_index = meta.asset_index.get(&event_sink).await?;
+    let meta = minecraft_version.get_meta(&event_sink)?;
 
-    asset_index
-        .download_objects(&event_sink, meta.asset_index.total_size.unwrap())
-        .await?;
+    let asset_index = meta.asset_index.get(&event_sink)?;
+    asset_index.download_objects(&event_sink)?;
 
     let libraries = meta.libraries.get_valid_libraries();
-    libraries.download(&event_sink).await?;
-    meta.download_client(&event_sink).await?;
+    libraries.download(&event_sink)?;
 
-    let jvm_assets = runtime_manager::get_assets_info("17").await?;
-    if !runtime_manager::is_updated(&jvm_assets).await? {
-        runtime_manager::update(&jvm_assets, &event_sink).await?;
+    meta.download_client(&event_sink)?;
+
+    let jvm_assets = runtime_manager::get_assets_info("17")?;
+    if !runtime_manager::is_updated(&jvm_assets)? {
+        runtime_manager::update(&jvm_assets, &event_sink)?;
     }
 
     let instance_dir = INSTANCES_DIR.join(instance_name);
-    fs::create_dir_all(&instance_dir).await?;
+    fs::create_dir_all(&instance_dir)?;
 
     let info = InstanceInfo {
         minecraft_version: minecraft_version.id,
@@ -118,8 +111,8 @@ pub async fn new(
 
     let path = instance_dir.join("instance.toml");
     let content = toml::to_string_pretty(&info)?;
-    fs::write(&path, content).await?;
-    let instances = list().await?;
+    fs::write(&path, content)?;
+    let instances = list()?;
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.new_instance_state.available_minecraft_versions = Vector::new();
@@ -130,39 +123,40 @@ pub async fn new(
     Ok(())
 }
 
-pub async fn remove(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()> {
+pub fn remove(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()> {
     let instance_dir = INSTANCES_DIR.join(&instance.name);
-    fs::remove_dir_all(&instance_dir).await?;
+    fs::remove_dir_all(&instance_dir)?;
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.instances.retain(|i| i.name != instance.name);
+        data.current_view = View::Instances;
     });
 
     Ok(())
 }
 
-pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()> {
+pub fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()> {
     let instance_name = instance.name.clone();
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.current_message = format!("Running {}", instance_name);
         data.current_view = View::Loading;
     });
 
-    let account = accounts::get_active().await?.unwrap();
-    let account = accounts::refresh(account).await?;
+    let account = accounts::get_active()?.unwrap();
+    let account = accounts::refresh(account)?;
 
-    let config = launcher_config::read().await?;
+    let config = launcher_config::read()?;
 
-    let version = minecraft_version_meta::get(&instance.info.minecraft_version).await?;
+    let version = minecraft_version_meta::get(&instance.info.minecraft_version)?;
 
     if config.automatically_update_jvm {
         event_sink.add_idle_callback(move |data: &mut AppState| {
             data.current_message = "Checking for JVM updates...".to_string();
         });
 
-        let jvm_assets = runtime_manager::get_assets_info("17").await?;
-        if !runtime_manager::is_updated(&jvm_assets).await? {
-            runtime_manager::update(&jvm_assets, &event_sink).await?;
+        let jvm_assets = runtime_manager::get_assets_info("17")?;
+        if !runtime_manager::is_updated(&jvm_assets)? {
+            runtime_manager::update(&jvm_assets, &event_sink)?;
         }
 
         let instance_name = instance.name.clone();
@@ -171,7 +165,7 @@ pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Resu
         });
     }
 
-    let java_path = runtime_manager::get_java_path("17").await?;
+    let java_path = runtime_manager::get_java_path("17")?;
 
     let mut jvm_args = vec![
         "-Dminecraft.launcher.brand=ice-launcher".to_string(),
@@ -217,11 +211,7 @@ pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Resu
         instance.info.instance_type.to_string(),
     ];
 
-    let mut cmd = Command::new(java_path);
-
-    cmd.stdout(Stdio::piped());
-
-    let mut child = cmd
+    Command::new(java_path)
         .current_dir(instance.get_path())
         .args(jvm_args)
         .arg(version.main_class)
@@ -229,28 +219,8 @@ pub async fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Resu
         .spawn()
         .expect("failed to spawn command");
 
-    let stdout = child
-        .stdout
-        .take()
-        .expect("child did not have a handle to stdout");
-
-    let mut reader = BufReader::new(stdout).lines();
-
-    tokio::spawn(async move {
-        let status = child
-            .wait()
-            .await
-            .expect("child process encountered an error");
-
-        println!("child status was: {}", status);
-
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_view = View::Instances;
-        })
+    event_sink.add_idle_callback(move |data: &mut AppState| {
+        data.current_view = View::Instances;
     });
-
-    while let Some(line) = reader.next_line().await? {
-        println!("Line: {}", line);
-    }
     Ok(())
 }

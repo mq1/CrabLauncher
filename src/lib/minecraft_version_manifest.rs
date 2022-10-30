@@ -2,19 +2,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use std::{
-    io::{self, Seek, SeekFrom},
+    fs::{self, File},
+    io::{self, BufReader, BufWriter},
     path::PathBuf,
 };
 
-use color_eyre::{eyre::bail, Result};
+use color_eyre::{
+    eyre::{bail, eyre},
+    Result,
+};
 use druid::{im::Vector, Data, Lens};
-use futures_util::StreamExt;
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
-use tokio::{
-    fs::{self, File},
-    io::AsyncWriteExt,
-};
 
 use crate::{AppState, View};
 
@@ -60,56 +59,56 @@ impl Version {
             .with_extension("json")
     }
 
-    pub async fn get_meta(&self, event_sink: &druid::ExtEventSink) -> Result<MinecraftVersionMeta> {
+    fn download_meta(&self) -> Result<()> {
+        let path = self.get_meta_path();
+        let url = &self.url;
+
+        fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
+        let mut resp = HTTP_CLIENT.get(url).send()?;
+        let file = File::create(&path)?;
+        let mut writer = BufWriter::new(file);
+        io::copy(&mut resp, &mut writer)?;
+
+        Ok(())
+    }
+
+    fn check_meta_hash(&self) -> Result<bool> {
+        let path = self.get_meta_path();
+        let file = File::open(&path)?;
+        let mut reader = BufReader::new(file);
+        let mut hasher = Sha1::new();
+        io::copy(&mut reader, &mut hasher)?;
+
+        let hash = hasher.finalize();
+        let hex_hash = base16ct::lower::encode_string(&hash);
+
+        Ok(hex_hash == self.sha1)
+    }
+
+    pub fn get_meta(&self, event_sink: &druid::ExtEventSink) -> Result<MinecraftVersionMeta> {
+        let path = self.get_meta_path();
+
         event_sink.add_idle_callback(move |data: &mut AppState| {
             data.current_view = View::Loading;
             data.current_message = "Downloading version meta...".to_string();
         });
 
-        let meta_path = self.get_meta_path();
-
-        if meta_path.exists() {
-            let mut file = std::fs::File::open(&meta_path)?;
-            let mut hasher = Sha1::new();
-            let mut buffer = Vec::new();
-
-            io::copy(&mut file, &mut hasher)?;
-            file.seek(SeekFrom::Start(0))?;
-            io::copy(&mut file, &mut buffer)?;
-
-            let hash = hasher.finalize();
-            let hex_hash = base16ct::lower::encode_string(&hash);
-
-            if hex_hash != self.sha1 {
-                fs::remove_file(&meta_path).await?;
-            } else {
-                let meta = serde_json::from_slice(&buffer)?;
-                return Ok(meta);
-            }
+        if path.exists() && !self.check_meta_hash()? {
+            fs::remove_file(&path)?;
         }
 
-        fs::create_dir_all(meta_path.parent().unwrap()).await?;
-        let mut stream = HTTP_CLIENT.get(&self.url).send().await?.bytes_stream();
-        let mut file = File::create(&meta_path).await?;
-        let mut hasher = Sha1::new();
-        let mut buffer = Vec::new();
-
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk?;
-            file.write_all(&chunk).await?;
-            buffer.write_all(&chunk).await?;
-            hasher.update(&chunk);
+        if !path.exists() {
+            self.download_meta()?;
         }
 
-        let hash = hasher.finalize();
-        let hex_hash = base16ct::lower::encode_string(&hash);
-
-        if hex_hash != self.sha1 {
-            fs::remove_file(&meta_path).await?;
-            bail!("Hash mismatch");
+        if !self.check_meta_hash()? {
+            bail!("Asset index hash mismatch");
         }
 
-        let meta = serde_json::from_slice(&buffer)?;
+        let file = File::open(&path)?;
+        let reader = BufReader::new(file);
+        let meta = serde_json::from_reader(reader)?;
+
         Ok(meta)
     }
 }
@@ -127,12 +126,7 @@ pub enum VersionType {
 }
 
 async fn fetch_manifest() -> Result<MinecraftVersionManifest> {
-    let manifest = HTTP_CLIENT
-        .get(VERSION_MANIFEST_URL)
-        .send()
-        .await?
-        .json()
-        .await?;
+    let manifest = HTTP_CLIENT.get(VERSION_MANIFEST_URL).send()?.json()?;
 
     Ok(manifest)
 }

@@ -1,17 +1,20 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{collections::HashMap, io::{self, SeekFrom, Seek}, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs::{self, File},
+    io::{self, BufReader, BufWriter},
+    path::PathBuf,
+};
 
-use color_eyre::{eyre::bail, Result};
-use futures_util::StreamExt;
+use color_eyre::{
+    eyre::{bail, eyre},
+    Result,
+};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
-use tokio::{
-    fs::{self, File},
-    io::AsyncWriteExt,
-};
 use url::Url;
 
 use crate::{AppState, View};
@@ -40,7 +43,33 @@ impl AssetIndexInfo {
         INDEXES_DIR.join(format!("{}.json", &self.id))
     }
 
-    pub async fn get(&self, event_sink: &druid::ExtEventSink) -> Result<AssetIndex> {
+    fn download(&self) -> Result<()> {
+        let path = self.get_path();
+        let url = self.url.to_owned();
+
+        fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
+        let mut resp = HTTP_CLIENT.get(url).send()?;
+        let file = File::create(&path)?;
+        let mut writer = BufWriter::new(file);
+        io::copy(&mut resp, &mut writer)?;
+
+        Ok(())
+    }
+
+    fn check_hash(&self) -> Result<bool> {
+        let path = self.get_path();
+        let file = File::open(&path)?;
+        let mut reader = BufReader::new(file);
+        let mut hasher = Sha1::new();
+        io::copy(&mut reader, &mut hasher)?;
+
+        let hash = hasher.finalize();
+        let hex_hash = base16ct::lower::encode_string(&hash);
+
+        Ok(hex_hash == self.sha1)
+    }
+
+    pub fn get(&self, event_sink: &druid::ExtEventSink) -> Result<AssetIndex> {
         let path = self.get_path();
         let url = self.url.clone();
 
@@ -49,48 +78,22 @@ impl AssetIndexInfo {
             data.current_message = "Downloading asset index...".to_string();
         });
 
-        if path.exists() {
-            let mut file = std::fs::File::open(&path)?;
-            let mut hasher = Sha1::new();
-            let mut buffer = Vec::new();
-
-            io::copy(&mut file, &mut hasher)?;
-            file.seek(SeekFrom::Start(0))?;
-            io::copy(&mut file, &mut buffer)?;
-
-            let hash = hasher.finalize();
-            let hex_hash = base16ct::lower::encode_string(&hash);
-
-            if hex_hash != self.sha1 {
-                fs::remove_file(&path).await?;
-            } else {
-                let index = serde_json::from_slice(&buffer)?;
-                return Ok(index);
-            }
+        if path.exists() && !self.check_hash()? {
+            fs::remove_file(&path)?;
         }
 
-        fs::create_dir_all(path.parent().unwrap()).await?;
-        let mut stream = HTTP_CLIENT.get(url).send().await?.bytes_stream();
-        let mut file = File::create(&path).await?;
-        let mut hasher = Sha1::new();
-        let mut buffer = Vec::new();
-
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk?;
-            file.write_all(&chunk).await?;
-            buffer.write_all(&chunk).await?;
-            hasher.update(&chunk);
+        if !path.exists() {
+            self.download()?;
         }
 
-        let hash = hasher.finalize();
-        let hex_hash = base16ct::lower::encode_string(&hash);
-
-        if hex_hash != self.sha1 {
-            fs::remove_file(&path).await?;
-            bail!("Hash mismatch");
+        if !self.check_hash()? {
+            bail!("Asset index hash mismatch");
         }
 
-        let index = serde_json::from_slice(&buffer)?;
+        let file = File::open(&path)?;
+        let reader = BufReader::new(file);
+        let index = serde_json::from_reader(reader)?;
+
         Ok(index)
     }
 }
@@ -106,8 +109,35 @@ impl Object {
         OBJECTS_DIR.join(&self.hash[..2]).join(&self.hash)
     }
 
-    pub fn get_url(&self) -> Result<Url, url::ParseError> {
+    fn get_url(&self) -> Result<Url, url::ParseError> {
         ASSETS_DOWNLOAD_ENDPOINT.join(&format!("{}/{}", &self.hash[..2], &self.hash))
+    }
+
+    pub fn download(&self) -> Result<()> {
+        let path = self.get_path();
+        let url = self.get_url()?;
+
+        fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
+        let mut resp = HTTP_CLIENT.get(url).send()?;
+        let file = File::create(&path)?;
+        let mut writer = BufWriter::new(file);
+        io::copy(&mut resp, &mut writer)?;
+
+        Ok(())
+    }
+
+    pub fn check_hash(&self) -> Result<bool> {
+        let path = self.get_path();
+
+        let file = File::open(&path)?;
+        let mut reader = BufReader::new(file);
+        let mut hasher = Sha1::new();
+        io::copy(&mut reader, &mut hasher)?;
+
+        let hash = hasher.finalize();
+        let hex_hash = base16ct::lower::encode_string(&hash);
+
+        Ok(hex_hash == self.hash)
     }
 }
 
@@ -118,67 +148,35 @@ pub struct AssetIndex {
 }
 
 impl AssetIndex {
-    pub async fn download_objects(
-        &self,
-        event_sink: &druid::ExtEventSink,
-        total_size: usize,
-    ) -> Result<()> {
+    pub fn download_objects(&self, event_sink: &druid::ExtEventSink) -> Result<()> {
         event_sink.add_idle_callback(move |data: &mut AppState| {
             data.current_view = View::Progress;
             data.current_message = "Downloading assets...".to_string();
             data.current_progress = 0.;
         });
 
-        let mut downloaded_bytes = 0;
-        let total_size = total_size as f64;
+        let mut downloaded_objects = 0.;
+        let object_count = self.objects.len() as f64;
 
         for object in self.objects.values() {
             let path = object.get_path();
 
-            if path.exists() {
-                let mut file = std::fs::File::open(&path)?;
-                let mut hasher = Sha1::new();
-
-                io::copy(&mut file, &mut hasher)?;
-
-                let hash = hasher.finalize();
-                let hex_hash = base16ct::lower::encode_string(&hash);
-
-                if hex_hash != object.hash {
-                    fs::remove_file(&path).await?;
-                } else {
-                    downloaded_bytes += object.size;
-                    event_sink.add_idle_callback(move |data: &mut AppState| {
-                        data.current_progress = downloaded_bytes as f64 / total_size;
-                    });
-                    continue;
-                }
+            if path.exists() && !object.check_hash()? {
+                fs::remove_file(&path)?;
             }
 
-            fs::create_dir_all(path.parent().unwrap()).await?;
-            let url = object.get_url()?;
-            let mut stream = HTTP_CLIENT.get(url).send().await?.bytes_stream();
-            let mut file = File::create(&path).await?;
-            let mut hasher = Sha1::new();
-
-            while let Some(chunk) = stream.next().await {
-                let chunk = chunk?;
-                file.write_all(&chunk).await?;
-                hasher.update(&chunk);
-                downloaded_bytes += chunk.len();
-
-                event_sink.add_idle_callback(move |data: &mut AppState| {
-                    data.current_progress = downloaded_bytes as f64 / total_size;
-                });
+            if !path.exists() {
+                object.download()?;
             }
 
-            let hash = hasher.finalize();
-            let hex_hash = base16ct::lower::encode_string(&hash);
-
-            if hex_hash != object.hash {
-                fs::remove_file(&path).await?;
-                bail!("Hash mismatch");
+            if !object.check_hash()? {
+                bail!("Failed to download object");
             }
+
+            downloaded_objects += 1.;
+            event_sink.add_idle_callback(move |data: &mut AppState| {
+                data.current_progress = downloaded_objects / object_count;
+            });
         }
 
         Ok(())

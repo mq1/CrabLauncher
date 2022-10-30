@@ -16,19 +16,14 @@ struct Release {
     tag_name: String,
 }
 
-async fn get_latest_release() -> Result<Release> {
-    let resp = HTTP_CLIENT
-        .get(LATEST_RELEASE_URL)
-        .send()
-        .await?
-        .json()
-        .await?;
+fn get_latest_release() -> Result<Release> {
+    let resp = HTTP_CLIENT.get(LATEST_RELEASE_URL).send()?.json()?;
 
     Ok(resp)
 }
 
-pub async fn check_for_updates(event_sink: druid::ExtEventSink) -> Result<()> {
-    let latest_release = get_latest_release().await?;
+pub fn check_for_updates(event_sink: druid::ExtEventSink) -> Result<()> {
+    let latest_release = get_latest_release()?;
     let latest_release = Version::from(&latest_release.tag_name).unwrap();
     let current_version = Version::from(env!("CARGO_PKG_VERSION")).unwrap();
 

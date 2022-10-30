@@ -1,17 +1,19 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::path::PathBuf;
+use std::{
+    fs::{self, File},
+    io::{self, BufReader, BufWriter},
+    path::PathBuf,
+};
 
-use color_eyre::{eyre::bail, Result};
-use futures_util::StreamExt;
+use color_eyre::{
+    eyre::{bail, eyre},
+    Result,
+};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
-use tokio::{
-    fs::{self, File},
-    io::AsyncWriteExt,
-};
 
 use crate::{AppState, View};
 
@@ -79,59 +81,41 @@ impl MinecraftVersionMeta {
             .with_extension("jar")
     }
 
-    pub async fn download_client(&self, event_sink: &druid::ExtEventSink) -> Result<()> {
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_view = View::Progress;
-            data.current_message = "Downloading client...".to_string();
-            data.current_progress = 0.;
-        });
-
+    fn check_client_hash(&self) -> Result<bool> {
         let path = self.get_client_path();
-        let mut downloaded_bytes = 0;
-        let total_bytes = self.downloads.client.size as f64;
-
-        if path.exists() {
-            let mut file = std::fs::File::open(&path)?;
-            let mut hasher = Sha1::new();
-
-            std::io::copy(&mut file, &mut hasher)?;
-
-            let hash = hasher.finalize();
-            let hex_hash = base16ct::lower::encode_string(&hash);
-
-            if hex_hash != self.downloads.client.sha1 {
-                fs::remove_file(&path).await?;
-            } else {
-                downloaded_bytes += self.downloads.client.size;
-                event_sink.add_idle_callback(move |data: &mut AppState| {
-                    data.current_progress = downloaded_bytes as f64 / total_bytes;
-                });
-                return Ok(());
-            }
-        }
-
-        fs::create_dir_all(path.parent().unwrap()).await?;
-        let url = &self.downloads.client.url;
-        let mut stream = HTTP_CLIENT.get(url).send().await?.bytes_stream();
-        let mut file = File::create(&path).await?;
+        let file = File::open(&path)?;
+        let mut reader = BufReader::new(file);
         let mut hasher = Sha1::new();
-
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk?;
-            file.write_all(&chunk).await?;
-            hasher.update(&chunk);
-            downloaded_bytes += chunk.len();
-
-            event_sink.add_idle_callback(move |data: &mut AppState| {
-                data.current_progress = downloaded_bytes as f64 / total_bytes;
-            });
-        }
+        io::copy(&mut reader, &mut hasher)?;
 
         let hash = hasher.finalize();
         let hex_hash = base16ct::lower::encode_string(&hash);
 
-        if hex_hash != self.downloads.client.sha1 {
-            fs::remove_file(&path).await?;
+        Ok(hex_hash == self.downloads.client.sha1)
+    }
+
+    pub fn download_client(&self, event_sink: &druid::ExtEventSink) -> Result<()> {
+        let path = self.get_client_path();
+        let url = &self.downloads.client.url;
+
+        event_sink.add_idle_callback(move |data: &mut AppState| {
+            data.current_view = View::Loading;
+            data.current_message = "Downloading client...".to_string();
+        });
+
+        if path.exists() && !self.check_client_hash()? {
+            fs::remove_file(&path)?;
+        }
+
+        if !path.exists() {
+            fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
+            let mut response = HTTP_CLIENT.get(url).send()?;
+            let file = File::create(&path)?;
+            let mut writer = BufWriter::new(file);
+            io::copy(&mut response, &mut writer)?;
+        }
+
+        if !self.check_client_hash()? {
             bail!("Hash mismatch");
         }
 
@@ -158,14 +142,15 @@ impl MinecraftVersionMeta {
     }
 }
 
-pub async fn get(version_id: &str) -> Result<MinecraftVersionMeta> {
-    let meta_path = META_DIR
+pub fn get(version_id: &str) -> Result<MinecraftVersionMeta> {
+    let path = META_DIR
         .join("net.minecraft")
         .join(version_id)
         .with_extension("json");
 
-    let meta = fs::read_to_string(meta_path).await?;
-    let meta: MinecraftVersionMeta = serde_json::from_str(&meta)?;
+    let file = File::open(&path)?;
+    let mut reader = BufReader::new(file);
+    let meta = serde_json::from_reader(&mut reader)?;
 
     Ok(meta)
 }

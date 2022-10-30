@@ -1,10 +1,13 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::io::{BufRead, BufReader, Write};
+use std::net::TcpListener;
+
 use color_eyre::eyre::{bail, Result};
 use druid::Data;
 use oauth2::basic::BasicClient;
-use oauth2::reqwest::async_http_client;
+use oauth2::reqwest::http_client;
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, CsrfToken, PkceCodeChallenge, PkceCodeVerifier,
     RedirectUrl, RefreshToken, Scope, TokenResponse, TokenUrl,
@@ -12,8 +15,6 @@ use oauth2::{
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::net::TcpListener;
 use url::Url;
 
 use super::HTTP_CLIENT;
@@ -52,10 +53,7 @@ pub fn get_auth_url() -> (Url, CsrfToken, PkceCodeVerifier) {
     (auth_url, csfr_token, pkce_verifier)
 }
 
-async fn get_minecraft_account_data(
-    access_token: String,
-    refresh_token: String,
-) -> Result<Account> {
+fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Result<Account> {
     // Authenticate with Xbox Live
 
     #[derive(Deserialize)]
@@ -90,10 +88,8 @@ async fn get_minecraft_account_data(
         .post(XBOXLIVE_AUTH_ENDPOINT)
         .header("Accept", "application/json")
         .json(&params)
-        .send()
-        .await?
-        .json::<XBLResponse>()
-        .await?;
+        .send()?
+        .json::<XBLResponse>()?;
 
     // Authenticate with XSTS
 
@@ -116,10 +112,8 @@ async fn get_minecraft_account_data(
         .post(XSTS_AUTHORIZATION_ENDPOINT)
         .header("Accept", "application/json")
         .json(&params)
-        .send()
-        .await?
-        .json::<XSTSResponse>()
-        .await?;
+        .send()?
+        .json::<XSTSResponse>()?;
 
     // Authenticate with Minecraft
 
@@ -140,10 +134,8 @@ async fn get_minecraft_account_data(
         .post(MINECRAFT_AUTH_ENDPOINT)
         .header("Accept", "application/json")
         .json(&params)
-        .send()
-        .await?
-        .json::<MinecraftResponse>()
-        .await?;
+        .send()?
+        .json::<MinecraftResponse>()?;
 
     // Get Minecraft profile
 
@@ -156,10 +148,8 @@ async fn get_minecraft_account_data(
     let minecraft_profile = HTTP_CLIENT
         .get(MINECRAFT_PROFILE_ENDPOINT)
         .bearer_auth(&minecraft_response.access_token)
-        .send()
-        .await?
-        .json::<MinecraftProfile>()
-        .await?;
+        .send()?
+        .json::<MinecraftProfile>()?;
 
     let account = Account {
         ms_refresh_token: refresh_token,
@@ -181,51 +171,49 @@ pub struct Account {
     pub is_active: bool,
 }
 
-async fn login(code: AuthorizationCode, pkce_verifier: PkceCodeVerifier) -> Result<Account> {
+fn login(code: AuthorizationCode, pkce_verifier: PkceCodeVerifier) -> Result<Account> {
     let token_result = OAUTH2_CLIENT
         .exchange_code(code)
         .set_pkce_verifier(pkce_verifier)
-        .request_async(async_http_client)
-        .await?;
+        .request(http_client)?;
 
     let access_token = token_result.access_token().secret().clone();
     let refresh_token = token_result.refresh_token().unwrap().secret().clone();
 
-    let entry = get_minecraft_account_data(access_token, refresh_token).await?;
+    let entry = get_minecraft_account_data(access_token, refresh_token)?;
 
     Ok(entry)
 }
 
-pub async fn refresh(account: Account) -> Result<Account> {
+pub fn refresh(account: Account) -> Result<Account> {
     let refresh_token = RefreshToken::new(account.ms_refresh_token.clone());
 
     let token_result = OAUTH2_CLIENT
         .exchange_refresh_token(&refresh_token)
-        .request_async(async_http_client)
-        .await?;
+        .request(http_client)?;
 
     let access_token = token_result.access_token().secret().clone();
     let refresh_token = token_result.refresh_token().unwrap().secret().clone();
 
-    let entry = get_minecraft_account_data(access_token, refresh_token).await?;
+    let entry = get_minecraft_account_data(access_token, refresh_token)?;
 
     Ok(entry)
 }
 
-pub async fn listen_login_callback(
+pub fn listen_login_callback(
     csrf_token: CsrfToken,
     pkce_verifier: PkceCodeVerifier,
 ) -> Result<Account> {
-    let listener = TcpListener::bind("127.0.0.1:3003").await?;
+    let listener = TcpListener::bind("127.0.0.1:3003")?;
     loop {
-        if let Ok((mut stream, _)) = listener.accept().await {
+        if let Ok((mut stream, _)) = listener.accept() {
             let code;
             let state;
             {
                 let mut reader = BufReader::new(&mut stream);
 
                 let mut request_line = String::new();
-                reader.read_line(&mut request_line).await?;
+                reader.read_line(&mut request_line)?;
 
                 let redirect_url = request_line.split_whitespace().nth(1).unwrap();
                 let url = Url::parse(&("http://localhost".to_string() + redirect_url))?;
@@ -260,7 +248,7 @@ pub async fn listen_login_callback(
                     message.len(),
                     message
                 );
-                stream.write_all(response.as_bytes()).await?;
+                stream.write_all(response.as_bytes())?;
 
                 bail!("Invalid CSRF token");
             }
@@ -271,9 +259,9 @@ pub async fn listen_login_callback(
                 message.len(),
                 message
             );
-            stream.write_all(response.as_bytes()).await?;
+            stream.write_all(response.as_bytes())?;
 
-            return login(code, pkce_verifier).await;
+            return login(code, pkce_verifier);
         }
     }
 }

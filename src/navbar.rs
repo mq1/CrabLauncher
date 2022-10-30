@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::thread;
+
 use druid::{
     widget::{Button, Flex},
     Color, Widget, WidgetExt,
@@ -17,7 +19,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_child(Button::<AppState>::new("News").on_click(|ctx, data, _| {
             if data.news.article_count == 0 {
                 let event_sink = ctx.get_external_handle();
-                tokio::spawn(lib::minecraft_news::update_news(event_sink));
+                thread::spawn(move || lib::minecraft_news::update_news(event_sink));
             } else {
                 data.current_view = View::News;
             }
