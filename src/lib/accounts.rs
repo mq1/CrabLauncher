@@ -86,7 +86,7 @@ pub fn add(event_sink: druid::ExtEventSink) -> Result<()> {
 
     let mut document = read()?;
     let account = msa::listen_login_callback(csrf_token, pkce_verifier)?;
-    document.accounts.push_back(account);
+    document.accounts.push_back(account.unwrap());
     write(&document)?;
 
     event_sink.add_idle_callback(move |data: &mut AppState| {

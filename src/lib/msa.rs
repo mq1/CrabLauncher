@@ -7,7 +7,7 @@ use std::net::TcpListener;
 use color_eyre::eyre::{bail, Result};
 use druid::Data;
 use oauth2::basic::BasicClient;
-use oauth2::reqwest::http_client;
+use oauth2::ureq::http_client;
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, CsrfToken, PkceCodeChallenge, PkceCodeVerifier,
     RedirectUrl, RefreshToken, Scope, TokenResponse, TokenUrl,
@@ -86,10 +86,9 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
 
     let xbl_response = HTTP_CLIENT
         .post(XBOXLIVE_AUTH_ENDPOINT)
-        .header("Accept", "application/json")
-        .json(&params)
-        .send()?
-        .json::<XBLResponse>()?;
+        .set("Accept", "application/json")
+        .send_json(&params)?
+        .into_json::<XBLResponse>()?;
 
     // Authenticate with XSTS
 
@@ -110,10 +109,9 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
 
     let xsts_response = HTTP_CLIENT
         .post(XSTS_AUTHORIZATION_ENDPOINT)
-        .header("Accept", "application/json")
-        .json(&params)
-        .send()?
-        .json::<XSTSResponse>()?;
+        .set("Accept", "application/json")
+        .send_json(&params)?
+        .into_json::<XSTSResponse>()?;
 
     // Authenticate with Minecraft
 
@@ -132,10 +130,9 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
 
     let minecraft_response = HTTP_CLIENT
         .post(MINECRAFT_AUTH_ENDPOINT)
-        .header("Accept", "application/json")
-        .json(&params)
-        .send()?
-        .json::<MinecraftResponse>()?;
+        .set("Accept", "application/json")
+        .send_json(&params)?
+        .into_json::<MinecraftResponse>()?;
 
     // Get Minecraft profile
 
@@ -147,9 +144,12 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
 
     let minecraft_profile = HTTP_CLIENT
         .get(MINECRAFT_PROFILE_ENDPOINT)
-        .bearer_auth(&minecraft_response.access_token)
-        .send()?
-        .json::<MinecraftProfile>()?;
+        .set(
+            "Authorization",
+            &format!("Bearer {}", minecraft_response.access_token),
+        )
+        .call()?
+        .into_json::<MinecraftProfile>()?;
 
     let account = Account {
         ms_refresh_token: refresh_token,
@@ -203,14 +203,14 @@ pub fn refresh(account: Account) -> Result<Account> {
 pub fn listen_login_callback(
     csrf_token: CsrfToken,
     pkce_verifier: PkceCodeVerifier,
-) -> Result<Account> {
+) -> Result<Option<Account>> {
     let listener = TcpListener::bind("127.0.0.1:3003")?;
-    loop {
-        if let Ok((mut stream, _)) = listener.accept() {
+    for stream in listener.incoming() {
+        if let Ok(mut stream) = stream {
             let code;
             let state;
             {
-                let mut reader = BufReader::new(&mut stream);
+                let mut reader = BufReader::new(&stream);
 
                 let mut request_line = String::new();
                 reader.read_line(&mut request_line)?;
@@ -253,7 +253,7 @@ pub fn listen_login_callback(
                 bail!("Invalid CSRF token");
             }
 
-            let message = "You can close this tab now.";
+            let message = "You can close this tab now";
             let response = format!(
                 "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
                 message.len(),
@@ -261,7 +261,10 @@ pub fn listen_login_callback(
             );
             stream.write_all(response.as_bytes())?;
 
-            return login(code, pkce_verifier);
+            let account = login(code, pkce_verifier)?;
+            return Ok(Some(account));
         }
     }
+
+    Ok(None)
 }

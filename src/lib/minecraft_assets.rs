@@ -45,13 +45,13 @@ impl AssetIndexInfo {
 
     fn download(&self) -> Result<()> {
         let path = self.get_path();
-        let url = self.url.to_owned();
+        let url = &self.url.to_string();
 
         fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
-        let mut resp = HTTP_CLIENT.get(url).send()?;
+        let resp = HTTP_CLIENT.get(url).call()?;
         let file = File::create(&path)?;
         let mut writer = BufWriter::new(file);
-        io::copy(&mut resp, &mut writer)?;
+        io::copy(&mut resp.into_reader(), &mut writer)?;
 
         Ok(())
     }
@@ -71,7 +71,6 @@ impl AssetIndexInfo {
 
     pub fn get(&self, event_sink: &druid::ExtEventSink) -> Result<AssetIndex> {
         let path = self.get_path();
-        let url = self.url.clone();
 
         event_sink.add_idle_callback(move |data: &mut AppState| {
             data.current_view = View::Loading;
@@ -101,7 +100,6 @@ impl AssetIndexInfo {
 #[derive(Deserialize)]
 struct Object {
     pub hash: String,
-    pub size: usize,
 }
 
 impl Object {
@@ -115,13 +113,13 @@ impl Object {
 
     pub fn download(&self) -> Result<()> {
         let path = self.get_path();
-        let url = self.get_url()?;
+        let url = &self.get_url()?.to_string();
 
         fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
-        let mut resp = HTTP_CLIENT.get(url).send()?;
+        let resp = HTTP_CLIENT.get(url).call()?;
         let file = File::create(&path)?;
         let mut writer = BufWriter::new(file);
-        io::copy(&mut resp, &mut writer)?;
+        io::copy(&mut resp.into_reader(), &mut writer)?;
 
         Ok(())
     }
