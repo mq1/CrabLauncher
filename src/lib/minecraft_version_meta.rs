@@ -14,6 +14,7 @@ use color_eyre::{
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
+use url::Url;
 
 use crate::{AppState, View};
 
@@ -49,7 +50,7 @@ pub struct Arguments {
 pub struct Download {
     pub sha1: String,
     pub size: usize,
-    pub url: String,
+    pub url: Url,
 }
 
 #[derive(Deserialize)]
@@ -109,10 +110,10 @@ impl MinecraftVersionMeta {
 
         if !path.exists() {
             fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
-            let response = HTTP_CLIENT.get(url).call()?;
+            let mut response = HTTP_CLIENT.get(url).send()?;
             let file = File::create(&path)?;
             let mut writer = BufWriter::new(file);
-            io::copy(&mut response.into_reader(), &mut writer)?;
+            io::copy(&mut response, &mut writer)?;
         }
 
         if !self.check_client_hash()? {
