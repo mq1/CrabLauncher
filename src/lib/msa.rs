@@ -107,9 +107,10 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
     println!("Authenticating with Xbox Live...");
     let xbl_response = HTTP_CLIENT
         .post(XBOXLIVE_AUTH_ENDPOINT)
-        .set("Accept", "application/json")
-        .send_json(&params)?
-        .into_json::<XBLResponse>()?;
+        .header("Accept", "application/json")
+        .json(&params)?
+        .send()?
+        .json::<XBLResponse>()?;
     println!("Authenticated with Xbox Live!");
 
     // Authenticate with XSTS
@@ -132,9 +133,10 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
     println!("Authenticating with XSTS...");
     let xsts_response = HTTP_CLIENT
         .post(XSTS_AUTHORIZATION_ENDPOINT)
-        .set("Accept", "application/json")
-        .send_json(&params)?
-        .into_json::<XSTSResponse>()?;
+        .header("Accept", "application/json")
+        .json(&params)?
+        .send()?
+        .json::<XSTSResponse>()?;
     println!("Authenticated with XSTS!");
 
     // Authenticate with Minecraft
@@ -155,9 +157,10 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
     println!("Authenticating with Minecraft...");
     let minecraft_response = HTTP_CLIENT
         .post(MINECRAFT_AUTH_ENDPOINT)
-        .set("Accept", "application/json")
-        .send_json(&params)?
-        .into_json::<MinecraftResponse>()?;
+        .header("Accept", "application/json")
+        .json(&params)?
+        .send()?
+        .json::<MinecraftResponse>()?;
     println!("Authenticated with Minecraft!");
 
     // Get Minecraft profile
@@ -170,12 +173,12 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
 
     let minecraft_profile = HTTP_CLIENT
         .get(MINECRAFT_PROFILE_ENDPOINT)
-        .set(
+        .header(
             "Authorization",
             &format!("Bearer {}", minecraft_response.access_token),
         )
-        .call()?
-        .into_json::<MinecraftProfile>()?;
+        .send()?
+        .json::<MinecraftProfile>()?;
 
     let account = Account {
         ms_refresh_token: refresh_token,
@@ -217,9 +220,10 @@ fn login(code: String, pkce_verifier: String) -> Result<Account> {
 
     let resp = HTTP_CLIENT
         .post(MSA_TOKEN_ENDPOINT)
-        .set("Accept", "application/json")
-        .send_form(&params)?
-        .into_json::<OAuth2Token>()?;
+        .header("Accept", "application/json")
+        .form(&params)?
+        .send()?
+        .json::<OAuth2Token>()?;
 
     println!("Exchanged code for access token!");
 
@@ -238,9 +242,10 @@ pub fn refresh(account: Account) -> Result<Account> {
 
     let resp = HTTP_CLIENT
         .post(MSA_TOKEN_ENDPOINT)
-        .set("Accept", "application/json")
-        .send_form(&params)?
-        .into_json::<OAuth2Token>()?;
+        .header("Accept", "application/json")
+        .form(&params)?
+        .send()?
+        .json::<OAuth2Token>()?;
 
     let entry = get_minecraft_account_data(resp.access_token, resp.refresh_token)?;
 
