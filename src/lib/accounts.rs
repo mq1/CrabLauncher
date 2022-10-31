@@ -58,7 +58,7 @@ pub fn get_active() -> Result<Option<msa::Account>> {
     Ok(None)
 }
 
-pub async fn set_active(account: msa::Account, event_sink: druid::ExtEventSink) -> Result<()> {
+pub fn set_active(account: msa::Account, event_sink: druid::ExtEventSink) -> Result<()> {
     let mut document = read()?;
 
     for a in document.accounts.iter_mut() {

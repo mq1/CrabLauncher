@@ -125,27 +125,27 @@ pub enum VersionType {
     Snapshot,
 }
 
-async fn fetch_manifest() -> Result<MinecraftVersionManifest> {
+fn fetch_manifest() -> Result<MinecraftVersionManifest> {
     let manifest = HTTP_CLIENT.get(VERSION_MANIFEST_URL).call()?.into_json()?;
 
     Ok(manifest)
 }
 
-async fn fetch_versions() -> Result<Vector<Version>> {
-    let manifest = fetch_manifest().await?;
+fn fetch_versions() -> Result<Vector<Version>> {
+    let manifest = fetch_manifest()?;
     let versions = manifest.versions;
 
     Ok(versions)
 }
 
-pub async fn update_available_versions(event_sink: druid::ExtEventSink) -> Result<()> {
+pub fn update_available_versions(event_sink: druid::ExtEventSink) -> Result<()> {
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.new_instance_state.available_minecraft_versions = Vector::new();
         data.current_message = "Fetching available Minecraft versions...".to_string();
         data.current_view = View::Loading;
     });
 
-    let available_versions = fetch_versions().await?;
+    let available_versions = fetch_versions()?;
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.new_instance_state.available_minecraft_versions = available_versions;
