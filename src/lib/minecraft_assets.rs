@@ -45,7 +45,7 @@ impl AssetIndexInfo {
 
     fn download(&self) -> Result<()> {
         let path = self.get_path();
-        let url = &self.url.to_string();
+        let url = &self.url;
 
         fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
         let mut resp = HTTP_CLIENT.get(url).send()?;
@@ -113,7 +113,7 @@ impl Object {
 
     pub fn download(&self) -> Result<()> {
         let path = self.get_path();
-        let url = &self.get_url()?.to_string();
+        let url = self.get_url()?;
 
         fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
         let mut resp = HTTP_CLIENT.get(url).send()?;

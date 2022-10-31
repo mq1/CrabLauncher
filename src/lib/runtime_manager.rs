@@ -57,7 +57,7 @@ pub struct Assets {
 }
 
 pub fn get_assets_info(java_version: &str) -> Result<Assets> {
-    let url = &format!("{ADOPTIUM_API_ENDPOINT}/v3/assets/latest/{java_version}/hotspot?architecture={ARCH_STRING}&image_type=jre&os={OS_STRING}&vendor=eclipse");
+    let url = format!("{ADOPTIUM_API_ENDPOINT}/v3/assets/latest/{java_version}/hotspot?architecture={ARCH_STRING}&image_type=jre&os={OS_STRING}&vendor=eclipse");
 
     let mut response = HTTP_CLIENT.get(url).send()?.json::<Vec<Assets>>()?;
 
@@ -99,7 +99,7 @@ fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()> {
     let version_dir = RUNTIMES_DIR.join(assets.version.major.to_string());
     fs::create_dir_all(&version_dir)?;
 
-    let url = &assets.binary.package.link.clone().to_string();
+    let url = &assets.binary.package.link;
     let mut resp = HTTP_CLIENT.get(url).send()?;
     let tmpfile = tempfile()?;
 

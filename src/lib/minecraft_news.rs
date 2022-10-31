@@ -104,7 +104,7 @@ pub enum TileSize {
 fn fetch(page_size: Option<i32>) -> Result<News> {
     let page_size = page_size.unwrap_or(20);
     let url = Url::parse_with_params(MINECRAFT_NEWS_URL, &[("pageSize", page_size.to_string())])?;
-    let resp = HTTP_CLIENT.get(&url.to_string()).send()?.json()?;
+    let resp = HTTP_CLIENT.get(url).send()?.json()?;
 
     Ok(resp)
 }

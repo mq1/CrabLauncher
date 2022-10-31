@@ -14,6 +14,7 @@ use color_eyre::{
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
+use url::Url;
 
 use crate::{AppState, View};
 
@@ -49,7 +50,7 @@ pub struct Arguments {
 pub struct Download {
     pub sha1: String,
     pub size: usize,
-    pub url: String,
+    pub url: Url,
 }
 
 #[derive(Deserialize)]
