@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::thread;
+
 use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
     Color, Widget, WidgetExt,
@@ -52,8 +54,9 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_default_spacer()
                         .with_child(Button::<Instance>::new("Launch 🚀").on_click(
                             |ctx, instance, _| {
+                                let instance = instance.to_owned();
                                 let event_sink = ctx.get_external_handle();
-                                tokio::spawn(lib::instances::launch(instance.clone(), event_sink));
+                                thread::spawn(move || lib::instances::launch(instance, event_sink));
                             },
                         ))
                         .padding(5.)

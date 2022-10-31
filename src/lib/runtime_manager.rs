@@ -2,20 +2,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use std::{
-    fs::File,
-    io::{Seek, SeekFrom, Write},
+    fs::{self, File},
+    io::{self, BufReader, BufWriter},
     path::{Path, PathBuf},
 };
 
 use color_eyre::eyre::{bail, Result};
 use flate2::read::GzDecoder;
-use futures_util::StreamExt;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use tar::Archive;
 use tempfile::tempfile;
-use tokio::fs;
 use url::Url;
 use zip::ZipArchive;
 
@@ -39,7 +37,6 @@ const OS_STRING: &str = "mac";
 struct Package {
     checksum: String,
     link: Url,
-    size: usize,
 }
 
 #[derive(Deserialize, Debug)]
@@ -59,40 +56,33 @@ pub struct Assets {
     version: Version,
 }
 
-pub async fn get_assets_info(java_version: &str) -> Result<Assets> {
-    let url = format!("{ADOPTIUM_API_ENDPOINT}/v3/assets/latest/{java_version}/hotspot?architecture={ARCH_STRING}&image_type=jre&os={OS_STRING}&vendor=eclipse");
+pub fn get_assets_info(java_version: &str) -> Result<Assets> {
+    let url = &format!("{ADOPTIUM_API_ENDPOINT}/v3/assets/latest/{java_version}/hotspot?architecture={ARCH_STRING}&image_type=jre&os={OS_STRING}&vendor=eclipse");
 
-    let mut response = HTTP_CLIENT
-        .get(url)
-        .send()
-        .await?
-        .json::<Vec<Assets>>()
-        .await?;
+    let mut response = HTTP_CLIENT.get(url).call()?.into_json::<Vec<Assets>>()?;
 
     let assets = response.pop().unwrap();
 
     Ok(assets)
 }
 
-pub async fn is_updated(assets: &Assets) -> Result<bool> {
+pub fn is_updated(assets: &Assets) -> Result<bool> {
     let dir = format!("{}-jre", assets.release_name);
     let runtime_path = RUNTIMES_DIR
         .join(assets.version.major.to_string())
         .join(dir);
 
-    if !runtime_path.exists() {
-        return Ok(false);
-    }
-
-    Ok(true)
+    Ok(runtime_path.exists())
 }
 
 fn extract_archive(file: &File, destination_path: &Path) -> Result<()> {
+    let reader = BufReader::new(file);
+
     if cfg!(target_os = "windows") {
-        let mut archive = ZipArchive::new(file)?;
+        let mut archive = ZipArchive::new(reader)?;
         archive.extract(destination_path)?;
     } else {
-        let tar = GzDecoder::new(file);
+        let tar = GzDecoder::new(reader);
         let mut archive = Archive::new(tar);
         archive.unpack(destination_path)?;
     }
@@ -100,47 +90,35 @@ fn extract_archive(file: &File, destination_path: &Path) -> Result<()> {
     Ok(())
 }
 
-async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()> {
+fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()> {
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.current_message = "Downloading runtime...".to_string();
-        data.current_progress = 0.;
-        data.current_view = View::Progress;
+        data.current_view = View::Loading;
     });
 
     let version_dir = RUNTIMES_DIR.join(assets.version.major.to_string());
-    fs::create_dir_all(&version_dir).await?;
+    fs::create_dir_all(&version_dir)?;
 
-    let mut stream = HTTP_CLIENT
-        .get(assets.binary.package.link.to_owned())
-        .send()
-        .await?
-        .bytes_stream();
+    let url = &assets.binary.package.link.clone().to_string();
+    let resp = HTTP_CLIENT.get(url).call()?;
+    let tmpfile = tempfile()?;
 
-    let mut tmpfile = tempfile()?;
-    let mut hasher = Sha256::new();
-    let mut downloaded_bytes = 0;
-    let package_size = assets.binary.package.size as f64;
-
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk?;
-        tmpfile.write_all(&chunk)?;
-        hasher.update(&chunk);
-        downloaded_bytes += chunk.len();
-
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_progress = downloaded_bytes as f64 / package_size;
-        });
+    {
+        let mut writer = BufWriter::new(&tmpfile);
+        io::copy(&mut resp.into_reader(), &mut writer)?;
     }
 
-    let hash = hasher.finalize();
-    let hex_hash = base16ct::lower::encode_string(&hash);
+    {
+        let mut reader = BufReader::new(&tmpfile);
+        let mut hasher = Sha256::new();
+        io::copy(&mut reader, &mut hasher)?;
 
-    if hex_hash != assets.binary.package.checksum {
-        bail!(
-            "Checksum mismatch: expected {}, got {}",
-            assets.binary.package.checksum,
-            hex_hash
-        );
+        let hash = hasher.finalize();
+        let hex_hash = base16ct::lower::encode_string(&hash);
+
+        if hex_hash != assets.binary.package.checksum {
+            bail!("Hash mismatch");
+        }
     }
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
@@ -148,24 +126,21 @@ async fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()
         data.current_view = View::Loading;
     });
 
-    tmpfile.seek(SeekFrom::Start(0))?;
-    extract_archive(&tmpfile, &version_dir)?;
-
-    Ok(())
+    extract_archive(&tmpfile, &version_dir)
 }
 
-pub async fn update(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()> {
+pub fn update(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()> {
     let runtime_dir = RUNTIMES_DIR.join(assets.version.major.to_string());
     if runtime_dir.exists() {
-        fs::remove_dir_all(runtime_dir).await?;
+        fs::remove_dir_all(runtime_dir)?;
     }
 
-    install(assets, event_sink).await
+    install(assets, event_sink)
 }
 
-pub async fn get_java_path(java_version: &str) -> Result<PathBuf> {
-    let mut entries = fs::read_dir(RUNTIMES_DIR.join(java_version)).await?;
-    let runtime_dir = entries.next_entry().await?.unwrap().path();
+pub fn get_java_path(java_version: &str) -> Result<PathBuf> {
+    let mut entries = fs::read_dir(RUNTIMES_DIR.join(java_version))?;
+    let runtime_dir = entries.next().unwrap()?.path();
 
     let runtime_path = if cfg!(target_os = "windows") {
         runtime_dir.join("bin").join("java.exe")

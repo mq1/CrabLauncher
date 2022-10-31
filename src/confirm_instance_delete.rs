@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::thread;
+
 use druid::{
     widget::{Button, Flex, Label},
     UnitPoint, Widget, WidgetExt,
@@ -29,8 +31,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                             |ctx, data, _| {
                                 let event_sink = ctx.get_external_handle();
                                 let instance = data.selected_instance.as_ref().unwrap().to_owned();
-                                tokio::spawn(lib::instances::remove(instance, event_sink));
-                                data.current_view = View::Instances;
+                                thread::spawn(move || lib::instances::remove(instance, event_sink));
                             },
                         )),
                 )
