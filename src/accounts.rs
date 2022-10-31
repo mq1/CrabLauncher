@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::thread;
+
 use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
     Color, Widget, WidgetExt,
@@ -44,11 +46,9 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .with_default_spacer()
                         .with_child(Button::<Account>::new("Select ✅").on_click(
                             |ctx, account, _| {
+                                let account = account.to_owned();
                                 let event_sink = ctx.get_external_handle();
-                                tokio::spawn(lib::accounts::set_active(
-                                    account.clone(),
-                                    event_sink,
-                                ));
+                                lib::accounts::set_active(account, event_sink).unwrap();
                             },
                         ))
                         .padding(5.)
@@ -64,7 +64,7 @@ pub fn build_widget() -> impl Widget<AppState> {
         .with_child(
             Button::<AppState>::new("New Account 🎉").on_click(|ctx, _, _| {
                 let event_sink = ctx.get_external_handle();
-                tokio::spawn(lib::accounts::add(event_sink));
+                thread::spawn(move || lib::accounts::add(event_sink));
             }),
         )
         .with_flex_spacer(1.)
