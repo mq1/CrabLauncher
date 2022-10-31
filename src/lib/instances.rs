@@ -81,7 +81,7 @@ pub fn list() -> Result<Vector<Instance>> {
     Ok(instances)
 }
 
-pub async fn new(
+pub fn new(
     instance_name: String,
     minecraft_version: Version,
     event_sink: druid::ExtEventSink,

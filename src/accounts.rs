@@ -48,9 +48,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                             |ctx, account, _| {
                                 let account = account.to_owned();
                                 let event_sink = ctx.get_external_handle();
-                                thread::spawn(move || {
-                                    lib::accounts::set_active(account, event_sink)
-                                });
+                                lib::accounts::set_active(account, event_sink).unwrap();
                             },
                         ))
                         .padding(5.)
