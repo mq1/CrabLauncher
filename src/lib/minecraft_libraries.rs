@@ -14,6 +14,7 @@ use color_eyre::{
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
+use url::Url;
 
 use crate::{AppState, View};
 
@@ -41,7 +42,7 @@ pub struct Artifact {
     pub path: String,
     pub sha1: String,
     pub size: usize,
-    pub url: String,
+    pub url: Url,
 }
 
 impl Artifact {
@@ -101,10 +102,10 @@ impl Library {
         let url = &self.downloads.artifact.url;
 
         fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
-        let resp = HTTP_CLIENT.get(url).call()?;
+        let mut resp = HTTP_CLIENT.get(url).send()?;
         let file = File::create(&path)?;
         let mut writer = BufWriter::new(file);
-        io::copy(&mut resp.into_reader(), &mut writer)?;
+        io::copy(&mut resp, &mut writer)?;
 
         Ok(())
     }

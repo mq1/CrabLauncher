@@ -45,13 +45,13 @@ impl AssetIndexInfo {
 
     fn download(&self) -> Result<()> {
         let path = self.get_path();
-        let url = &self.url.to_string();
+        let url = &self.url;
 
         fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
-        let resp = HTTP_CLIENT.get(url).call()?;
+        let mut resp = HTTP_CLIENT.get(url).send()?;
         let file = File::create(&path)?;
         let mut writer = BufWriter::new(file);
-        io::copy(&mut resp.into_reader(), &mut writer)?;
+        io::copy(&mut resp, &mut writer)?;
 
         Ok(())
     }
@@ -113,13 +113,13 @@ impl Object {
 
     pub fn download(&self) -> Result<()> {
         let path = self.get_path();
-        let url = &self.get_url()?.to_string();
+        let url = self.get_url()?;
 
         fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
-        let resp = HTTP_CLIENT.get(url).call()?;
+        let mut resp = HTTP_CLIENT.get(url).send()?;
         let file = File::create(&path)?;
         let mut writer = BufWriter::new(file);
-        io::copy(&mut resp.into_reader(), &mut writer)?;
+        io::copy(&mut resp, &mut writer)?;
 
         Ok(())
     }
