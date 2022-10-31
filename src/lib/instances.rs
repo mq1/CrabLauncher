@@ -211,13 +211,14 @@ pub fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()>
         instance.info.instance_type.to_string(),
     ];
 
-    Command::new(java_path)
+    let mut child = Command::new(java_path)
         .current_dir(instance.get_path())
         .args(jvm_args)
         .arg(version.main_class)
         .args(game_args)
-        .spawn()
-        .expect("failed to spawn command");
+        .spawn()?;
+
+    child.wait()?;
 
     event_sink.add_idle_callback(move |data: &mut AppState| {
         data.current_view = View::Instances;
