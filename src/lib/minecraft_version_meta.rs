@@ -109,10 +109,10 @@ impl MinecraftVersionMeta {
 
         if !path.exists() {
             fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
-            let response = HTTP_CLIENT.get(url).call()?;
+            let mut response = HTTP_CLIENT.get(url).send()?;
             let file = File::create(&path)?;
             let mut writer = BufWriter::new(file);
-            io::copy(&mut response.into_reader(), &mut writer)?;
+            io::copy(&mut response, &mut writer)?;
         }
 
         if !self.check_client_hash()? {

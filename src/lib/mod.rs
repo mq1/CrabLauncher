@@ -3,9 +3,9 @@
 
 use std::path::PathBuf;
 
+use attohttpc::Session;
 use directories::ProjectDirs;
 use once_cell::sync::Lazy;
-use ureq::Agent;
 
 pub mod accounts;
 pub mod instances;
@@ -27,10 +27,12 @@ pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
         .to_path_buf()
 });
 
-pub static HTTP_CLIENT: Lazy<Agent> = Lazy::new(|| {
-    let user_agent = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+pub static HTTP_CLIENT: Lazy<Session> = Lazy::new(|| {
+    let mut sess = Session::new();
+    sess.header(
+        "User-Agent",
+        concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION")),
+    );
 
-    ureq::AgentBuilder::new()
-        .user_agent(user_agent)
-        .build()
+    sess
 });
