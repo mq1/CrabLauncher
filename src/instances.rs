@@ -21,6 +21,7 @@ fn get_instance_icon(instance_type: &InstanceType) -> String {
         InstanceType::Vanilla => "🍦".to_string(),
         InstanceType::Fabric => "🧵".to_string(),
         InstanceType::Forge => "🔥".to_string(),
+        InstanceType::ModrinthModpack => "📦".to_string(),
     }
 }
 

@@ -14,6 +14,8 @@ mod instance_version_selection;
 mod instances;
 mod lib;
 mod loading;
+mod modrinth_modpack;
+mod modrinth_modpack_selection;
 mod navbar;
 mod news;
 mod progress;
@@ -41,6 +43,8 @@ enum View {
     News,
     Settings,
     About,
+    ModrinthModpackSelection,
+    ModrinthModpack,
 }
 
 #[derive(Data, Clone, Lens, Default)]
@@ -65,6 +69,8 @@ pub struct AppState {
     active_account: Option<lib::msa::Account>,
     selected_account: Option<lib::msa::Account>,
     news: lib::minecraft_news::News,
+    modrinth_hits: lib::modrinth::Hits,
+    selected_modrinth_hit: Option<lib::modrinth::Hit>,
 }
 
 struct Delegate;

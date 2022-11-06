@@ -3,28 +3,28 @@
 
 use druid::{
     widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
-    Color, LensExt, Widget, WidgetExt,
+    Color, Widget, WidgetExt,
 };
 
-use crate::{lib::minecraft_version_manifest::Version, AppState, NewInstanceState, View};
+use crate::{lib::modrinth::Hit, AppState, View};
 
 pub fn build_widget() -> impl Widget<AppState> {
     Flex::column()
         .cross_axis_alignment(CrossAxisAlignment::Start)
-        .with_child(Label::new("📦 Select the version").with_text_size(32.))
+        .with_child(Label::new("📦 Modpack selection").with_text_size(32.))
         .with_default_spacer()
         .with_flex_child(
             Scroll::new(
                 List::new(|| {
                     Flex::row()
-                        .with_child(Label::<Version>::dynamic(|data, _| data.id.to_owned()))
+                        .with_child(Label::<Hit>::dynamic(|data, _| data.title.to_owned()))
                         .with_flex_spacer(1.)
-                        .with_child(Button::<Version>::new("Select").on_click(|ctx, data, _| {
-                            let version = data.clone();
+                        .with_child(Button::<Hit>::new("Select").on_click(|ctx, data, _| {
+                            let hit = data.clone();
                             let event_sink = ctx.get_external_handle();
                             event_sink.add_idle_callback(move |data: &mut AppState| {
-                                data.new_instance_state.selected_version = Some(version);
-                                data.current_view = View::InstanceNameSelection;
+                                data.selected_modrinth_hit = Some(hit);
+                                data.current_view = View::ModrinthModpack;
                             });
                         }))
                         .padding(5.)
@@ -32,10 +32,7 @@ pub fn build_widget() -> impl Widget<AppState> {
                         .rounded(5.)
                 })
                 .with_spacing(10.)
-                .lens(
-                    AppState::new_instance_state
-                        .then(NewInstanceState::available_minecraft_versions),
-                ),
+                .lens(AppState::modrinth_hits),
             )
             .vertical(),
             1.,
