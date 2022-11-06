@@ -30,6 +30,7 @@ pub enum InstanceType {
     Vanilla,
     Fabric,
     Forge,
+    ModrinthModpack,
 }
 
 #[derive(Serialize, Deserialize, Clone, Data, Default)]
