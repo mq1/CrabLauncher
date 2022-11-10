@@ -6,7 +6,6 @@ use std::net::TcpListener;
 
 use base64ct::{Base64UrlUnpadded, Encoding};
 use color_eyre::eyre::{bail, Result};
-use druid::Data;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
@@ -191,7 +190,7 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
     Ok(account)
 }
 
-#[derive(Serialize, Deserialize, Clone, Data)]
+#[derive(Serialize, Deserialize)]
 pub struct Account {
     pub ms_refresh_token: String,
     pub mc_id: String,

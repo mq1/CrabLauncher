@@ -17,8 +17,6 @@ use serde::Deserialize;
 use sha1::{Digest, Sha1};
 use url::Url;
 
-use crate::{AppState, View};
-
 use super::{BASE_DIR, HTTP_CLIENT};
 
 const ASSETS_DOWNLOAD_ENDPOINT: Lazy<Url> =
@@ -69,13 +67,8 @@ impl AssetIndexInfo {
         Ok(hex_hash == self.sha1)
     }
 
-    pub fn get(&self, event_sink: &druid::ExtEventSink) -> Result<AssetIndex> {
+    pub fn get(&self) -> Result<AssetIndex> {
         let path = self.get_path();
-
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_view = View::Loading;
-            data.current_message = "Downloading asset index...".to_string();
-        });
 
         if path.exists() && !self.check_hash()? {
             fs::remove_file(&path)?;
@@ -146,16 +139,7 @@ pub struct AssetIndex {
 }
 
 impl AssetIndex {
-    pub fn download_objects(&self, event_sink: &druid::ExtEventSink) -> Result<()> {
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_view = View::Progress;
-            data.current_message = "Downloading assets...".to_string();
-            data.current_progress = 0.;
-        });
-
-        let mut downloaded_objects = 0.;
-        let object_count = self.objects.len() as f64;
-
+    pub fn download_objects(&self) -> Result<()> {
         for object in self.objects.values() {
             let path = object.get_path();
 
@@ -170,11 +154,6 @@ impl AssetIndex {
             if !object.check_hash()? {
                 bail!("Failed to download object");
             }
-
-            downloaded_objects += 1.;
-            event_sink.add_idle_callback(move |data: &mut AppState| {
-                data.current_progress = downloaded_objects / object_count;
-            });
         }
 
         Ok(())
