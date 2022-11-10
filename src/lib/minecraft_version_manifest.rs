@@ -11,11 +11,8 @@ use color_eyre::{
     eyre::{bail, eyre},
     Result,
 };
-use druid::{im::Vector, Data, Lens};
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
-
-use crate::{AppState, View};
 
 use super::{
     minecraft_version_meta::{MinecraftVersionMeta, META_DIR},
@@ -28,7 +25,7 @@ const VERSION_MANIFEST_URL: &str =
 #[derive(Deserialize)]
 pub struct MinecraftVersionManifest {
     pub latest: Latest,
-    pub versions: Vector<Version>,
+    pub versions: Vec<Version>,
 }
 
 #[derive(Deserialize)]
@@ -37,7 +34,7 @@ pub struct Latest {
     pub snapshot: String,
 }
 
-#[derive(Deserialize, Clone, Data, PartialEq, Eq, Lens)]
+#[derive(Deserialize)]
 pub struct Version {
     pub id: String,
     #[serde(rename = "type")]
@@ -85,13 +82,8 @@ impl Version {
         Ok(hex_hash == self.sha1)
     }
 
-    pub fn get_meta(&self, event_sink: &druid::ExtEventSink) -> Result<MinecraftVersionMeta> {
+    pub fn get_meta(&self) -> Result<MinecraftVersionMeta> {
         let path = self.get_meta_path();
-
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_view = View::Loading;
-            data.current_message = "Downloading version meta...".to_string();
-        });
 
         if path.exists() && !self.check_meta_hash()? {
             fs::remove_file(&path)?;
@@ -113,7 +105,7 @@ impl Version {
     }
 }
 
-#[derive(Deserialize, Clone, Data, PartialEq, Eq)]
+#[derive(Deserialize)]
 pub enum VersionType {
     #[serde(rename = "old_alpha")]
     OldAlpha,
@@ -131,28 +123,9 @@ fn fetch_manifest() -> Result<MinecraftVersionManifest> {
     Ok(manifest)
 }
 
-fn fetch_versions() -> Result<Vector<Version>> {
+fn fetch_versions() -> Result<Vec<Version>> {
     let manifest = fetch_manifest()?;
     let versions = manifest.versions;
 
     Ok(versions)
-}
-
-pub fn update_available_versions(event_sink: druid::ExtEventSink) -> Result<()> {
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.new_instance_state.available_minecraft_versions = Vector::new();
-        data.current_message = "Fetching available Minecraft versions...".to_string();
-        data.current_view = View::Loading;
-    });
-
-    let available_versions = fetch_versions()?;
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.new_instance_state.available_minecraft_versions = available_versions;
-        data.new_instance_state.selected_version =
-            Some(data.new_instance_state.available_minecraft_versions[0].clone());
-        data.current_view = View::InstanceVersionSelection;
-    });
-
-    Ok(())
 }

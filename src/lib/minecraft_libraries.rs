@@ -128,7 +128,7 @@ pub type Libraries = Vec<Library>;
 
 pub trait LibrariesExt {
     fn get_valid_libraries(&self) -> Libraries;
-    fn download(&self, event_sink: &druid::ExtEventSink) -> Result<()>;
+    fn download(&self) -> Result<()>;
 }
 
 impl LibrariesExt for Libraries {
@@ -139,16 +139,7 @@ impl LibrariesExt for Libraries {
             .collect()
     }
 
-    fn download(&self, event_sink: &druid::ExtEventSink) -> Result<()> {
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_view = View::Progress;
-            data.current_message = "Downloading libraries...".to_string();
-            data.current_progress = 0.;
-        });
-
-        let mut downloaded_artifacts = 0.;
-        let artifact_count = self.len() as f64;
-
+    fn download(&self) -> Result<()> {
         for library in self {
             let path = library.get_path();
 
@@ -163,11 +154,6 @@ impl LibrariesExt for Libraries {
             if !library.check_artifact_hash()? {
                 bail!("Failed to download object");
             }
-
-            downloaded_artifacts += 1.;
-            event_sink.add_idle_callback(move |data: &mut AppState| {
-                data.current_progress = downloaded_artifacts / artifact_count;
-            });
         }
 
         Ok(())

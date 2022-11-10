@@ -17,8 +17,6 @@ use tempfile::tempfile;
 use url::Url;
 use zip::ZipArchive;
 
-use crate::{AppState, View};
-
 use super::{BASE_DIR, HTTP_CLIENT};
 
 const ADOPTIUM_API_ENDPOINT: &str = "https://api.adoptium.net";
@@ -90,12 +88,7 @@ fn extract_archive(file: &File, destination_path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()> {
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.current_message = "Downloading runtime...".to_string();
-        data.current_view = View::Loading;
-    });
-
+fn install(assets: &Assets) -> Result<()> {
     let version_dir = RUNTIMES_DIR.join(assets.version.major.to_string());
     fs::create_dir_all(&version_dir)?;
 
@@ -121,21 +114,16 @@ fn install(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()> {
         }
     }
 
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.current_message = "Extracting runtime...".to_string();
-        data.current_view = View::Loading;
-    });
-
     extract_archive(&tmpfile, &version_dir)
 }
 
-pub fn update(assets: &Assets, event_sink: &druid::ExtEventSink) -> Result<()> {
+pub fn update(assets: &Assets) -> Result<()> {
     let runtime_dir = RUNTIMES_DIR.join(assets.version.major.to_string());
     if runtime_dir.exists() {
         fs::remove_dir_all(runtime_dir)?;
     }
 
-    install(assets, event_sink)
+    install(assets)
 }
 
 pub fn get_java_path(java_version: &str) -> Result<PathBuf> {

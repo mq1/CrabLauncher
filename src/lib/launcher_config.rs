@@ -4,7 +4,6 @@
 use std::{fs, path::PathBuf};
 
 use color_eyre::eyre::Result;
-use druid::{Data, Lens};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
@@ -12,7 +11,7 @@ use super::BASE_DIR;
 
 const LAUNCHER_CONFIG_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("config.toml"));
 
-#[derive(Serialize, Deserialize, Data, Clone, Lens)]
+#[derive(Serialize, Deserialize)]
 pub struct LauncherConfig {
     pub automatically_check_for_updates: bool,
     pub automatically_update_jvm: bool,
@@ -31,13 +30,7 @@ impl Default for LauncherConfig {
     }
 }
 
-impl AsRef<LauncherConfig> for LauncherConfig {
-    fn as_ref(&self) -> &Self {
-        self
-    }
-}
-
-pub fn write<L: AsRef<LauncherConfig>>(config: L) -> Result<()> {
+pub fn write(config: &LauncherConfig) -> Result<()> {
     let content = toml::to_string_pretty(config.as_ref())?;
     fs::write(LAUNCHER_CONFIG_PATH.as_path(), content)?;
 

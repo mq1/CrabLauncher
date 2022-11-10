@@ -95,14 +95,9 @@ impl MinecraftVersionMeta {
         Ok(hex_hash == self.downloads.client.sha1)
     }
 
-    pub fn download_client(&self, event_sink: &druid::ExtEventSink) -> Result<()> {
+    pub fn download_client(&self) -> Result<()> {
         let path = self.get_client_path();
         let url = &self.downloads.client.url;
-
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_view = View::Loading;
-            data.current_message = "Downloading client...".to_string();
-        });
 
         if path.exists() && !self.check_client_hash()? {
             fs::remove_file(&path)?;
