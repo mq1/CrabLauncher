@@ -108,8 +108,8 @@ pub fn new(instance_name: String, minecraft_version: Version) -> Result<()> {
     Ok(())
 }
 
-pub fn remove(instance: Instance) -> Result<()> {
-    let instance_dir = INSTANCES_DIR.join(&instance.name);
+pub fn remove(instance_name: &str) -> Result<()> {
+    let instance_dir = INSTANCES_DIR.join(instance_name);
     fs::remove_dir_all(&instance_dir)?;
 
     Ok(())
