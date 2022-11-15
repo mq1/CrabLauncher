@@ -1,62 +1,20 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use druid::{
-    widget::{Button, Either, Flex, Image, Label},
-    ImageBuf, Widget, WidgetExt,
-};
+use iced::{widget::text, Element};
 
-use crate::{navbar, AppState};
+use crate::Message;
 
-const APP_VERSION: &str = concat!("Ice Launcher version ", env!("CARGO_PKG_VERSION"));
-const REPOSITORY: &str = "https://github.com/mq1/ice-launcher";
-const LATEST_RELEASE_URL: &str = "https://github.com/mq1/ice-launcher/releases/latest";
-const LICENSE: &str = "https://github.com/mq1/ice-launcher/blob/main/COPYING";
-const COPYRIGHT: &str = "Copyright © 2022 Manuel Quarneti";
-const IMAGE_BYTES: &[u8] = include_bytes!("../ice-launcher.png");
+pub struct AboutView;
 
-pub fn build_widget() -> impl Widget<AppState> {
-    let png_data = ImageBuf::from_data(IMAGE_BYTES).unwrap();
-    let image = Image::new(png_data).fix_width(128.);
+impl AboutView {
+    pub fn new() -> Self {
+        Self
+    }
 
-    let update_box = Flex::row()
-        .with_child(Label::new("⚠️ Update available!"))
-        .with_default_spacer()
-        .with_child(Button::new("Update ↗️").on_click(|_, _, _| {
-            open::that(LATEST_RELEASE_URL).unwrap();
-        }));
+    pub fn update(&mut self, _message: Message) {}
 
-    let either = Either::<AppState>::new(
-        |data, _| data.is_update_available,
-        update_box,
-        Label::new("No updates available"),
-    );
-
-    let about = Flex::column()
-        .with_flex_spacer(1.)
-        .with_child(image)
-        .with_default_spacer()
-        .with_child(Label::new(APP_VERSION).with_text_size(32.))
-        .with_default_spacer()
-        .with_child(Label::new("Made with ❤️ by Manuel Quarneti").with_text_size(16.))
-        .with_default_spacer()
-        .with_child(either)
-        .with_flex_spacer(1.)
-        .with_child(
-            Flex::row()
-                .with_child(Button::new("Repository ↗️").on_click(|_, _, _| {
-                    open::that(REPOSITORY).unwrap();
-                }))
-                .with_default_spacer()
-                .with_child(Button::new("GPL-3.0-only Licensed ↗️").on_click(|_, _, _| {
-                    open::that(LICENSE).unwrap();
-                }))
-                .with_flex_spacer(1.)
-                .with_child(Label::new(COPYRIGHT)),
-        )
-        .padding(10.);
-
-    Flex::row()
-        .with_child(navbar::build_widget())
-        .with_flex_child(about, 1.)
+    pub fn view(&self) -> Element<Message> {
+        text("About").into()
+    }
 }

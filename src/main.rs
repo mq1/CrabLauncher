@@ -1,126 +1,84 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-// On Windows platform, don't show a console when opening the app.
-#![windows_subsystem = "windows"]
-
 mod about;
-mod accounts;
-mod confirm_account_remove;
-mod confirm_instance_delete;
-mod instance_name_selection;
-mod instance_type_selection;
-mod instance_version_selection;
 mod instances;
-mod lib;
-mod loading;
-mod modrinth_modpack;
-mod modrinth_modpack_selection;
-mod navbar;
-mod news;
-mod progress;
-mod settings;
-mod view;
 
-use std::{fs, process::exit, thread};
+use color_eyre::Result;
+use iced::{
+    executor,
+    widget::{button, column, row},
+    Application, Command, Element, Settings, Theme,
+};
 
-use color_eyre::eyre::Result;
-use druid::{im::Vector, AppDelegate, AppLauncher, Data, Lens, WindowDesc};
-use lib::BASE_DIR;
-
-#[derive(PartialEq, Eq, Data, Clone, Copy, Default)]
-enum View {
-    #[default]
-    Instances,
-    Loading,
-    Progress,
-    InstanceTypeSelection,
-    InstanceVersionSelection,
-    InstanceNameSelection,
-    ConfirmInstanceDelete,
-    Accounts,
-    ConfirmAccountRemove,
-    News,
-    Settings,
-    About,
-    ModrinthModpackSelection,
-    ModrinthModpack,
-}
-
-#[derive(Data, Clone, Lens, Default)]
-pub struct NewInstanceState {
-    available_minecraft_versions: Vector<lib::minecraft_version_manifest::Version>,
-    selected_version: Option<lib::minecraft_version_manifest::Version>,
-    instance_type: lib::instances::InstanceType,
-    instance_name: String,
-}
-
-#[derive(Data, Clone, Lens, Default)]
-pub struct AppState {
-    is_update_available: bool,
-    current_message: String,
-    current_progress: f64,
-    config: lib::launcher_config::LauncherConfig,
-    current_view: View,
-    instances: Vector<lib::instances::Instance>,
-    selected_instance: Option<lib::instances::Instance>,
-    new_instance_state: NewInstanceState,
-    accounts: Vector<lib::msa::Account>,
-    active_account: Option<lib::msa::Account>,
-    selected_account: Option<lib::msa::Account>,
-    news: lib::minecraft_news::News,
-    modrinth_hits: lib::modrinth::Hits,
-    selected_modrinth_hit: Option<lib::modrinth::Hit>,
-}
-
-struct Delegate;
-
-impl AppDelegate<AppState> for Delegate {
-    fn command(
-        &mut self,
-        _ctx: &mut druid::DelegateCtx,
-        _target: druid::Target,
-        cmd: &druid::Command,
-        _data: &mut AppState,
-        _env: &druid::Env,
-    ) -> druid::Handled {
-        if let Some(_) = cmd.get(druid::commands::CLOSE_WINDOW) {
-            exit(0);
-        }
-
-        druid::Handled::No
-    }
-}
-
-fn main() -> Result<()> {
+pub fn main() -> Result<()> {
     color_eyre::install()?;
-
-    fs::create_dir_all(BASE_DIR.as_path()).expect("Could not create base directory");
-
-    let window = WindowDesc::new(view::build_widget())
-        .title("🧊 Ice Launcher")
-        .window_size((800.0, 600.0));
-
-    let initial_state = AppState {
-        config: lib::launcher_config::read()?,
-        instances: lib::instances::list()?,
-        accounts: lib::accounts::read()?.accounts,
-        active_account: lib::accounts::get_active()?,
-        ..Default::default()
-    };
-
-    let launcher = AppLauncher::with_window(window);
-
-    // Spawn a task to check for updates.
-    if initial_state.config.automatically_check_for_updates {
-        let event_sink = launcher.get_external_handle();
-        thread::spawn(move || lib::launcher_updater::check_for_updates(event_sink));
-    }
-
-    launcher
-        .delegate(Delegate {})
-        .log_to_console()
-        .launch(initial_state)?;
+    IceLauncher::run(Settings::default())?;
 
     Ok(())
+}
+
+struct IceLauncher {
+    current_view: View,
+    instances_view: instances::InstancesView,
+    about_view: about::AboutView,
+}
+
+#[derive(Debug, Clone)]
+enum View {
+    Instances,
+    About,
+}
+
+#[derive(Debug, Clone)]
+enum Message {
+    ViewChanged(View),
+}
+
+impl Application for IceLauncher {
+    type Message = Message;
+    type Theme = Theme;
+    type Executor = executor::Default;
+    type Flags = ();
+
+    fn new(_flags: ()) -> (Self, Command<Self::Message>) {
+        (
+            Self {
+                current_view: View::Instances,
+                instances_view: instances::InstancesView::new(),
+                about_view: about::AboutView::new(),
+            },
+            Command::none(),
+        )
+    }
+
+    fn title(&self) -> String {
+        String::from("🧊 Ice Launcher")
+    }
+
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+        match message {
+            Message::ViewChanged(view) => {
+                self.current_view = view;
+            }
+        }
+        Command::none()
+    }
+
+    fn view(&self) -> Element<Self::Message> {
+        let navbar: Element<_> = {
+            let instances_button =
+                button("Instances").on_press(Message::ViewChanged(View::Instances));
+            let about_button = button("About").on_press(Message::ViewChanged(View::About));
+
+            column![instances_button, about_button].into()
+        };
+
+        let current_view: Element<_> = match self.current_view {
+            View::Instances => self.instances_view.view(),
+            View::About => self.about_view.view(),
+        };
+
+        row![navbar, current_view].into()
+    }
 }
