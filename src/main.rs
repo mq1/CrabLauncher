@@ -4,6 +4,7 @@
 mod about;
 mod instances;
 mod lib;
+mod style;
 
 use color_eyre::Result;
 use iced::{

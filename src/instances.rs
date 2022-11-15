@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{column, text},
-    Element,
+    widget::{button, column, container, horizontal_space, row, text, vertical_space},
+    Element, Length,
 };
 
-use crate::{lib, Message};
+use crate::{lib, style, Message};
 
 pub struct InstancesView {
     instances: Vec<lib::instances::Instance>,
@@ -25,10 +25,29 @@ impl InstancesView {
         let instances_list = column(
             self.instances
                 .iter()
-                .map(|instance| text(instance.name.clone()).into())
+                .map(|instance| {
+                    container(
+                        row![
+                            text(format!(
+                                "{} [{}] [{}]",
+                                instance.name,
+                                instance.info.instance_type,
+                                instance.info.minecraft_version
+                            )),
+                            horizontal_space(Length::Fill),
+                            button("Launch")
+                        ]
+                        .padding(10),
+                    )
+                    .style(style::card())
+                    .into()
+                })
                 .collect(),
-        );
+        )
+        .spacing(10);
 
-        column!(heading, instances_list).padding(20).into()
+        column!(heading, vertical_space(Length::Units(20)), instances_list)
+            .padding(20)
+            .into()
     }
 }
