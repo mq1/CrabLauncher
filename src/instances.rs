@@ -12,8 +12,6 @@ impl InstancesView {
         Self
     }
 
-    pub fn update(&mut self, _message: Message) {}
-
     pub fn view(&self) -> Element<Message> {
         text("Instances").into()
     }
