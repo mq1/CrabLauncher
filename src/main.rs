@@ -77,10 +77,7 @@ impl Application for IceLauncher {
                 self.current_view = View::News;
 
                 if self.news_view.news.is_none() {
-                    return Command::perform(
-                        async { lib::minecraft_news::fetch(None).map_err(|_| FetchError) },
-                        Message::FetchedNews,
-                    );
+                    return Command::perform(fetch_news(), Message::FetchedNews);
                 }
             }
             Message::FetchedNews(news) => {
@@ -125,4 +122,8 @@ impl Application for IceLauncher {
     fn theme(&self) -> Self::Theme {
         Theme::Dark
     }
+}
+
+async fn fetch_news() -> Result<lib::minecraft_news::News, FetchError> {
+    lib::minecraft_news::fetch(None).map_err(|_| FetchError)
 }
