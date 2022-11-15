@@ -66,13 +66,11 @@ impl Application for IceLauncher {
     }
 
     fn view(&self) -> Element<Self::Message> {
-        let navbar: Element<_> = {
-            let instances_button =
-                button("Instances").on_press(Message::ViewChanged(View::Instances));
-            let about_button = button("About").on_press(Message::ViewChanged(View::About));
-
-            column![instances_button, about_button].into()
-        };
+        let navbar: Element<_> = column![
+            button("Instances").on_press(Message::ViewChanged(View::Instances)),
+            button("About").on_press(Message::ViewChanged(View::About))
+        ]
+        .into();
 
         let current_view: Element<_> = match self.current_view {
             View::Instances => self.instances_view.view(),
