@@ -14,9 +14,6 @@ use iced::{
     Application, Command, Element, Length, Settings, Theme,
 };
 
-const REPOSITORY: &str = "https://github.com/mq1/ice-launcher";
-const LICENSE: &str = "https://github.com/mq1/ice-launcher/blob/main/COPYING";
-
 pub fn main() -> Result<()> {
     color_eyre::install()?;
     IceLauncher::run(Settings::default())?;
@@ -46,8 +43,7 @@ pub enum Message {
     ViewChanged(View),
     OpenNews,
     FetchedNews(Result<lib::minecraft_news::News, FetchError>),
-    OpenRepository,
-    OpenLicense,
+    OpenURL(String),
 }
 
 impl Application for IceLauncher {
@@ -90,11 +86,8 @@ impl Application for IceLauncher {
             Message::FetchedNews(news) => {
                 self.news_view.news = Some(news);
             }
-            Message::OpenRepository => {
-                open::that(REPOSITORY).unwrap();
-            }
-            Message::OpenLicense => {
-                open::that(LICENSE).unwrap();
+            Message::OpenURL(url) => {
+                open::that(url).unwrap();
             }
         }
         Command::none()
