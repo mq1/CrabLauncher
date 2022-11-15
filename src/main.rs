@@ -79,4 +79,8 @@ impl Application for IceLauncher {
 
         row![navbar, current_view].into()
     }
+
+    fn theme(&self) -> Self::Theme {
+        Theme::Dark
+    }
 }
