@@ -13,6 +13,9 @@ use iced::{
     Application, Command, Element, Length, Settings, Theme,
 };
 
+const REPOSITORY: &str = "https://github.com/mq1/ice-launcher";
+const LICENSE: &str = "https://github.com/mq1/ice-launcher/blob/main/COPYING";
+
 pub fn main() -> Result<()> {
     color_eyre::install()?;
     IceLauncher::run(Settings::default())?;
@@ -35,6 +38,8 @@ pub enum View {
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewChanged(View),
+    OpenRepository,
+    OpenLicense,
 }
 
 impl Application for IceLauncher {
@@ -62,6 +67,12 @@ impl Application for IceLauncher {
         match message {
             Message::ViewChanged(view) => {
                 self.current_view = view;
+            }
+            Message::OpenRepository => {
+                open::that(REPOSITORY).unwrap();
+            }
+            Message::OpenLicense => {
+                open::that(LICENSE).unwrap();
             }
         }
         Command::none()
