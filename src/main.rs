@@ -13,6 +13,7 @@ use iced::{
     widget::{button, column, container, row, vertical_space},
     Application, Command, Element, Length, Settings, Theme,
 };
+use native_dialog::{MessageDialog, MessageType};
 
 pub fn main() -> Result<()> {
     color_eyre::install()?;
@@ -88,8 +89,17 @@ impl Application for IceLauncher {
                 open::that(url).unwrap();
             }
             Message::RemoveInstance(instance) => {
-                lib::instances::remove(&instance).unwrap();
-                self.instances_view.instances = lib::instances::list();
+                let yes = MessageDialog::new()
+                    .set_type(MessageType::Warning)
+                    .set_title("Remove instance")
+                    .set_text(&format!("Are you sure you want to remove {}?", instance))
+                    .show_confirm()
+                    .unwrap();
+
+                if yes {
+                    lib::instances::remove(&instance).unwrap();
+                    self.instances_view.instances = lib::instances::list();
+                }
             }
         }
         Command::none()
