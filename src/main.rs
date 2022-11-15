@@ -9,7 +9,7 @@ mod style;
 use color_eyre::Result;
 use iced::{
     executor,
-    widget::{button, column, row},
+    widget::{button, column, container, row, vertical_space},
     Application, Command, Element, Length, Settings, Theme,
 };
 
@@ -79,20 +79,23 @@ impl Application for IceLauncher {
     }
 
     fn view(&self) -> Element<Self::Message> {
-        let navbar: Element<_> = column![
-            button("Instances")
-                .on_press(Message::ViewChanged(View::Instances))
-                .width(Length::Fill),
-            button("About")
-                .on_press(Message::ViewChanged(View::About))
-                .width(Length::Fill),
-        ]
-        .spacing(10)
-        .padding(20)
-        .width(Length::Units(150))
-        .into();
+        let navbar = container(
+            column![
+                button("Instances")
+                    .on_press(Message::ViewChanged(View::Instances))
+                    .width(Length::Fill),
+                vertical_space(Length::Fill),
+                button("About")
+                    .on_press(Message::ViewChanged(View::About))
+                    .width(Length::Fill),
+            ]
+            .spacing(10)
+            .padding(20)
+            .width(Length::Units(150)),
+        )
+        .style(style::card());
 
-        let current_view: Element<_> = match self.current_view {
+        let current_view = match self.current_view {
             View::Instances => self.instances_view.view(),
             View::About => self.about_view.view(),
         };
