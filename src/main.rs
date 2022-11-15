@@ -3,6 +3,7 @@
 
 mod about;
 mod instances;
+mod lib;
 
 use color_eyre::Result;
 use iced::{
