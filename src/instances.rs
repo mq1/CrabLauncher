@@ -20,6 +20,8 @@ impl InstancesView {
     }
 
     pub fn view(&self) -> Element<Message> {
+        let heading = text("Instances").size(50);
+
         let instances_list = column(
             self.instances
                 .iter()
@@ -27,8 +29,6 @@ impl InstancesView {
                 .collect(),
         );
 
-        column!(text("Instances"), instances_list)
-            .padding(20)
-            .into()
+        column!(heading, instances_list).padding(20).into()
     }
 }
