@@ -31,7 +31,7 @@ impl Default for LauncherConfig {
 }
 
 pub fn write(config: &LauncherConfig) -> Result<()> {
-    let content = toml::to_string_pretty(config.as_ref())?;
+    let content = toml::to_string_pretty(config)?;
     fs::write(LAUNCHER_CONFIG_PATH.as_path(), content)?;
 
     Ok(())

@@ -11,7 +11,7 @@ use super::{msa, BASE_DIR};
 
 static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"));
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct AccountsDocument {
     pub accounts: Vec<msa::Account>,
 }
@@ -89,7 +89,7 @@ pub fn refresh(account: msa::Account) -> Result<msa::Account> {
     let mut document: AccountsDocument = toml::from_str(&content)?;
     document.accounts.iter_mut().for_each(|a| {
         if a.mc_id == account.mc_id {
-            *a = account.clone();
+            *a = account;
             a.is_active = true;
         }
     });

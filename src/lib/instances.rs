@@ -70,7 +70,7 @@ pub fn list() -> Result<Vec<Instance>> {
         let name = path.file_name().unwrap().to_str().unwrap().to_string();
         let info = read_info(&name)?;
 
-        instances.push_back(Instance { name, info });
+        instances.push(Instance { name, info });
     }
 
     Ok(instances)
@@ -97,7 +97,7 @@ pub fn new(instance_name: String, minecraft_version: Version) -> Result<()> {
 
     let info = InstanceInfo {
         minecraft_version: minecraft_version.id,
-        ..Default::default()
+        instance_type: InstanceType::Vanilla,
     };
 
     let path = instance_dir.join("instance.toml");

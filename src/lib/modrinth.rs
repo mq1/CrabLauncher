@@ -4,8 +4,6 @@
 use color_eyre::Result;
 use serde::Deserialize;
 
-use crate::{AppState, View};
-
 use super::HTTP_CLIENT;
 
 #[derive(Deserialize)]
