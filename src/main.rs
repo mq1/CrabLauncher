@@ -8,7 +8,7 @@ use color_eyre::Result;
 use iced::{
     executor,
     widget::{button, column, row},
-    Application, Command, Element, Settings, Theme,
+    Application, Command, Element, Length, Settings, Theme,
 };
 
 pub fn main() -> Result<()> {
@@ -25,13 +25,13 @@ struct IceLauncher {
 }
 
 #[derive(Debug, Clone)]
-enum View {
+pub enum View {
     Instances,
     About,
 }
 
 #[derive(Debug, Clone)]
-enum Message {
+pub enum Message {
     ViewChanged(View),
 }
 
@@ -67,9 +67,16 @@ impl Application for IceLauncher {
 
     fn view(&self) -> Element<Self::Message> {
         let navbar: Element<_> = column![
-            button("Instances").on_press(Message::ViewChanged(View::Instances)),
-            button("About").on_press(Message::ViewChanged(View::About))
+            button("Instances")
+                .on_press(Message::ViewChanged(View::Instances))
+                .width(Length::Fill),
+            button("About")
+                .on_press(Message::ViewChanged(View::About))
+                .width(Length::Fill),
         ]
+        .spacing(10)
+        .padding(20)
+        .width(Length::Units(150))
         .into();
 
         let current_view: Element<_> = match self.current_view {
