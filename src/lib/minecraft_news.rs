@@ -11,13 +11,13 @@ const MINECRAFT_NEWS_URL: &str =
     "https://www.minecraft.net/content/minecraft-net/_jcr_content.articles.grid";
 pub const MINECRAFT_NEWS_BASE_URL: &str = "https://www.minecraft.net";
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct News {
     pub article_grid: Vec<Article>,
     pub article_count: i32,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Article {
     pub default_tile: Tile,
     #[serde(rename = "articleLang")]
@@ -30,7 +30,7 @@ pub struct Article {
     pub preferred_tile: Option<Tile>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Tile {
     pub sub_header: String,
     pub image: Image,
@@ -38,7 +38,7 @@ pub struct Tile {
     pub title: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Image {
     pub content_type: ContentType,
     #[serde(rename = "videoURL")]
@@ -57,13 +57,13 @@ pub struct Image {
     pub background_color: Option<BackgroundColor>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub enum ArticleLang {
     #[serde(rename = "en-us")]
     EnUs,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub enum BackgroundColor {
     #[serde(rename = "bg-blue")]
     BgBlue,
@@ -73,7 +73,7 @@ pub enum BackgroundColor {
     BgRed,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub enum ContentType {
     #[serde(rename = "image")]
     Image,
@@ -83,7 +83,7 @@ pub enum ContentType {
     Video,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub enum TileSize {
     #[serde(rename = "1x1")]
     The1X1,

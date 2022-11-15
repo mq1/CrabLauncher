@@ -4,6 +4,7 @@
 mod about;
 mod instances;
 mod lib;
+mod news;
 mod style;
 
 use color_eyre::Result;
@@ -26,18 +27,25 @@ pub fn main() -> Result<()> {
 struct IceLauncher {
     current_view: View,
     instances_view: instances::InstancesView,
+    news_view: news::NewsView,
     about_view: about::AboutView,
 }
 
 #[derive(Debug, Clone)]
 pub enum View {
     Instances,
+    News,
     About,
 }
 
 #[derive(Debug, Clone)]
+pub struct FetchError;
+
+#[derive(Debug, Clone)]
 pub enum Message {
     ViewChanged(View),
+    OpenNews,
+    FetchedNews(Result<lib::minecraft_news::News, FetchError>),
     OpenRepository,
     OpenLicense,
 }
@@ -53,6 +61,7 @@ impl Application for IceLauncher {
             Self {
                 current_view: View::Instances,
                 instances_view: instances::InstancesView::new(),
+                news_view: news::NewsView::new(),
                 about_view: about::AboutView::new(),
             },
             Command::none(),
@@ -67,6 +76,19 @@ impl Application for IceLauncher {
         match message {
             Message::ViewChanged(view) => {
                 self.current_view = view;
+            }
+            Message::OpenNews => {
+                self.current_view = View::News;
+
+                if self.news_view.news.is_none() {
+                    return Command::perform(
+                        async { lib::minecraft_news::fetch(None).map_err(|_| FetchError) },
+                        Message::FetchedNews,
+                    );
+                }
+            }
+            Message::FetchedNews(news) => {
+                self.news_view.news = Some(news);
             }
             Message::OpenRepository => {
                 open::that(REPOSITORY).unwrap();
@@ -84,6 +106,9 @@ impl Application for IceLauncher {
                 button("Instances")
                     .on_press(Message::ViewChanged(View::Instances))
                     .width(Length::Fill),
+                button("News")
+                    .on_press(Message::OpenNews)
+                    .width(Length::Fill),
                 vertical_space(Length::Fill),
                 button("About")
                     .on_press(Message::ViewChanged(View::About))
@@ -97,6 +122,7 @@ impl Application for IceLauncher {
 
         let current_view = match self.current_view {
             View::Instances => self.instances_view.view(),
+            View::News => self.news_view.view(),
             View::About => self.about_view.view(),
         };
 

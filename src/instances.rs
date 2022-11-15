@@ -23,7 +23,7 @@ impl InstancesView {
     pub fn view(&self) -> Element<Message> {
         let heading = text("Instances").size(50);
 
-        let instances_list: Element<_> = match self.instances {
+        let instances_list: Element<_> = match &self.instances {
             Ok(instances) => column(
                 instances
                     .iter()
