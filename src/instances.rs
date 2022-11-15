@@ -10,7 +10,7 @@ use iced::{
 use crate::{lib, style, Message};
 
 pub struct InstancesView {
-    instances: Result<Vec<lib::instances::Instance>>,
+    pub instances: Result<Vec<lib::instances::Instance>>,
 }
 
 impl InstancesView {
@@ -37,8 +37,11 @@ impl InstancesView {
                                     instance.info.minecraft_version
                                 )),
                                 horizontal_space(Length::Fill),
-                                button("Launch")
+                                button("Remove")
+                                    .on_press(Message::RemoveInstance(instance.name.clone())),
+                                button("Launch"),
                             ]
+                            .spacing(10)
                             .padding(10),
                         )
                         .style(style::card())
@@ -51,7 +54,7 @@ impl InstancesView {
             Err(_) => text("Failed to load instances").into(),
         };
 
-        column!(heading, vertical_space(Length::Units(20)), instances_list)
+        column![heading, vertical_space(Length::Units(20)), instances_list]
             .padding(20)
             .into()
     }

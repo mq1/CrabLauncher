@@ -44,6 +44,7 @@ pub enum Message {
     OpenNews,
     FetchedNews(Result<lib::minecraft_news::News, FetchError>),
     OpenURL(String),
+    RemoveInstance(String),
 }
 
 impl Application for IceLauncher {
@@ -85,6 +86,10 @@ impl Application for IceLauncher {
             }
             Message::OpenURL(url) => {
                 open::that(url).unwrap();
+            }
+            Message::RemoveInstance(instance) => {
+                lib::instances::remove(&instance).unwrap();
+                self.instances_view.instances = lib::instances::list();
             }
         }
         Command::none()
