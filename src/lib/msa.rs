@@ -190,7 +190,7 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
     Ok(account)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Account {
     pub ms_refresh_token: String,
     pub mc_id: String,
