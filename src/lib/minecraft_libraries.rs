@@ -16,8 +16,6 @@ use serde::Deserialize;
 use sha1::{Digest, Sha1};
 use url::Url;
 
-use crate::{AppState, View};
-
 use super::{
     minecraft_rules::{is_rule_list_valid, Rule},
     BASE_DIR, HTTP_CLIENT,

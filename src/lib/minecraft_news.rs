@@ -5,8 +5,6 @@ use color_eyre::eyre::Result;
 use serde::Deserialize;
 use url::Url;
 
-use crate::{AppState, View};
-
 use super::HTTP_CLIENT;
 
 const MINECRAFT_NEWS_URL: &str =
