@@ -31,7 +31,7 @@ impl NewsView {
                                 row![
                                     text(&article.default_tile.title),
                                     horizontal_space(Length::Fill),
-                                    button("Open"),
+                                    button("Open").on_press(Message::OpenURL(article.get_url())),
                                 ]
                                 .padding(10),
                             )

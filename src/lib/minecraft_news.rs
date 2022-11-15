@@ -30,6 +30,12 @@ pub struct Article {
     pub preferred_tile: Option<Tile>,
 }
 
+impl Article {
+    pub fn get_url(&self) -> String {
+        format!("{}{}", MINECRAFT_NEWS_BASE_URL, self.article_url)
+    }
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct Tile {
     pub sub_header: String,

@@ -12,6 +12,8 @@ const APP_NAME: &str = "Ice Launcher";
 const APP_VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 const COPYRIGHT: &str = "Copyright © 2022 Manuel Quarneti";
 const LOGO_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/ice-launcher.png");
+const REPOSITORY: &str = "https://github.com/mq1/ice-launcher";
+const LICENSE: &str = "https://github.com/mq1/ice-launcher/blob/main/COPYING";
 
 pub struct AboutView;
 
@@ -28,8 +30,8 @@ impl AboutView {
             text(APP_VERSION),
             vertical_space(Length::Fill),
             row![
-                button("Repository").on_press(Message::OpenRepository),
-                button("License").on_press(Message::OpenLicense),
+                button("Repository").on_press(Message::OpenURL(REPOSITORY.to_string())),
+                button("License").on_press(Message::OpenURL(LICENSE.to_string())),
                 horizontal_space(Length::Fill),
                 text(COPYRIGHT),
             ]
