@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 mod about;
+mod accounts;
 mod instances;
 mod lib;
 mod news;
@@ -25,6 +26,7 @@ pub fn main() -> Result<()> {
 struct IceLauncher {
     current_view: View,
     instances_view: instances::InstancesView,
+    accounts_view: accounts::AccountsView,
     news_view: news::NewsView,
     about_view: about::AboutView,
 }
@@ -32,6 +34,7 @@ struct IceLauncher {
 #[derive(Debug, Clone)]
 pub enum View {
     Instances,
+    Accounts,
     News,
     About,
 }
@@ -46,6 +49,7 @@ pub enum Message {
     FetchedNews(Result<lib::minecraft_news::News, FetchError>),
     OpenURL(String),
     RemoveInstance(String),
+    RemoveAccount(lib::msa::Account),
 }
 
 impl Application for IceLauncher {
@@ -59,6 +63,7 @@ impl Application for IceLauncher {
             Self {
                 current_view: View::Instances,
                 instances_view: instances::InstancesView::new(),
+                accounts_view: accounts::AccountsView::new(),
                 news_view: news::NewsView::new(),
                 about_view: about::AboutView::new(),
             },
@@ -101,6 +106,22 @@ impl Application for IceLauncher {
                     self.instances_view.instances = lib::instances::list();
                 }
             }
+            Message::RemoveAccount(account) => {
+                let yes = MessageDialog::new()
+                    .set_type(MessageType::Warning)
+                    .set_title("Remove account")
+                    .set_text(&format!(
+                        "Are you sure you want to remove {}?",
+                        account.mc_username
+                    ))
+                    .show_confirm()
+                    .unwrap();
+
+                if yes {
+                    lib::accounts::remove(account).unwrap();
+                    self.accounts_view.document = lib::accounts::read();
+                }
+            }
         }
         Command::none()
     }
@@ -110,6 +131,9 @@ impl Application for IceLauncher {
             column![
                 button("Instances")
                     .on_press(Message::ViewChanged(View::Instances))
+                    .width(Length::Fill),
+                button("Accounts")
+                    .on_press(Message::ViewChanged(View::Accounts))
                     .width(Length::Fill),
                 button("News")
                     .on_press(Message::OpenNews)
@@ -127,6 +151,7 @@ impl Application for IceLauncher {
 
         let current_view = match self.current_view {
             View::Instances => self.instances_view.view(),
+            View::Accounts => self.accounts_view.view(),
             View::News => self.news_view.view(),
             View::About => self.about_view.view(),
         };
