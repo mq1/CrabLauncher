@@ -7,10 +7,10 @@ use iced::{
     Element, Length,
 };
 
-use crate::{lib, style, FetchError, Message};
+use crate::{lib, style, Message};
 
 pub struct NewsView {
-    pub news: Option<Result<lib::minecraft_news::News, FetchError>>,
+    pub news: Option<Result<lib::minecraft_news::News, String>>,
 }
 
 impl NewsView {
@@ -43,7 +43,7 @@ impl NewsView {
                 .spacing(10),
             )
             .into(),
-            Some(Err(_)) => text("Failed to load news").into(),
+            Some(Err(e)) => text(format!("Error: {}", e)).into(),
             None => text("Loading news...").into(),
         };
 
