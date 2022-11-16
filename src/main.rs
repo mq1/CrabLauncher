@@ -40,13 +40,10 @@ pub enum View {
 }
 
 #[derive(Debug, Clone)]
-pub struct FetchError;
-
-#[derive(Debug, Clone)]
 pub enum Message {
     ViewChanged(View),
     OpenNews,
-    FetchedNews(Result<lib::minecraft_news::News, FetchError>),
+    FetchedNews(Result<lib::minecraft_news::News, String>),
     OpenURL(String),
     RemoveInstance(String),
     RemoveAccount(lib::msa::Account),
@@ -164,6 +161,6 @@ impl Application for IceLauncher {
     }
 }
 
-async fn fetch_news() -> Result<lib::minecraft_news::News, FetchError> {
-    lib::minecraft_news::fetch(None).map_err(|_| FetchError)
+async fn fetch_news() -> Result<lib::minecraft_news::News, String> {
+    lib::minecraft_news::fetch(None).map_err(|e| e.to_string())
 }

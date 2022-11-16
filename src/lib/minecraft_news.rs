@@ -1,9 +1,7 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use color_eyre::eyre::Result;
 use serde::Deserialize;
-use url::Url;
 
 use super::HTTP_CLIENT;
 
@@ -104,9 +102,9 @@ pub enum TileSize {
 }
 
 /// Get the news from minecraft.net
-pub fn fetch(page_size: Option<i32>) -> Result<News> {
+pub fn fetch(page_size: Option<i32>) -> Result<News, attohttpc::Error> {
     let page_size = page_size.unwrap_or(20);
-    let url = Url::parse_with_params(MINECRAFT_NEWS_URL, &[("pageSize", page_size.to_string())])?;
+    let url = format!("{MINECRAFT_NEWS_URL}?pageSize={page_size}");
     let resp = HTTP_CLIENT.get(url).send()?.json()?;
 
     Ok(resp)
