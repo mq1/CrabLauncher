@@ -13,6 +13,7 @@ static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct AccountsDocument {
+    pub active_account: Option<String>,
     pub accounts: Vec<msa::Account>,
 }
 
@@ -40,8 +41,13 @@ pub fn read() -> Result<AccountsDocument> {
 pub fn get_active() -> Result<Option<msa::Account>> {
     let document = read()?;
 
-    for account in document.accounts {
-        if account.is_active {
+    if let Some(active_account) = document.active_account {
+        let account = document
+            .accounts
+            .into_iter()
+            .find(|account| account.mc_id == active_account);
+
+        if let Some(account) = account {
             return Ok(Some(account));
         }
     }
@@ -51,11 +57,7 @@ pub fn get_active() -> Result<Option<msa::Account>> {
 
 pub fn set_active(account: msa::Account) -> Result<()> {
     let mut document = read()?;
-
-    for a in document.accounts.iter_mut() {
-        a.is_active = a.mc_id == account.mc_id;
-    }
-
+    document.active_account = Some(account.mc_id);
     write(&document)?;
 
     Ok(())
@@ -87,12 +89,14 @@ pub fn refresh(account: msa::Account) -> Result<msa::Account> {
 
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
-    document.accounts.iter_mut().for_each(|a| {
-        if a.mc_id == account.mc_id {
-            *a = account.clone();
-            a.is_active = true;
+
+    for account in document.accounts.iter_mut() {
+        if account.mc_id == account.mc_id {
+            *account = account.clone();
+            break;
         }
-    });
+    }
+
     write(&document)?;
 
     Ok(account)
