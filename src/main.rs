@@ -5,6 +5,7 @@ mod about;
 mod accounts;
 mod instances;
 mod lib;
+mod loading;
 mod news;
 mod style;
 
@@ -30,6 +31,7 @@ struct IceLauncher {
     accounts_view: accounts::AccountsView,
     news_view: news::NewsView,
     about_view: about::AboutView,
+    loading_view: loading::LoadingView,
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +40,7 @@ pub enum View {
     Accounts,
     News,
     About,
+    Loading,
 }
 
 #[derive(Debug, Clone)]
@@ -49,6 +52,7 @@ pub enum Message {
     RemoveInstance(String),
     RemoveAccount(lib::msa::Account),
     AddAccount,
+    AccountAdded(Result<(), String>),
     AccountSelected(ArrayString<32>),
     GotUpdates(Result<Option<(String, String)>, String>),
 }
@@ -67,6 +71,7 @@ impl Application for IceLauncher {
                 accounts_view: accounts::AccountsView::new(),
                 news_view: news::NewsView::new(),
                 about_view: about::AboutView::new(),
+                loading_view: loading::LoadingView::new(),
             },
             Command::perform(check_for_updates(), Message::GotUpdates),
         )
@@ -128,7 +133,21 @@ impl Application for IceLauncher {
                 self.accounts_view.document = lib::accounts::read();
             }
             Message::AddAccount => {
-                lib::accounts::add().unwrap();
+                self.current_view = View::Loading;
+                self.loading_view.message = "Logging in...".to_string();
+                return Command::perform(add_account(), Message::AccountAdded);
+            }
+            Message::AccountAdded(res) => {
+                if let Some(err) = res.err() {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error adding account")
+                        .set_text(&err)
+                        .show_alert()
+                        .unwrap();
+                }
+
+                self.current_view = View::Accounts;
                 self.accounts_view.document = lib::accounts::read();
             }
             Message::GotUpdates(updates) => {
@@ -177,6 +196,7 @@ impl Application for IceLauncher {
             View::Accounts => self.accounts_view.view(),
             View::News => self.news_view.view(),
             View::About => self.about_view.view(),
+            View::Loading => self.loading_view.view(),
         };
 
         row![navbar, current_view].into()
@@ -193,4 +213,8 @@ async fn check_for_updates() -> Result<Option<(String, String)>, String> {
 
 async fn fetch_news() -> Result<lib::minecraft_news::News, String> {
     lib::minecraft_news::fetch(None).map_err(|e| e.to_string())
+}
+
+async fn add_account() -> Result<(), String> {
+    lib::accounts::add().map_err(|e| e.to_string())
 }
