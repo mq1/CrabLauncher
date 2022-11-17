@@ -130,20 +130,12 @@ impl Application for IceLauncher {
     }
 
     fn view(&self) -> Element<Self::Message> {
-        let accounts_text = match &self.accounts_view.document {
-            Ok(document) => match document.active_account {
-                Some(_) => "Accounts",
-                None => "Accounts [!!!]",
-            },
-            Err(_) => "Accounts [???]",
-        };
-
         let navbar = container(
             column![
                 button("Instances")
                     .on_press(Message::ViewChanged(View::Instances))
                     .width(Length::Fill),
-                button(accounts_text)
+                button("Accounts")
                     .on_press(Message::ViewChanged(View::Accounts))
                     .width(Length::Fill),
                 button("News")
