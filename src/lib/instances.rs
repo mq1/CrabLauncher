@@ -155,8 +155,6 @@ pub fn launch(instance: Instance) -> Result<()> {
         );
     }
 
-    let mc_id = base16ct::lower::encode_string(&account.mc_id.0);
-
     let game_args = vec![
         "--username".to_string(),
         account.mc_username,
@@ -169,7 +167,7 @@ pub fn launch(instance: Instance) -> Result<()> {
         "--assetIndex".to_string(),
         version.assets,
         "--uuid".to_string(),
-        mc_id,
+        account.mc_id.to_string(),
         "--accessToken".to_string(),
         account.mc_access_token,
         "--clientId".to_string(),

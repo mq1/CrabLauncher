@@ -8,6 +8,7 @@ mod lib;
 mod news;
 mod style;
 
+use arrayvec::ArrayString;
 use color_eyre::Result;
 use iced::{
     executor,
@@ -47,7 +48,7 @@ pub enum Message {
     OpenURL(String),
     RemoveInstance(String),
     RemoveAccount(lib::msa::Account),
-    AccountSelected(lib::msa::AccountID),
+    AccountSelected(ArrayString<32>),
 }
 
 impl Application for IceLauncher {

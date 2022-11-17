@@ -3,6 +3,7 @@
 
 use std::{fs, path::PathBuf};
 
+use arrayvec::ArrayString;
 use color_eyre::eyre::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -13,7 +14,7 @@ static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct AccountsDocument {
-    pub active_account: Option<msa::AccountID>,
+    pub active_account: Option<ArrayString<32>>,
     pub accounts: Vec<msa::Account>,
 }
 
@@ -55,7 +56,7 @@ pub fn get_active() -> Result<Option<msa::Account>> {
     Ok(None)
 }
 
-pub fn set_active(account_id: msa::AccountID) -> Result<()> {
+pub fn set_active(account_id: ArrayString<32>) -> Result<()> {
     let mut document = read()?;
     document.active_account = Some(account_id);
     write(&document)?;
