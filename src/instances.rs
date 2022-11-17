@@ -54,7 +54,8 @@ impl InstancesView {
             Err(_) => text("Failed to load instances").into(),
         };
 
-        column![heading, vertical_space(Length::Units(20)), instances_list]
+        column![heading, instances_list]
+            .spacing(20)
             .padding(20)
             .into()
     }
