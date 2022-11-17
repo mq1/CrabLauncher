@@ -28,6 +28,7 @@ impl AboutView {
             image(LOGO_PATH).height(Length::Units(200)),
             text(APP_NAME).size(50),
             text(APP_VERSION),
+            text("Made with <3 in Rust by Manuel Quarneti"),
             vertical_space(Length::Fill),
             row![
                 button("Repository").on_press(Message::OpenURL(REPOSITORY.to_string())),
