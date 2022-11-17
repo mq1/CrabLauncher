@@ -3,7 +3,7 @@
 
 use color_eyre::Result;
 use iced::{
-    widget::{button, column, container, horizontal_space, radio, row, text, vertical_space},
+    widget::{button, column, container, horizontal_space, radio, row, text},
     Element, Length,
 };
 
