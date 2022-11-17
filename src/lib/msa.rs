@@ -184,7 +184,6 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
         mc_id: minecraft_profile.id,
         mc_access_token: minecraft_response.access_token,
         mc_username: minecraft_profile.name,
-        is_active: false,
     };
 
     Ok(account)
@@ -196,7 +195,6 @@ pub struct Account {
     pub mc_id: String,
     pub mc_access_token: String,
     pub mc_username: String,
-    pub is_active: bool,
 }
 
 #[derive(Deserialize)]
