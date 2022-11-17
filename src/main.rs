@@ -47,6 +47,7 @@ pub enum Message {
     OpenURL(String),
     RemoveInstance(String),
     RemoveAccount(lib::msa::Account),
+    AccountSelected(lib::msa::AccountID),
 }
 
 impl Application for IceLauncher {
@@ -118,6 +119,10 @@ impl Application for IceLauncher {
                     lib::accounts::remove(account).unwrap();
                     self.accounts_view.document = lib::accounts::read();
                 }
+            }
+            Message::AccountSelected(account) => {
+                lib::accounts::set_active(account).unwrap();
+                self.accounts_view.document = lib::accounts::read();
             }
         }
         Command::none()
