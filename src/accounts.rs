@@ -37,7 +37,6 @@ impl AccountsView {
                                 radio(account.mc_username.to_owned(), account.mc_id, document.active_account, Message::AccountSelected),
                                 horizontal_space(Length::Fill),
                                 button("Remove").on_press(Message::RemoveAccount(account.clone())),
-                                button("Select"),
                             ]
                             .spacing(10)
                             .padding(10),
