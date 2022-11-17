@@ -8,7 +8,7 @@ use base64ct::{Base64UrlUnpadded, Encoding};
 use color_eyre::eyre::{bail, Result};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use url::Url;
@@ -179,9 +179,13 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
         .send()?
         .json::<MinecraftProfile>()?;
 
+    let mut buf = [0u8; 16];
+    let id = base16ct::lower::decode(minecraft_profile.id, &mut buf).unwrap();
+    let id: [u8; 16] = id.try_into().unwrap();
+
     let account = Account {
         ms_refresh_token: refresh_token,
-        mc_id: minecraft_profile.id,
+        mc_id: AccountID(id),
         mc_access_token: minecraft_response.access_token,
         mc_username: minecraft_profile.name,
     };
@@ -189,10 +193,36 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
     Ok(account)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AccountID(pub [u8; 16]);
+
+impl Serialize for AccountID {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let res = base16ct::lower::encode_string(&self.0);
+        serializer.serialize_str(&res)
+    }
+}
+
+impl<'de> Deserialize<'de> for AccountID {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let lower_hex_str: &str = Deserialize::deserialize(deserializer)?;
+        let res = base16ct::lower::decode_vec(lower_hex_str).unwrap();
+        let res = res.try_into().unwrap();
+
+        Ok(AccountID(res))
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Account {
     pub ms_refresh_token: String,
-    pub mc_id: String,
+    pub mc_id: AccountID,
     pub mc_access_token: String,
     pub mc_username: String,
 }

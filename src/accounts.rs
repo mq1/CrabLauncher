@@ -3,7 +3,7 @@
 
 use color_eyre::Result;
 use iced::{
-    widget::{button, column, container, horizontal_space, row, text, vertical_space},
+    widget::{button, column, container, horizontal_space, row, text, vertical_space, radio},
     Element, Length,
 };
 
@@ -34,7 +34,7 @@ impl AccountsView {
                     .map(|account| {
                         container(
                             row![
-                                text(account.mc_username.clone()),
+                                radio(account.mc_username.to_owned(), account.mc_id, document.active_account, Message::AccountSelected),
                                 horizontal_space(Length::Fill),
                                 button("Remove").on_press(Message::RemoveAccount(account.clone())),
                                 button("Select"),
