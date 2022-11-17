@@ -3,7 +3,7 @@
 
 use color_eyre::Result;
 use iced::{
-    widget::{button, column, container, horizontal_space, row, text, vertical_space, radio},
+    widget::{button, column, container, horizontal_space, radio, row, text, vertical_space},
     Element, Length,
 };
 
@@ -34,7 +34,12 @@ impl AccountsView {
                     .map(|account| {
                         container(
                             row![
-                                radio(account.mc_username.to_owned(), account.mc_id, document.active_account, Message::AccountSelected),
+                                radio(
+                                    account.mc_username.to_owned(),
+                                    account.mc_id,
+                                    document.active_account,
+                                    Message::AccountSelected
+                                ),
                                 horizontal_space(Length::Fill),
                                 button("Remove").on_press(Message::RemoveAccount(account.clone())),
                             ]
@@ -51,8 +56,13 @@ impl AccountsView {
             Err(_) => text("Failed to load accounts").into(),
         };
 
-        column![heading, vertical_space(Length::Units(20)), accounts]
-            .padding(20)
-            .into()
+        column![
+            heading,
+            accounts,
+            button("Add account").on_press(Message::AddAccount),
+        ]
+        .spacing(20)
+        .padding(20)
+        .into()
     }
 }

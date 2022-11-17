@@ -48,6 +48,7 @@ pub enum Message {
     OpenURL(String),
     RemoveInstance(String),
     RemoveAccount(lib::msa::Account),
+    AddAccount,
     AccountSelected(ArrayString<32>),
     GotUpdates(Result<Option<(String, String)>, String>),
 }
@@ -124,6 +125,10 @@ impl Application for IceLauncher {
             }
             Message::AccountSelected(account) => {
                 lib::accounts::set_active(account).unwrap();
+                self.accounts_view.document = lib::accounts::read();
+            }
+            Message::AddAccount => {
+                lib::accounts::add().unwrap();
                 self.accounts_view.document = lib::accounts::read();
             }
             Message::GotUpdates(updates) => {

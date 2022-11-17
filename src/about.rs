@@ -38,8 +38,8 @@ impl AboutView {
             ]
             .spacing(10),
         ]
+        .spacing(20)
         .padding(20)
-        .spacing(10)
         .align_items(Alignment::Center)
         .into()
     }

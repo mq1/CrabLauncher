@@ -47,8 +47,6 @@ impl NewsView {
             None => text("Loading news...").into(),
         };
 
-        column!(heading, vertical_space(Length::Units(20)), news)
-            .padding(20)
-            .into()
+        column![heading, news].spacing(20).padding(20).into()
     }
 }
