@@ -49,6 +49,7 @@ pub enum Message {
     RemoveInstance(String),
     RemoveAccount(lib::msa::Account),
     AccountSelected(ArrayString<32>),
+    GotUpdates(Result<Option<(String, String)>, String>),
 }
 
 impl Application for IceLauncher {
@@ -66,7 +67,7 @@ impl Application for IceLauncher {
                 news_view: news::NewsView::new(),
                 about_view: about::AboutView::new(),
             },
-            Command::none(),
+            Command::perform(check_for_updates(), Message::GotUpdates),
         )
     }
 
@@ -125,6 +126,20 @@ impl Application for IceLauncher {
                 lib::accounts::set_active(account).unwrap();
                 self.accounts_view.document = lib::accounts::read();
             }
+            Message::GotUpdates(updates) => {
+                if let Ok(Some((version, url))) = updates {
+                    let yes = MessageDialog::new()
+                        .set_type(MessageType::Info)
+                        .set_title("Update available")
+                        .set_text(&format!("A new version of Ice Launcher is available: {version}, would you like to download it?"))
+                        .show_confirm()
+                        .unwrap();
+
+                    if yes {
+                        open::that(url).unwrap();
+                    }
+                }
+            }
         }
         Command::none()
     }
@@ -165,6 +180,10 @@ impl Application for IceLauncher {
     fn theme(&self) -> Self::Theme {
         Theme::Dark
     }
+}
+
+async fn check_for_updates() -> Result<Option<(String, String)>, String> {
+    lib::launcher_updater::check_for_updates().map_err(|e| e.to_string())
 }
 
 async fn fetch_news() -> Result<lib::minecraft_news::News, String> {
