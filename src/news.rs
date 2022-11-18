@@ -9,7 +9,7 @@ use iced::{
 
 use crate::{lib, style, Message};
 
-pub fn view(news: &Option<Result<lib::minecraft_news::News, String>>) -> Element<'static, Message> {
+pub fn view(news: &Option<Result<lib::minecraft_news::News, String>>) -> Element<Message> {
     let heading = text("News").size(50);
 
     let news: Element<_> = match news {
