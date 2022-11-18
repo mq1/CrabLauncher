@@ -47,6 +47,8 @@ pub enum Message {
     FetchedNews(Result<lib::minecraft_news::News, String>),
     OpenURL(String),
     RemoveInstance(String),
+    LaunchInstance(lib::instances::Instance),
+    InstanceClosed(Result<(), String>),
     RemoveAccount(lib::msa::Account),
     AddAccount,
     AccountAdded(Result<(), String>),
@@ -104,6 +106,25 @@ impl Application for IceLauncher {
                     lib::instances::remove(&instance).unwrap();
                     self.instances = lib::instances::list();
                 }
+            }
+            Message::LaunchInstance(instance) => {
+                async fn launch(instance: lib::instances::Instance) -> Result<(), String> {
+                    lib::instances::launch(instance).map_err(|e| e.to_string())
+                }
+
+                return Command::perform(launch(instance), Message::InstanceClosed);
+            }
+            Message::InstanceClosed(res) => {
+                if let Err(e) = res {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error")
+                        .set_text(&e)
+                        .show_alert()
+                        .unwrap();
+                }
+
+                self.current_view = View::Instances;
             }
             Message::RemoveAccount(account) => {
                 let yes = MessageDialog::new()
