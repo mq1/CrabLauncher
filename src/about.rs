@@ -10,7 +10,7 @@ use crate::Message;
 
 const APP_NAME: &str = "Ice Launcher";
 const APP_VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
-const COPYRIGHT: &str = "Copyright © 2022 Manuel Quarneti";
+const COPYRIGHT: &str = "GPL-3.0-only Licensed | Copyright © 2022 Manuel Quarneti";
 const LOGO_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/ice-launcher.png");
 const REPOSITORY: &str = "https://github.com/mq1/ice-launcher";
 const LICENSE: &str = "https://github.com/mq1/ice-launcher/blob/main/COPYING";
