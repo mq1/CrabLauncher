@@ -6,6 +6,7 @@ mod accounts;
 mod instances;
 mod lib;
 mod loading;
+mod new_instance;
 mod news;
 mod settings;
 mod style;
@@ -26,6 +27,10 @@ pub fn main() -> iced::Result {
 struct IceLauncher {
     current_view: View,
     instances: Result<Vec<lib::instances::Instance>>,
+    new_instance_name: String,
+    available_minecraft_versions:
+        Option<Result<Vec<lib::minecraft_version_manifest::Version>, String>>,
+    selected_minecraft_version: Option<lib::minecraft_version_manifest::Version>,
     accounts_document: Result<lib::accounts::AccountsDocument>,
     news: Option<Result<lib::minecraft_news::News, String>>,
     config: Result<lib::launcher_config::LauncherConfig>,
@@ -34,6 +39,7 @@ struct IceLauncher {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum View {
     Instances,
+    NewInstance,
     Accounts,
     News,
     About,
@@ -49,6 +55,9 @@ pub enum Message {
     RemoveInstance(String),
     LaunchInstance(lib::instances::Instance),
     InstanceClosed(Result<(), String>),
+    NewInstanceNameChanged(String),
+    FetchedVersions(Result<Vec<lib::minecraft_version_manifest::Version>, String>),
+    VersionSelected(lib::minecraft_version_manifest::Version),
     RemoveAccount(lib::msa::Account),
     AddAccount,
     AccountAdded(Result<(), String>),
@@ -73,6 +82,9 @@ impl Application for IceLauncher {
             Self {
                 current_view: View::Instances,
                 instances: lib::instances::list(),
+                new_instance_name: "".to_string(),
+                available_minecraft_versions: None,
+                selected_minecraft_version: None,
                 accounts_document: lib::accounts::read(),
                 news: None,
                 config: lib::launcher_config::read(),
@@ -92,11 +104,19 @@ impl Application for IceLauncher {
                     lib::minecraft_news::fetch(None).map_err(|e| e.to_string())
                 }
 
-                let is_news = matches!(view, View::News);
-                self.current_view = view;
+                async fn fetch_versions(
+                ) -> Result<Vec<lib::minecraft_version_manifest::Version>, String> {
+                    lib::minecraft_version_manifest::fetch_versions().map_err(|e| e.to_string())
+                }
 
-                if is_news && self.news.is_none() {
+                self.current_view = view.clone();
+
+                if view == View::News && self.news.is_none() {
                     return Command::perform(fetch_news(), Message::FetchedNews);
+                }
+
+                if view == View::NewInstance && self.available_minecraft_versions.is_none() {
+                    return Command::perform(fetch_versions(), Message::FetchedVersions);
                 }
             }
             Message::FetchedNews(news) => {
@@ -136,6 +156,15 @@ impl Application for IceLauncher {
                 }
 
                 self.current_view = View::Instances;
+            }
+            Message::NewInstanceNameChanged(name) => {
+                self.new_instance_name = name;
+            }
+            Message::FetchedVersions(versions) => {
+                self.available_minecraft_versions = Some(versions);
+            }
+            Message::VersionSelected(version) => {
+                self.selected_minecraft_version = Some(version);
             }
             Message::RemoveAccount(account) => {
                 let yes = MessageDialog::new()
@@ -259,6 +288,11 @@ impl Application for IceLauncher {
 
         let current_view = match self.current_view {
             View::Instances => instances::view(&self.instances),
+            View::NewInstance => new_instance::view(
+                &self.new_instance_name,
+                &self.available_minecraft_versions,
+                &self.selected_minecraft_version,
+            ),
             View::Accounts => accounts::view(&self.accounts_document),
             View::News => news::view(&self.news),
             View::About => about::view(),
