@@ -57,6 +57,7 @@ pub enum Message {
     UpdatesTogglerChanged(bool),
     UpdateJvmTogglerChanged(bool),
     OptimizeJvmTogglerChanged(bool),
+    UpdateJvmMemory(String),
     ResetConfig,
     SaveConfig,
 }
@@ -203,6 +204,11 @@ impl Application for IceLauncher {
             Message::OptimizeJvmTogglerChanged(enabled) => {
                 let mut config = self.config.as_mut().unwrap();
                 config.automatically_optimize_jvm_arguments = enabled;
+            }
+            Message::UpdateJvmMemory(memory) => {
+                println!("Set memory to {}", memory);
+                let mut config = self.config.as_mut().unwrap();
+                config.jvm_memory = memory;
             }
             Message::ResetConfig => {
                 let yes = MessageDialog::new()
