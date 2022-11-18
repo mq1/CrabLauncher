@@ -8,10 +8,7 @@ use std::{
     path::PathBuf,
 };
 
-use color_eyre::{
-    eyre::{bail, eyre},
-    Result,
-};
+use anyhow::{anyhow, bail, Result};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
@@ -45,7 +42,7 @@ impl AssetIndexInfo {
         let path = self.get_path();
         let url = &self.url;
 
-        fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
+        fs::create_dir_all(path.parent().ok_or(anyhow!("Invalid path"))?)?;
         let mut resp = HTTP_CLIENT.get(url).send()?;
         let file = File::create(&path)?;
         let mut writer = BufWriter::new(file);
@@ -108,7 +105,7 @@ impl Object {
         let path = self.get_path();
         let url = self.get_url()?;
 
-        fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
+        fs::create_dir_all(path.parent().ok_or(anyhow!("Invalid path"))?)?;
         let mut resp = HTTP_CLIENT.get(url).send()?;
         let file = File::create(&path)?;
         let mut writer = BufWriter::new(file);

@@ -3,8 +3,8 @@
 
 use std::{fs, path::PathBuf};
 
+use anyhow::Result;
 use arrayvec::ArrayString;
-use color_eyre::eyre::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 

@@ -4,12 +4,12 @@
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
 
+use anyhow::{anyhow, bail, Result};
 use arrayvec::ArrayString;
 use base64ct::{Base64UrlUnpadded, Encoding};
-use color_eyre::eyre::{bail, eyre, Result};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use url::Url;
@@ -274,7 +274,7 @@ pub fn listen_login_callback(csrf_token: String, pkce_verifier: String) -> Resul
                         let &(ref key, _) = pair;
                         key == "code"
                     })
-                    .ok_or(eyre!("Code not found"))?;
+                    .ok_or(anyhow!("Code not found"))?;
 
                 let (_, value) = code_pair;
                 code = value.into_owned();
@@ -285,7 +285,7 @@ pub fn listen_login_callback(csrf_token: String, pkce_verifier: String) -> Resul
                         let &(ref key, _) = pair;
                         key == "state"
                     })
-                    .ok_or(eyre!("State not found"))?;
+                    .ok_or(anyhow!("State not found"))?;
 
                 let (_, value) = state_pair;
                 state = value.into_owned();

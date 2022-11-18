@@ -3,7 +3,7 @@
 
 use std::{fs, path::PathBuf};
 
-use color_eyre::eyre::Result;
+use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 

@@ -3,7 +3,7 @@
 
 use std::{fs, path::PathBuf, process::Command};
 
-use color_eyre::Result;
+use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
