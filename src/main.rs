@@ -81,6 +81,10 @@ impl Application for IceLauncher {
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             Message::ViewChanged(view) => {
+                async fn fetch_news() -> Result<lib::minecraft_news::News, String> {
+                    lib::minecraft_news::fetch(None).map_err(|e| e.to_string())
+                }
+
                 let is_news = matches!(view, View::News);
                 self.current_view = view;
 
@@ -147,7 +151,12 @@ impl Application for IceLauncher {
                 self.accounts_document = lib::accounts::read();
             }
             Message::AddAccount => {
+                async fn add_account() -> Result<(), String> {
+                    lib::accounts::add().map_err(|e| e.to_string())
+                }
+
                 self.current_view = View::Loading("Logging in...".to_string());
+
                 return Command::perform(add_account(), Message::AccountAdded);
             }
             Message::AccountAdded(res) => {
@@ -222,12 +231,4 @@ impl Application for IceLauncher {
 
 async fn check_for_updates() -> Result<Option<(String, String)>, String> {
     lib::launcher_updater::check_for_updates().map_err(|e| e.to_string())
-}
-
-async fn fetch_news() -> Result<lib::minecraft_news::News, String> {
-    lib::minecraft_news::fetch(None).map_err(|e| e.to_string())
-}
-
-async fn add_account() -> Result<(), String> {
-    lib::accounts::add().map_err(|e| e.to_string())
 }
