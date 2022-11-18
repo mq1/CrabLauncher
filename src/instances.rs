@@ -28,7 +28,7 @@ pub fn view(instances: &Result<Vec<lib::instances::Instance>>) -> Element<Messag
                             horizontal_space(Length::Fill),
                             button("Remove")
                                 .on_press(Message::RemoveInstance(instance.name.clone())),
-                            button("Launch"),
+                            button("Launch").on_press(Message::LaunchInstance(instance.clone())),
                         ]
                         .spacing(10)
                         .padding(10),

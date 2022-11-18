@@ -20,7 +20,7 @@ const OPTIMIZED_FLAGS: &str = "-XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagn
 
 const INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("instances"));
 
-#[derive(Display, Serialize, Deserialize)]
+#[derive(Display, Serialize, Deserialize, Debug, Clone)]
 pub enum InstanceType {
     Vanilla,
     Fabric,
@@ -28,12 +28,13 @@ pub enum InstanceType {
     ModrinthModpack,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct InstanceInfo {
     pub instance_type: InstanceType,
     pub minecraft_version: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct Instance {
     pub name: String,
     pub info: InstanceInfo,
