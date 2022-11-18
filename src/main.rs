@@ -27,11 +27,9 @@ pub fn main() -> Result<()> {
 
 struct IceLauncher {
     current_view: View,
-    instances_view: instances::InstancesView,
-    accounts_view: accounts::AccountsView,
-    news_view: news::NewsView,
-    about_view: about::AboutView,
-    loading_view: loading::LoadingView,
+    instances: Result<Vec<lib::instances::Instance>>,
+    accounts_document: Result<lib::accounts::AccountsDocument>,
+    news: Option<Result<lib::minecraft_news::News, String>>,
 }
 
 #[derive(Debug, Clone)]
@@ -40,7 +38,7 @@ pub enum View {
     Accounts,
     News,
     About,
-    Loading,
+    Loading(String),
 }
 
 #[derive(Debug, Clone)]
@@ -67,11 +65,9 @@ impl Application for IceLauncher {
         (
             Self {
                 current_view: View::Instances,
-                instances_view: instances::InstancesView::new(),
-                accounts_view: accounts::AccountsView::new(),
-                news_view: news::NewsView::new(),
-                about_view: about::AboutView::new(),
-                loading_view: loading::LoadingView::new(),
+                instances: lib::instances::list(),
+                accounts_document: lib::accounts::read(),
+                news: None,
             },
             Command::perform(check_for_updates(), Message::GotUpdates),
         )
@@ -89,12 +85,12 @@ impl Application for IceLauncher {
             Message::OpenNews => {
                 self.current_view = View::News;
 
-                if self.news_view.news.is_none() {
+                if self.news.is_none() {
                     return Command::perform(fetch_news(), Message::FetchedNews);
                 }
             }
             Message::FetchedNews(news) => {
-                self.news_view.news = Some(news);
+                self.news = Some(news);
             }
             Message::OpenURL(url) => {
                 open::that(url).unwrap();
@@ -109,7 +105,7 @@ impl Application for IceLauncher {
 
                 if yes {
                     lib::instances::remove(&instance).unwrap();
-                    self.instances_view.instances = lib::instances::list();
+                    self.instances = lib::instances::list();
                 }
             }
             Message::RemoveAccount(account) => {
@@ -125,16 +121,15 @@ impl Application for IceLauncher {
 
                 if yes {
                     lib::accounts::remove(account).unwrap();
-                    self.accounts_view.document = lib::accounts::read();
+                    self.accounts_document = lib::accounts::read();
                 }
             }
             Message::AccountSelected(account) => {
                 lib::accounts::set_active(account).unwrap();
-                self.accounts_view.document = lib::accounts::read();
+                self.accounts_document = lib::accounts::read();
             }
             Message::AddAccount => {
-                self.current_view = View::Loading;
-                self.loading_view.message = "Logging in...".to_string();
+                self.current_view = View::Loading("Logging in...".to_string());
                 return Command::perform(add_account(), Message::AccountAdded);
             }
             Message::AccountAdded(res) => {
@@ -148,7 +143,7 @@ impl Application for IceLauncher {
                 }
 
                 self.current_view = View::Accounts;
-                self.accounts_view.document = lib::accounts::read();
+                self.accounts_document = lib::accounts::read();
             }
             Message::GotUpdates(updates) => {
                 if let Ok(Some((version, url))) = updates {
@@ -192,11 +187,11 @@ impl Application for IceLauncher {
         .style(style::card());
 
         let current_view = match self.current_view {
-            View::Instances => self.instances_view.view(),
-            View::Accounts => self.accounts_view.view(),
-            View::News => self.news_view.view(),
-            View::About => self.about_view.view(),
-            View::Loading => self.loading_view.view(),
+            View::Instances => instances::view(&self.instances),
+            View::Accounts => accounts::view(&self.accounts_document),
+            View::News => news::view(&self.news),
+            View::About => about::view(),
+            View::Loading(ref message) => loading::view(message),
         };
 
         row![navbar, current_view].into()
