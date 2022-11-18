@@ -7,10 +7,7 @@ use std::{
     path::PathBuf,
 };
 
-use color_eyre::{
-    eyre::{bail, eyre},
-    Result,
-};
+use anyhow::{anyhow, bail, Result};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use sha1::{Digest, Sha1};
@@ -102,7 +99,7 @@ impl MinecraftVersionMeta {
         }
 
         if !path.exists() {
-            fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
+            fs::create_dir_all(path.parent().ok_or(anyhow!("Invalid path"))?)?;
             let mut response = HTTP_CLIENT.get(url).send()?;
             let file = File::create(&path)?;
             let mut writer = BufWriter::new(file);

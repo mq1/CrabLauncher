@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use color_eyre::eyre::{bail, Result};
+use anyhow::{bail, Result};
 use flate2::read::GzDecoder;
 use once_cell::sync::Lazy;
 use serde::Deserialize;

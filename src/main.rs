@@ -9,8 +9,8 @@ mod loading;
 mod news;
 mod style;
 
+use anyhow::Result;
 use arrayvec::ArrayString;
-use color_eyre::Result;
 use iced::{
     executor,
     widget::{button, column, container, row, vertical_space},
@@ -18,11 +18,8 @@ use iced::{
 };
 use native_dialog::{MessageDialog, MessageType};
 
-pub fn main() -> Result<()> {
-    color_eyre::install()?;
-    IceLauncher::run(Settings::default())?;
-
-    Ok(())
+pub fn main() -> iced::Result {
+    IceLauncher::run(Settings::default())
 }
 
 struct IceLauncher {
