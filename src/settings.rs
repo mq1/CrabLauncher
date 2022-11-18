@@ -3,7 +3,9 @@
 
 use anyhow::Result;
 use iced::{
-    widget::{button, column, container, horizontal_space, row, text, toggler, vertical_space},
+    widget::{
+        button, column, container, horizontal_space, row, text, text_input, toggler, vertical_space,
+    },
     Element, Length,
 };
 
@@ -33,6 +35,13 @@ pub fn view(config: &Result<lib::launcher_config::LauncherConfig>) -> Element<Me
                 config.automatically_optimize_jvm_arguments,
                 Message::OptimizeJvmTogglerChanged,
             ))
+            .padding(10)
+            .style(style::card()),
+            container(row![
+                text("JVM memory"),
+                horizontal_space(Length::Fill),
+                text_input("JVM memory", &config.jvm_memory, Message::UpdateJvmMemory),
+            ])
             .padding(10)
             .style(style::card()),
         ]
