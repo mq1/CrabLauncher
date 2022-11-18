@@ -32,7 +32,7 @@ struct IceLauncher {
     news: Option<Result<lib::minecraft_news::News, String>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum View {
     Instances,
     Accounts,
@@ -44,7 +44,6 @@ pub enum View {
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewChanged(View),
-    OpenNews,
     FetchedNews(Result<lib::minecraft_news::News, String>),
     OpenURL(String),
     RemoveInstance(String),
@@ -80,12 +79,10 @@ impl Application for IceLauncher {
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             Message::ViewChanged(view) => {
+                let is_news = matches!(view, View::News);
                 self.current_view = view;
-            }
-            Message::OpenNews => {
-                self.current_view = View::News;
 
-                if self.news.is_none() {
+                if is_news && self.news.is_none() {
                     return Command::perform(fetch_news(), Message::FetchedNews);
                 }
             }
@@ -173,7 +170,7 @@ impl Application for IceLauncher {
                     .on_press(Message::ViewChanged(View::Accounts))
                     .width(Length::Fill),
                 button("News")
-                    .on_press(Message::OpenNews)
+                    .on_press(Message::ViewChanged(View::News))
                     .width(Length::Fill),
                 vertical_space(Length::Fill),
                 button("About")
