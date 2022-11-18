@@ -262,29 +262,32 @@ impl Application for IceLauncher {
 
     fn view(&self) -> Element<Self::Message> {
         let navbar = container(
-            column![
-                button("Instances")
-                    .on_press(Message::ViewChanged(View::Instances))
-                    .width(Length::Fill),
-                button("Accounts")
-                    .on_press(Message::ViewChanged(View::Accounts))
-                    .width(Length::Fill),
-                button("News")
-                    .on_press(Message::ViewChanged(View::News))
-                    .width(Length::Fill),
-                vertical_space(Length::Fill),
-                button("Settings")
-                    .on_press(Message::ViewChanged(View::Settings))
-                    .width(Length::Fill),
-                button("About")
-                    .on_press(Message::ViewChanged(View::About))
-                    .width(Length::Fill),
-            ]
-            .spacing(10)
-            .padding(20)
-            .width(Length::Units(150)),
+            container(
+                column![
+                    button("Instances")
+                        .on_press(Message::ViewChanged(View::Instances))
+                        .width(Length::Fill),
+                    button("Accounts")
+                        .on_press(Message::ViewChanged(View::Accounts))
+                        .width(Length::Fill),
+                    button("News")
+                        .on_press(Message::ViewChanged(View::News))
+                        .width(Length::Fill),
+                    vertical_space(Length::Fill),
+                    button("Settings")
+                        .on_press(Message::ViewChanged(View::Settings))
+                        .width(Length::Fill),
+                    button("About")
+                        .on_press(Message::ViewChanged(View::About))
+                        .width(Length::Fill),
+                ]
+                .spacing(10)
+                .padding(20)
+                .width(Length::Units(150)),
+            )
+            .style(style::card()),
         )
-        .style(style::card());
+        .padding(10);
 
         let current_view = match self.current_view {
             View::Instances => instances::view(&self.instances),
