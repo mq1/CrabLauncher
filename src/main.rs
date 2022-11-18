@@ -7,6 +7,7 @@ mod instances;
 mod lib;
 mod loading;
 mod news;
+mod settings;
 mod style;
 
 use anyhow::Result;
@@ -27,6 +28,7 @@ struct IceLauncher {
     instances: Result<Vec<lib::instances::Instance>>,
     accounts_document: Result<lib::accounts::AccountsDocument>,
     news: Option<Result<lib::minecraft_news::News, String>>,
+    config: Result<lib::launcher_config::LauncherConfig>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,6 +37,7 @@ pub enum View {
     Accounts,
     News,
     About,
+    Settings,
     Loading(String),
 }
 
@@ -51,6 +54,11 @@ pub enum Message {
     AccountAdded(Result<(), String>),
     AccountSelected(ArrayString<32>),
     GotUpdates(Result<Option<(String, String)>, String>),
+    UpdatesTogglerChanged(bool),
+    UpdateJvmTogglerChanged(bool),
+    OptimizeJvmTogglerChanged(bool),
+    ResetConfig,
+    SaveConfig,
 }
 
 impl Application for IceLauncher {
@@ -66,6 +74,7 @@ impl Application for IceLauncher {
                 instances: lib::instances::list(),
                 accounts_document: lib::accounts::read(),
                 news: None,
+                config: lib::launcher_config::read(),
             },
             Command::perform(check_for_updates(), Message::GotUpdates),
         )
@@ -183,6 +192,35 @@ impl Application for IceLauncher {
                     }
                 }
             }
+            Message::UpdatesTogglerChanged(enabled) => {
+                let mut config = self.config.as_mut().unwrap();
+                config.automatically_check_for_updates = enabled;
+            }
+            Message::UpdateJvmTogglerChanged(enabled) => {
+                let mut config = self.config.as_mut().unwrap();
+                config.automatically_update_jvm = enabled;
+            }
+            Message::OptimizeJvmTogglerChanged(enabled) => {
+                let mut config = self.config.as_mut().unwrap();
+                config.automatically_optimize_jvm_arguments = enabled;
+            }
+            Message::ResetConfig => {
+                let yes = MessageDialog::new()
+                    .set_type(MessageType::Warning)
+                    .set_title("Reset config")
+                    .set_text("Are you sure you want to reset the config?")
+                    .show_confirm()
+                    .unwrap();
+
+                if yes {
+                    let config = lib::launcher_config::LauncherConfig::default();
+                    lib::launcher_config::write(&config).unwrap();
+                    self.config = lib::launcher_config::read();
+                }
+            }
+            Message::SaveConfig => {
+                lib::launcher_config::write(self.config.as_ref().unwrap()).unwrap();
+            }
         }
         Command::none()
     }
@@ -200,6 +238,9 @@ impl Application for IceLauncher {
                     .on_press(Message::ViewChanged(View::News))
                     .width(Length::Fill),
                 vertical_space(Length::Fill),
+                button("Settings")
+                    .on_press(Message::ViewChanged(View::Settings))
+                    .width(Length::Fill),
                 button("About")
                     .on_press(Message::ViewChanged(View::About))
                     .width(Length::Fill),
@@ -215,6 +256,7 @@ impl Application for IceLauncher {
             View::Accounts => accounts::view(&self.accounts_document),
             View::News => news::view(&self.news),
             View::About => about::view(),
+            View::Settings => settings::view(&self.config),
             View::Loading(ref message) => loading::view(message),
         };
 
