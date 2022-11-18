@@ -104,7 +104,6 @@ pub fn new(instance_name: String, minecraft_version: Version) -> Result<()> {
     let path = instance_dir.join("instance.toml");
     let content = toml::to_string_pretty(&info)?;
     fs::write(&path, content)?;
-    let instances = list()?;
 
     Ok(())
 }

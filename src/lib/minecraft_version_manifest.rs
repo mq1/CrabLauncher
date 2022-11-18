@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use core::fmt;
 use std::{
     fs::{self, File},
     io::{self, BufReader, BufWriter},
@@ -31,7 +32,7 @@ pub struct Latest {
     pub snapshot: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Version {
     pub id: String,
     #[serde(rename = "type")]
@@ -43,6 +44,12 @@ pub struct Version {
     sha1: String,
     #[serde(rename = "complianceLevel")]
     compliance_level: i32,
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.id)
+    }
 }
 
 impl Version {
@@ -102,7 +109,7 @@ impl Version {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum VersionType {
     #[serde(rename = "old_alpha")]
     OldAlpha,
@@ -120,7 +127,7 @@ fn fetch_manifest() -> Result<MinecraftVersionManifest> {
     Ok(manifest)
 }
 
-fn fetch_versions() -> Result<Vec<Version>> {
+pub fn fetch_versions() -> Result<Vec<Version>> {
     let manifest = fetch_manifest()?;
     let versions = manifest.versions;
 

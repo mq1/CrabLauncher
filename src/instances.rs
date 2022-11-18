@@ -7,7 +7,7 @@ use iced::{
     Element, Length,
 };
 
-use crate::{lib, style, Message};
+use crate::{lib, style, Message, View};
 
 pub fn view(instances: &Result<Vec<lib::instances::Instance>>) -> Element<Message> {
     let heading = text("Instances").size(50);
@@ -43,7 +43,10 @@ pub fn view(instances: &Result<Vec<lib::instances::Instance>>) -> Element<Messag
         Err(_) => text("Failed to load instances").into(),
     };
 
-    column![heading, instances_list]
+    let new_instance_button =
+        button("New instance").on_press(Message::ViewChanged(View::NewInstance));
+
+    column![heading, instances_list, new_instance_button]
         .spacing(20)
         .padding(20)
         .into()
