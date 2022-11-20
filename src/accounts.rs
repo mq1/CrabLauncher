@@ -9,45 +9,61 @@ use iced::{
 
 use crate::{lib, style, Message};
 
-pub fn view(document: &Result<lib::accounts::AccountsDocument>) -> Element<Message> {
-    let heading = text("Accounts").size(50);
+pub struct Accounts {
+    document: Result<lib::accounts::AccountsDocument>,
+}
 
-    let accounts: Element<_> = match document {
-        Ok(document) => column(
-            document
-                .accounts
-                .iter()
-                .map(|account| {
-                    container(
-                        row![
-                            radio(
-                                account.mc_username.to_owned(),
-                                account.mc_id,
-                                document.active_account,
-                                Message::AccountSelected
-                            ),
-                            horizontal_space(Length::Fill),
-                            button("Remove").on_press(Message::RemoveAccount(account.clone())),
-                        ]
-                        .spacing(10)
-                        .padding(10),
-                    )
-                    .style(style::card())
-                    .into()
-                })
-                .collect(),
-        )
-        .spacing(10)
-        .into(),
-        Err(_) => text("Failed to load accounts").into(),
-    };
+impl Accounts {
+    pub fn new() -> Self {
+        Self {
+            document: lib::accounts::read(),
+        }
+    }
 
-    column![
-        heading,
-        accounts,
-        button("Add account").on_press(Message::AddAccount),
-    ]
-    .spacing(20)
-    .padding(20)
-    .into()
+    pub fn refresh(&mut self) {
+        self.document = lib::accounts::read();
+    }
+
+    pub fn view(&self) -> Element<Message> {
+        let heading = text("Accounts").size(50);
+
+        let accounts: Element<_> = match &self.document {
+            Ok(document) => column(
+                document
+                    .accounts
+                    .iter()
+                    .map(|account| {
+                        container(
+                            row![
+                                radio(
+                                    account.mc_username.to_owned(),
+                                    account.mc_id,
+                                    document.active_account,
+                                    Message::AccountSelected
+                                ),
+                                horizontal_space(Length::Fill),
+                                button("Remove").on_press(Message::RemoveAccount(account.clone())),
+                            ]
+                            .spacing(10)
+                            .padding(10),
+                        )
+                        .style(style::card())
+                        .into()
+                    })
+                    .collect(),
+            )
+            .spacing(10)
+            .into(),
+            Err(_) => text("Failed to load accounts").into(),
+        };
+
+        column![
+            heading,
+            accounts,
+            button("Add account").on_press(Message::AddAccount),
+        ]
+        .spacing(20)
+        .padding(20)
+        .into()
+    }
 }
