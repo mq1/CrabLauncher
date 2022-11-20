@@ -24,6 +24,10 @@ impl Instances {
         self.list = lib::instances::list();
     }
 
+    pub async fn launch(instance: lib::instances::Instance) -> Result<(), String> {
+        lib::instances::launch(instance).map_err(|e| e.to_string())
+    }
+
     pub fn view(&self) -> Element<Message> {
         let heading = text("Instances").size(50);
 
