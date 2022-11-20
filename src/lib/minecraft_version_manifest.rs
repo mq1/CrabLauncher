@@ -131,5 +131,18 @@ pub fn fetch_versions() -> Result<Vec<Version>> {
     let manifest = fetch_manifest()?;
     let versions = manifest.versions;
 
-    Ok(versions)
+    // Filter out versions < 1.19
+    let mut filtered_versions = Vec::new();
+
+    for version in versions {
+        let stop = version.id == "1.19";
+
+        filtered_versions.push(version);
+
+        if stop {
+            break;
+        }
+    }
+
+    Ok(filtered_versions)
 }
