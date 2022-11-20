@@ -8,42 +8,58 @@ use iced::{
 
 use crate::{lib, style, Message};
 
-pub fn view<'a>(
-    name: &'a str,
-    available_versions: &'a Option<Result<Vec<lib::minecraft_version_manifest::Version>, String>>,
-    selected_version: &'a Option<lib::minecraft_version_manifest::Version>,
-) -> Element<'a, Message> {
-    let heading = text("New instance").size(50);
+pub struct NewInstance {
+    pub name: String,
+    pub available_versions: Option<Result<Vec<lib::minecraft_version_manifest::Version>, String>>,
+    pub selected_version: Option<lib::minecraft_version_manifest::Version>,
+}
 
-    let instance_name = container(row![
-        text("Instance name"),
-        horizontal_space(Length::Fill),
-        text_input("Instance name", name, Message::NewInstanceNameChanged),
-    ])
-    .padding(10)
-    .style(style::card());
+impl NewInstance {
+    pub fn new() -> Self {
+        Self {
+            name: String::new(),
+            available_versions: None,
+            selected_version: None,
+        }
+    }
 
-    let version: Element<_> = match available_versions {
-        Some(Ok(versions)) => pick_list(
-            versions,
-            selected_version.to_owned(),
-            Message::VersionSelected,
-        )
-        .into(),
-        Some(Err(error)) => text(error).into(),
-        None => text("Loading versions...").into(),
-    };
+    pub async fn fetch_versions() -> Result<Vec<lib::minecraft_version_manifest::Version>, String> {
+        lib::minecraft_version_manifest::fetch_versions().map_err(|e| e.to_string())
+    }
 
-    let version = container(row![
-        text("Minecraft version"),
-        horizontal_space(Length::Fill),
-        version,
-    ])
-    .padding(10)
-    .style(style::card());
+    pub fn view(&self) -> Element<Message> {
+        let heading = text("New instance").size(50);
 
-    column![heading, instance_name, version]
-        .padding(20)
-        .spacing(20)
-        .into()
+        let instance_name = container(row![
+            text("Instance name"),
+            horizontal_space(Length::Fill),
+            text_input("Instance name", &self.name, Message::NewInstanceNameChanged),
+        ])
+        .padding(10)
+        .style(style::card());
+
+        let version: Element<_> = match &self.available_versions {
+            Some(Ok(versions)) => pick_list(
+                versions,
+                self.selected_version.to_owned(),
+                Message::VersionSelected,
+            )
+            .into(),
+            Some(Err(error)) => text(error).into(),
+            None => text("Loading versions...").into(),
+        };
+
+        let version = container(row![
+            text("Minecraft version"),
+            horizontal_space(Length::Fill),
+            version,
+        ])
+        .padding(10)
+        .style(style::card());
+
+        column![heading, instance_name, version]
+            .padding(20)
+            .spacing(20)
+            .into()
+    }
 }

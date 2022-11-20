@@ -9,34 +9,48 @@ use iced::{
 
 use crate::{lib, style, Message};
 
-pub fn view(news: &Option<Result<lib::minecraft_news::News, String>>) -> Element<Message> {
-    let heading = text("News").size(50);
+pub struct News {
+    pub news: Option<Result<lib::minecraft_news::News, String>>,
+}
 
-    let news: Element<_> = match news {
-        Some(Ok(news)) => scrollable(
-            column(
-                news.article_grid
-                    .iter()
-                    .map(|article| {
-                        container(
-                            row![
-                                text(&article.default_tile.title),
-                                horizontal_space(Length::Fill),
-                                button("Open").on_press(Message::OpenURL(article.get_url())),
-                            ]
-                            .padding(10),
-                        )
-                        .style(style::card())
-                        .into()
-                    })
-                    .collect(),
+impl News {
+    pub fn new() -> Self {
+        Self { news: None }
+    }
+
+    pub async fn fetch() -> Result<lib::minecraft_news::News, String> {
+        lib::minecraft_news::fetch(None).map_err(|e| e.to_string())
+    }
+
+    pub fn view(&self) -> Element<Message> {
+        let heading = text("News").size(50);
+
+        let news: Element<_> = match &self.news {
+            Some(Ok(news)) => scrollable(
+                column(
+                    news.article_grid
+                        .iter()
+                        .map(|article| {
+                            container(
+                                row![
+                                    text(&article.default_tile.title),
+                                    horizontal_space(Length::Fill),
+                                    button("Open").on_press(Message::OpenURL(article.get_url())),
+                                ]
+                                .padding(10),
+                            )
+                            .style(style::card())
+                            .into()
+                        })
+                        .collect(),
+                )
+                .spacing(10),
             )
-            .spacing(10),
-        )
-        .into(),
-        Some(Err(e)) => text(format!("Error: {}", e)).into(),
-        None => text("Loading news...").into(),
-    };
+            .into(),
+            Some(Err(e)) => text(format!("Error: {}", e)).into(),
+            None => text("Loading news...").into(),
+        };
 
-    column![heading, news].spacing(20).padding(20).into()
+        column![heading, news].spacing(20).padding(20).into()
+    }
 }

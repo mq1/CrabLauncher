@@ -11,29 +11,35 @@ mod news;
 mod settings;
 mod style;
 
+use about::About;
+use accounts::Accounts;
 use anyhow::Result;
 use arrayvec::ArrayString;
 use iced::{
     executor,
     widget::{button, column, container, row, vertical_space},
-    Application, Command, Element, Length, Settings, Theme,
+    Application, Command, Element, Length, Settings as IcedSettings, Theme,
 };
+use instances::Instances;
+use loading::Loading;
 use native_dialog::{MessageDialog, MessageType};
+use new_instance::NewInstance;
+use news::News;
+use settings::Settings;
 
 pub fn main() -> iced::Result {
-    IceLauncher::run(Settings::default())
+    IceLauncher::run(IcedSettings::default())
 }
 
 struct IceLauncher {
     current_view: View,
-    instances: Result<Vec<lib::instances::Instance>>,
-    new_instance_name: String,
-    available_minecraft_versions:
-        Option<Result<Vec<lib::minecraft_version_manifest::Version>, String>>,
-    selected_minecraft_version: Option<lib::minecraft_version_manifest::Version>,
-    accounts_document: Result<lib::accounts::AccountsDocument>,
-    news: Option<Result<lib::minecraft_news::News, String>>,
-    config: Result<lib::launcher_config::LauncherConfig>,
+    about: About,
+    instances: Instances,
+    new_instance: NewInstance,
+    accounts: Accounts,
+    loading: Loading,
+    news: News,
+    settings: Settings,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,13 +87,13 @@ impl Application for IceLauncher {
         (
             Self {
                 current_view: View::Instances,
-                instances: lib::instances::list(),
-                new_instance_name: "".to_string(),
-                available_minecraft_versions: None,
-                selected_minecraft_version: None,
-                accounts_document: lib::accounts::read(),
-                news: None,
-                config: lib::launcher_config::read(),
+                about: About::new(),
+                accounts: Accounts::new(),
+                instances: Instances::new(),
+                new_instance: NewInstance::new(),
+                loading: Loading::new(),
+                news: News::new(),
+                settings: Settings::new(),
             },
             Command::perform(check_for_updates(), Message::GotUpdates),
         )
@@ -100,27 +106,21 @@ impl Application for IceLauncher {
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             Message::ViewChanged(view) => {
-                async fn fetch_news() -> Result<lib::minecraft_news::News, String> {
-                    lib::minecraft_news::fetch(None).map_err(|e| e.to_string())
-                }
-
-                async fn fetch_versions(
-                ) -> Result<Vec<lib::minecraft_version_manifest::Version>, String> {
-                    lib::minecraft_version_manifest::fetch_versions().map_err(|e| e.to_string())
-                }
-
                 self.current_view = view.clone();
 
-                if view == View::News && self.news.is_none() {
-                    return Command::perform(fetch_news(), Message::FetchedNews);
+                if view == View::News && self.news.news.is_none() {
+                    return Command::perform(news::News::fetch(), Message::FetchedNews);
                 }
 
-                if view == View::NewInstance && self.available_minecraft_versions.is_none() {
-                    return Command::perform(fetch_versions(), Message::FetchedVersions);
+                if view == View::NewInstance && self.new_instance.available_versions.is_none() {
+                    return Command::perform(
+                        new_instance::NewInstance::fetch_versions(),
+                        Message::FetchedVersions,
+                    );
                 }
             }
             Message::FetchedNews(news) => {
-                self.news = Some(news);
+                self.news.news = Some(news);
             }
             Message::OpenURL(url) => {
                 open::that(url).unwrap();
@@ -135,7 +135,7 @@ impl Application for IceLauncher {
 
                 if yes {
                     lib::instances::remove(&instance).unwrap();
-                    self.instances = lib::instances::list();
+                    self.instances.refresh();
                 }
             }
             Message::LaunchInstance(instance) => {
@@ -158,13 +158,13 @@ impl Application for IceLauncher {
                 self.current_view = View::Instances;
             }
             Message::NewInstanceNameChanged(name) => {
-                self.new_instance_name = name;
+                self.new_instance.name = name;
             }
             Message::FetchedVersions(versions) => {
-                self.available_minecraft_versions = Some(versions);
+                self.new_instance.available_versions = Some(versions);
             }
             Message::VersionSelected(version) => {
-                self.selected_minecraft_version = Some(version);
+                self.new_instance.selected_version = Some(version);
             }
             Message::RemoveAccount(account) => {
                 let yes = MessageDialog::new()
@@ -179,12 +179,12 @@ impl Application for IceLauncher {
 
                 if yes {
                     lib::accounts::remove(account).unwrap();
-                    self.accounts_document = lib::accounts::read();
+                    self.accounts.refresh();
                 }
             }
             Message::AccountSelected(account) => {
                 lib::accounts::set_active(account).unwrap();
-                self.accounts_document = lib::accounts::read();
+                self.accounts.refresh();
             }
             Message::AddAccount => {
                 async fn add_account() -> Result<(), String> {
@@ -206,7 +206,7 @@ impl Application for IceLauncher {
                 }
 
                 self.current_view = View::Accounts;
-                self.accounts_document = lib::accounts::read();
+                self.accounts.refresh();
             }
             Message::GotUpdates(updates) => {
                 if let Ok(Some((version, url))) = updates {
@@ -223,20 +223,20 @@ impl Application for IceLauncher {
                 }
             }
             Message::UpdatesTogglerChanged(enabled) => {
-                let mut config = self.config.as_mut().unwrap();
+                let mut config = self.settings.config.as_mut().unwrap();
                 config.automatically_check_for_updates = enabled;
             }
             Message::UpdateJvmTogglerChanged(enabled) => {
-                let mut config = self.config.as_mut().unwrap();
+                let mut config = self.settings.config.as_mut().unwrap();
                 config.automatically_update_jvm = enabled;
             }
             Message::OptimizeJvmTogglerChanged(enabled) => {
-                let mut config = self.config.as_mut().unwrap();
+                let mut config = self.settings.config.as_mut().unwrap();
                 config.automatically_optimize_jvm_arguments = enabled;
             }
             Message::UpdateJvmMemory(memory) => {
                 println!("Set memory to {}", memory);
-                let mut config = self.config.as_mut().unwrap();
+                let mut config = self.settings.config.as_mut().unwrap();
                 config.jvm_memory = memory;
             }
             Message::ResetConfig => {
@@ -248,13 +248,12 @@ impl Application for IceLauncher {
                     .unwrap();
 
                 if yes {
-                    let config = lib::launcher_config::LauncherConfig::default();
-                    lib::launcher_config::write(&config).unwrap();
-                    self.config = lib::launcher_config::read();
+                    lib::launcher_config::reset().unwrap();
+                    self.settings.refresh();
                 }
             }
             Message::SaveConfig => {
-                lib::launcher_config::write(self.config.as_ref().unwrap()).unwrap();
+                lib::launcher_config::write(self.settings.config.as_ref().unwrap()).unwrap();
             }
         }
         Command::none()
@@ -290,17 +289,13 @@ impl Application for IceLauncher {
         .padding(10);
 
         let current_view = match self.current_view {
-            View::Instances => instances::view(&self.instances),
-            View::NewInstance => new_instance::view(
-                &self.new_instance_name,
-                &self.available_minecraft_versions,
-                &self.selected_minecraft_version,
-            ),
-            View::Accounts => accounts::view(&self.accounts_document),
-            View::News => news::view(&self.news),
-            View::About => about::view(),
-            View::Settings => settings::view(&self.config),
-            View::Loading(ref message) => loading::view(message),
+            View::Instances => self.instances.view(),
+            View::NewInstance => self.new_instance.view(),
+            View::Accounts => self.accounts.view(),
+            View::News => self.news.view(),
+            View::About => self.about.view(),
+            View::Settings => self.settings.view(),
+            View::Loading(ref message) => self.loading.view(message),
         };
 
         row![navbar, current_view].into()

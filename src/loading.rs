@@ -8,15 +8,23 @@ use iced::{
 
 use crate::Message;
 
-pub fn view(message: &str) -> Element<Message> {
-    column![
-        vertical_space(Length::Fill),
-        row![
-            horizontal_space(Length::Fill),
-            text(message).size(50),
-            horizontal_space(Length::Fill)
-        ],
-        vertical_space(Length::Fill),
-    ]
-    .into()
+pub struct Loading;
+
+impl Loading {
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub fn view(&self, message: &str) -> Element<Message> {
+        column![
+            vertical_space(Length::Fill),
+            row![
+                horizontal_space(Length::Fill),
+                text(message).size(50),
+                horizontal_space(Length::Fill),
+            ],
+            vertical_space(Length::Fill),
+        ]
+        .into()
+    }
 }

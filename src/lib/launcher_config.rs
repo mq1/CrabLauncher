@@ -50,3 +50,10 @@ pub fn read() -> Result<LauncherConfig> {
 
     Ok(config)
 }
+
+pub fn reset() -> Result<()> {
+    let default = LauncherConfig::default();
+    write(&default)?;
+
+    Ok(())
+}
