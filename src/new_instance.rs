@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{column, container, horizontal_space, pick_list, row, text, text_input},
+    widget::{button, column, container, horizontal_space, pick_list, row, text, text_input},
     Element, Length,
 };
 
@@ -25,6 +25,13 @@ impl NewInstance {
 
     pub async fn fetch_versions() -> Result<Vec<lib::minecraft_version_manifest::Version>, String> {
         lib::minecraft_version_manifest::fetch_versions().map_err(|e| e.to_string())
+    }
+
+    pub async fn create_instance(
+        name: String,
+        version: lib::minecraft_version_manifest::Version,
+    ) -> Result<(), String> {
+        lib::instances::new(name, version).map_err(|e| e.to_string())
     }
 
     pub fn view(&self) -> Element<Message> {
@@ -57,7 +64,9 @@ impl NewInstance {
         .padding(10)
         .style(style::card());
 
-        column![heading, instance_name, version]
+        let create_button = button("Create instance").on_press(Message::CreateInstance);
+
+        column![heading, instance_name, version, create_button]
             .padding(20)
             .spacing(20)
             .into()

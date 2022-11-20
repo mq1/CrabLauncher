@@ -64,6 +64,8 @@ pub enum Message {
     NewInstanceNameChanged(String),
     FetchedVersions(Result<Vec<lib::minecraft_version_manifest::Version>, String>),
     VersionSelected(lib::minecraft_version_manifest::Version),
+    CreateInstance,
+    InstanceCreated(Result<(), String>),
     RemoveAccount(lib::msa::Account),
     AddAccount,
     AccountAdded(Result<(), String>),
@@ -143,6 +145,8 @@ impl Application for IceLauncher {
                     lib::instances::launch(instance).map_err(|e| e.to_string())
                 }
 
+                self.current_view = View::Loading(format!("Launching {}", instance.name));
+
                 return Command::perform(launch(instance), Message::InstanceClosed);
             }
             Message::InstanceClosed(res) => {
@@ -165,6 +169,52 @@ impl Application for IceLauncher {
             }
             Message::VersionSelected(version) => {
                 self.new_instance.selected_version = Some(version);
+            }
+            Message::CreateInstance => {
+                if self.new_instance.name.is_empty() {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error")
+                        .set_text("Please enter a name for the instance")
+                        .show_alert()
+                        .unwrap();
+
+                    return Command::none();
+                }
+
+                if self.new_instance.selected_version.is_none() {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error")
+                        .set_text("Please select a version")
+                        .show_alert()
+                        .unwrap();
+
+                    return Command::none();
+                }
+
+                let name = self.new_instance.name.clone();
+                let version = self.new_instance.selected_version.clone().unwrap();
+
+                self.current_view = View::Loading(format!("Creating instance {}", name));
+
+                return Command::perform(
+                    new_instance::NewInstance::create_instance(name, version),
+                    Message::InstanceCreated,
+                );
+            }
+            Message::InstanceCreated(res) => {
+                if let Err(e) = res {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error")
+                        .set_text(&e)
+                        .show_alert()
+                        .unwrap();
+                }
+
+                self.current_view = View::Instances;
+                self.instances.refresh();
             }
             Message::RemoveAccount(account) => {
                 let yes = MessageDialog::new()
