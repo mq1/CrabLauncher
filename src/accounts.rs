@@ -24,6 +24,13 @@ impl Accounts {
         self.document = lib::accounts::read();
     }
 
+    pub fn has_account_selected(&self) -> bool {
+        match &self.document {
+            Ok(document) => document.active_account.is_some(),
+            Err(_) => false,
+        }
+    }
+
     pub fn view(&self) -> Element<Message> {
         let heading = text("Accounts").size(50);
 

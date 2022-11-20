@@ -111,12 +111,12 @@ impl Application for IceLauncher {
                 self.current_view = view.clone();
 
                 if view == View::News && self.news.news.is_none() {
-                    return Command::perform(news::News::fetch(), Message::FetchedNews);
+                    return Command::perform(News::fetch(), Message::FetchedNews);
                 }
 
                 if view == View::NewInstance && self.new_instance.available_versions.is_none() {
                     return Command::perform(
-                        new_instance::NewInstance::fetch_versions(),
+                        NewInstance::fetch_versions(),
                         Message::FetchedVersions,
                     );
                 }
@@ -141,13 +141,20 @@ impl Application for IceLauncher {
                 }
             }
             Message::LaunchInstance(instance) => {
-                async fn launch(instance: lib::instances::Instance) -> Result<(), String> {
-                    lib::instances::launch(instance).map_err(|e| e.to_string())
+                if !self.accounts.has_account_selected() {
+                    MessageDialog::new()
+                        .set_type(MessageType::Warning)
+                        .set_title("No account selected")
+                        .set_text("Please select an account to launch the game")
+                        .show_alert()
+                        .unwrap();
+
+                    return Command::none();
                 }
 
                 self.current_view = View::Loading(format!("Launching {}", instance.name));
 
-                return Command::perform(launch(instance), Message::InstanceClosed);
+                return Command::perform(Instances::launch(instance), Message::InstanceClosed);
             }
             Message::InstanceClosed(res) => {
                 if let Err(e) = res {
