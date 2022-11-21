@@ -21,7 +21,6 @@ use iced::{
     Application, Command, Element, Length, Settings as IcedSettings, Theme,
 };
 use instances::Instances;
-use loading::Loading;
 use native_dialog::{MessageDialog, MessageType};
 use new_instance::NewInstance;
 use news::News;
@@ -37,7 +36,6 @@ struct IceLauncher {
     instances: Instances,
     new_instance: NewInstance,
     accounts: Accounts,
-    loading: Loading,
     news: News,
     settings: Settings,
 }
@@ -93,7 +91,6 @@ impl Application for IceLauncher {
                 accounts: Accounts::new(),
                 instances: Instances::new(),
                 new_instance: NewInstance::new(),
-                loading: Loading::new(),
                 news: News::new(),
                 settings: Settings::new(),
             },
@@ -352,7 +349,7 @@ impl Application for IceLauncher {
             View::News => self.news.view(),
             View::About => self.about.view(),
             View::Settings => self.settings.view(),
-            View::Loading(ref message) => self.loading.view(message),
+            View::Loading(ref message) => loading::view(message),
         };
 
         row![navbar, current_view].into()
