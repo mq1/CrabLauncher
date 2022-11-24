@@ -10,6 +10,8 @@ mod new_instance;
 mod news;
 mod settings;
 mod style;
+mod download;
+mod subscriptions;
 
 use about::About;
 use accounts::Accounts;
@@ -18,13 +20,14 @@ use arrayvec::ArrayString;
 use iced::{
     executor,
     widget::{button, column, container, row, vertical_space},
-    Application, Command, Element, Length, Settings as IcedSettings, Theme,
+    Application, Command, Element, Length, Settings as IcedSettings, Theme, Subscription,
 };
 use instances::Instances;
 use native_dialog::{MessageDialog, MessageType};
 use new_instance::NewInstance;
 use news::News;
 use settings::Settings;
+use download::Download;
 
 pub fn main() -> iced::Result {
     IceLauncher::run(IcedSettings::default())
@@ -38,6 +41,7 @@ struct IceLauncher {
     accounts: Accounts,
     news: News,
     settings: Settings,
+    download: Download,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -75,6 +79,7 @@ pub enum Message {
     UpdateJvmMemory(String),
     ResetConfig,
     SaveConfig,
+    DownloadEvent(subscriptions::download::Event),
 }
 
 impl Application for IceLauncher {
@@ -93,6 +98,7 @@ impl Application for IceLauncher {
                 new_instance: NewInstance::new(),
                 news: News::new(),
                 settings: Settings::new(),
+                download: Download::new(),
             },
             Command::perform(check_for_updates(), Message::GotUpdates),
         )
@@ -308,6 +314,9 @@ impl Application for IceLauncher {
             }
             Message::SaveConfig => {
                 lib::launcher_config::write(self.settings.config.as_ref().unwrap()).unwrap();
+            }
+            Message::DownloadEvent(event) => {
+                self.download.update(event);
             }
         }
         Command::none()
