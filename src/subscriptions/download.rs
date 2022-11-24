@@ -1,23 +1,15 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs::File, io, path::PathBuf};
-
 use iced::{subscription, Subscription};
 use url::Url;
 
-use crate::lib::HTTP_CLIENT;
-
-#[derive(Debug, Clone)]
-pub struct Item {
-    url: Url,
-    path: PathBuf,
-}
+use crate::lib::DownloadItem;
 
 enum State {
-    Ready(Vec<Item>),
+    Ready(Vec<DownloadItem>),
     Downloading {
-        items: Vec<Item>,
+        items: Vec<DownloadItem>,
         total: usize,
         downloaded: usize,
     },
@@ -31,7 +23,7 @@ pub enum Event {
     Finished,
 }
 
-pub fn files(items: Vec<Item>) -> Subscription<Event> {
+pub fn files(items: Vec<DownloadItem>) -> Subscription<Event> {
     struct DownloadFiles;
 
     subscription::unfold(
@@ -67,34 +59,19 @@ pub fn files(items: Vec<Item>) -> Subscription<Event> {
                             let downloaded = downloaded + 1;
                             let percentage = (downloaded as f32 / total as f32) * 100.0;
 
-                            match HTTP_CLIENT.get(&item.url).send() {
-                                Ok(mut response) => {
-                                    let mut file =
-                                        File::create(item.path).expect("Could not create file");
-
-                                    io::copy(&mut response, &mut file)
-                                        .expect("Could not copy response to file");
-
-                                    (
-                                        Some(Event::Progress {
-                                            percentage,
-                                            url: item.url,
-                                        }),
-                                        State::Downloading {
-                                            items,
-                                            downloaded,
-                                            total,
-                                        },
-                                    )
-                                }
-                                Err(_) => (
-                                    Some(Event::Errored),
+                            match item.download() {
+                                Ok(_) => (
+                                    Some(Event::Progress {
+                                        percentage,
+                                        url: item.url,
+                                    }),
                                     State::Downloading {
                                         items,
                                         downloaded,
                                         total,
                                     },
                                 ),
+                                Err(_) => (Some(Event::Errored), State::Finished),
                             }
                         }
                         None => (Some(Event::Finished), State::Finished),
