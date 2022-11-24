@@ -2,20 +2,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{button, column, progress_bar, text, Column},
-    Alignment, Element, Subscription,
+    widget::{column, progress_bar, text},
+    Element, Subscription,
 };
 use url::Url;
 
 use crate::{
-    subscriptions::download::{self, Event, Item},
+    lib::DownloadItem,
+    subscriptions::download::{self, Event},
     Message,
 };
 
 #[derive(Debug)]
 pub struct Download {
     state: State,
-    items: Vec<Item>,
+    items: Vec<DownloadItem>,
 }
 
 #[derive(Debug)]
