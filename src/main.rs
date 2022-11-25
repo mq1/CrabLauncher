@@ -3,6 +3,7 @@
 
 mod about;
 mod accounts;
+mod download;
 mod instances;
 mod lib;
 mod loading;
@@ -10,24 +11,23 @@ mod new_instance;
 mod news;
 mod settings;
 mod style;
-mod download;
 mod subscriptions;
 
 use about::About;
 use accounts::Accounts;
 use anyhow::Result;
 use arrayvec::ArrayString;
+use download::Download;
 use iced::{
     executor,
     widget::{button, column, container, row, vertical_space},
-    Application, Command, Element, Length, Settings as IcedSettings, Theme, Subscription,
+    Application, Command, Element, Length, Settings as IcedSettings, Subscription, Theme,
 };
 use instances::Instances;
 use native_dialog::{MessageDialog, MessageType};
 use new_instance::NewInstance;
 use news::News;
 use settings::Settings;
-use download::Download;
 
 pub fn main() -> iced::Result {
     IceLauncher::run(IcedSettings::default())
@@ -53,6 +53,7 @@ pub enum View {
     About,
     Settings,
     Loading(String),
+    Download,
 }
 
 #[derive(Debug, Clone)]
@@ -203,15 +204,14 @@ impl Application for IceLauncher {
                     return Command::none();
                 }
 
-                let name = self.new_instance.name.clone();
-                let version = self.new_instance.selected_version.clone().unwrap();
+                let name = &self.new_instance.name;
+                let version = self.new_instance.selected_version.as_ref().unwrap();
 
                 self.current_view = View::Loading(format!("Creating instance {}", name));
 
-                return Command::perform(
-                    new_instance::NewInstance::create_instance(name, version),
-                    Message::InstanceCreated,
-                );
+                let download_items = lib::instances::new(name, version).unwrap();
+                self.current_view = View::Download;
+                self.download.start(download_items);
             }
             Message::InstanceCreated(res) => {
                 if let Err(e) = res {
@@ -316,6 +316,14 @@ impl Application for IceLauncher {
                 lib::launcher_config::write(self.settings.config.as_ref().unwrap()).unwrap();
             }
             Message::DownloadEvent(event) => {
+                match event {
+                    subscriptions::download::Event::Finished => {
+                        self.current_view = View::Instances;
+                        self.instances.refresh();
+                    }
+                    _ => {}
+                }
+
                 self.download.update(event);
             }
         }
@@ -359,6 +367,7 @@ impl Application for IceLauncher {
             View::About => self.about.view(),
             View::Settings => self.settings.view(),
             View::Loading(ref message) => loading::view(message),
+            View::Download => self.download.view(),
         };
 
         row![navbar, current_view].into()
@@ -366,6 +375,10 @@ impl Application for IceLauncher {
 
     fn theme(&self) -> Self::Theme {
         Theme::Dark
+    }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        self.download.subscription()
     }
 }
 

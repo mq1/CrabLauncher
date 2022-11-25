@@ -27,13 +27,6 @@ impl NewInstance {
         lib::minecraft_version_manifest::fetch_versions().map_err(|e| e.to_string())
     }
 
-    pub async fn create_instance(
-        name: String,
-        version: lib::minecraft_version_manifest::Version,
-    ) -> Result<(), String> {
-        lib::instances::new(name, version).map_err(|e| e.to_string())
-    }
-
     pub fn view(&self) -> Element<Message> {
         let heading = text("New instance").size(50);
 

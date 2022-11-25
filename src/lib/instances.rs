@@ -11,8 +11,8 @@ use strum_macros::Display;
 use crate::lib::{accounts, launcher_config, minecraft_assets::ASSETS_DIR};
 
 use super::{
-    minecraft_libraries::LibrariesExt, minecraft_version_manifest::Version, minecraft_version_meta,
-    runtime_manager, BASE_DIR,
+    minecraft_version_manifest::Version, minecraft_version_meta, runtime_manager, DownloadItem,
+    BASE_DIR,
 };
 
 // https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks
@@ -77,27 +77,12 @@ pub fn list() -> Result<Vec<Instance>> {
     Ok(instances)
 }
 
-pub fn new(instance_name: String, minecraft_version: Version) -> Result<()> {
-    let meta = minecraft_version.get_meta()?;
-
-    let asset_index = meta.asset_index.get()?;
-    asset_index.download_objects()?;
-
-    let libraries = meta.libraries.get_valid_libraries();
-    libraries.download()?;
-
-    meta.download_client()?;
-
-    let jvm_assets = runtime_manager::get_assets_info("17")?;
-    if !runtime_manager::is_updated(&jvm_assets)? {
-        runtime_manager::update(&jvm_assets)?;
-    }
-
+pub fn new(instance_name: &str, minecraft_version: &Version) -> Result<Vec<DownloadItem>> {
     let instance_dir = INSTANCES_DIR.join(instance_name);
     fs::create_dir_all(&instance_dir)?;
 
     let info = InstanceInfo {
-        minecraft_version: minecraft_version.id,
+        minecraft_version: minecraft_version.id.clone(),
         instance_type: InstanceType::Vanilla,
     };
 
@@ -105,7 +90,20 @@ pub fn new(instance_name: String, minecraft_version: Version) -> Result<()> {
     let content = toml::to_string_pretty(&info)?;
     fs::write(&path, content)?;
 
-    Ok(())
+    let meta = minecraft_version.get_meta()?;
+    let mut download_items = meta.get_download_items()?;
+
+    let jvm_assets = runtime_manager::get_assets_info("17")?;
+    if !runtime_manager::is_updated(&jvm_assets)? {
+        let path = jvm_assets.get_path();
+        if path.exists() {
+            fs::remove_dir_all(path)?;
+        }
+
+        download_items.push(jvm_assets.get_download_item());
+    }
+
+    Ok(download_items)
 }
 
 pub fn remove(instance_name: &str) -> Result<()> {
@@ -128,7 +126,12 @@ pub fn launch(instance: Instance) -> Result<()> {
         let jvm_assets = runtime_manager::get_assets_info("17")?;
 
         if !runtime_manager::is_updated(&jvm_assets)? {
-            runtime_manager::update(&jvm_assets)?;
+            let path = jvm_assets.get_path();
+            if path.exists() {
+                fs::remove_dir_all(path)?;
+            }
+
+            jvm_assets.get_download_item().download()?;
         }
     }
 

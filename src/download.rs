@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{column, progress_bar, text},
-    Element, Subscription,
+    widget::{column, horizontal_space, progress_bar, row, text, vertical_space},
+    Element, Length, Subscription,
 };
 use url::Url;
 
@@ -38,7 +38,9 @@ impl Download {
         }
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&mut self, items: Vec<DownloadItem>) {
+        self.items = items;
+
         self.state = State::Downloading {
             current_percentage: 0.0,
             current_url: None,
@@ -101,6 +103,14 @@ impl Download {
 
         let progress_bar = progress_bar(0.0..=100.0, percentage);
 
-        column![progress_bar, text(info),].into()
+        column![
+            vertical_space(Length::Fill),
+            progress_bar,
+            text(info),
+            vertical_space(Length::Fill),
+        ]
+        .padding(20)
+        .spacing(10)
+        .into()
     }
 }

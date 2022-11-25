@@ -2,19 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use core::fmt;
-use std::{
-    fs::{self, File},
-    io::{self, BufReader, BufWriter},
-    path::PathBuf,
-};
+use std::{fs::File, path::PathBuf};
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::Result;
 use serde::Deserialize;
-use sha1::{Digest, Sha1};
+use url::Url;
 
 use super::{
     minecraft_version_meta::{MinecraftVersionMeta, META_DIR},
-    HTTP_CLIENT,
+    DownloadItem, HashAlgorithm, HTTP_CLIENT,
 };
 
 const VERSION_MANIFEST_URL: &str =
@@ -60,50 +56,23 @@ impl Version {
             .with_extension("json")
     }
 
-    fn download_meta(&self) -> Result<()> {
+    fn get_meta_download_item(&self) -> Result<DownloadItem> {
+        let url = Url::parse(&self.url)?;
         let path = self.get_meta_path();
-        let url = &self.url;
 
-        fs::create_dir_all(path.parent().ok_or(anyhow!("Invalid path"))?)?;
-        let mut resp = HTTP_CLIENT.get(url).send()?;
-        let file = File::create(&path)?;
-        let mut writer = BufWriter::new(file);
-        io::copy(&mut resp, &mut writer)?;
-
-        Ok(())
-    }
-
-    fn check_meta_hash(&self) -> Result<bool> {
-        let path = self.get_meta_path();
-        let file = File::open(&path)?;
-        let mut reader = BufReader::new(file);
-        let mut hasher = Sha1::new();
-        io::copy(&mut reader, &mut hasher)?;
-
-        let hash = hasher.finalize();
-        let hex_hash = base16ct::lower::encode_string(&hash);
-
-        Ok(hex_hash == self.sha1)
+        Ok(super::DownloadItem {
+            url,
+            path,
+            hash: (self.sha1.clone(), HashAlgorithm::Sha1),
+        })
     }
 
     pub fn get_meta(&self) -> Result<MinecraftVersionMeta> {
+        self.get_meta_download_item()?.download()?;
+
         let path = self.get_meta_path();
-
-        if path.exists() && !self.check_meta_hash()? {
-            fs::remove_file(&path)?;
-        }
-
-        if !path.exists() {
-            self.download_meta()?;
-        }
-
-        if !self.check_meta_hash()? {
-            bail!("Asset index hash mismatch");
-        }
-
         let file = File::open(&path)?;
-        let reader = BufReader::new(file);
-        let meta = serde_json::from_reader(reader)?;
+        let meta = serde_json::from_reader(file)?;
 
         Ok(meta)
     }
