@@ -1,49 +1,56 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use druid::{
-    widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
-    Color, LensExt, Widget, WidgetExt,
+use anyhow::Result;
+use iced::{
+    widget::{button, column, container, horizontal_space, row, scrollable, text},
+    Element, Length,
 };
 
-use crate::{
-    lib::minecraft_news::{Article, News, MINECRAFT_NEWS_BASE_URL},
-    navbar, AppState,
-};
+use crate::{lib, style, Message};
 
-pub fn build_widget() -> impl Widget<AppState> {
-    let news = Flex::column()
-        .cross_axis_alignment(CrossAxisAlignment::Start)
-        .with_child(Label::new("🌎 News").with_text_size(32.))
-        .with_default_spacer()
-        .with_flex_child(
-            Scroll::new(
-                List::new(|| {
-                    Flex::row()
-                        .with_child(Label::<Article>::dynamic(|article, _| {
-                            article.default_tile.title.to_owned()
-                        }))
-                        .with_flex_spacer(1.)
-                        .with_child(Button::<Article>::new("Open ↗️").on_click(|_, article, _| {
-                            open::that(format!(
-                                "{MINECRAFT_NEWS_BASE_URL}{url}",
-                                url = article.article_url
-                            ))
-                            .expect("Failed to open article in browser");
-                        }))
-                        .padding(5.)
-                        .border(Color::GRAY, 1.)
-                        .rounded(5.)
-                })
-                .with_spacing(10.)
-                .lens(AppState::news.then(News::article_grid)),
+pub struct News {
+    pub news: Option<Result<lib::minecraft_news::News, String>>,
+}
+
+impl News {
+    pub fn new() -> Self {
+        Self { news: None }
+    }
+
+    pub async fn fetch() -> Result<lib::minecraft_news::News, String> {
+        lib::minecraft_news::fetch(None).map_err(|e| e.to_string())
+    }
+
+    pub fn view(&self) -> Element<Message> {
+        let heading = text("News").size(50);
+
+        let news: Element<_> = match &self.news {
+            Some(Ok(news)) => scrollable(
+                column(
+                    news.article_grid
+                        .iter()
+                        .map(|article| {
+                            container(
+                                row![
+                                    text(&article.default_tile.title),
+                                    horizontal_space(Length::Fill),
+                                    button("Open").on_press(Message::OpenURL(article.get_url())),
+                                ]
+                                .padding(10),
+                            )
+                            .style(style::card())
+                            .into()
+                        })
+                        .collect(),
+                )
+                .spacing(10),
             )
-            .vertical(),
-            1.,
-        )
-        .padding(10.);
+            .into(),
+            Some(Err(e)) => text(format!("Error: {}", e)).into(),
+            None => text("Loading news...").into(),
+        };
 
-    Flex::row()
-        .with_child(navbar::build_widget())
-        .with_flex_child(news, 1.)
+        column![heading, news].spacing(20).padding(20).into()
+    }
 }

@@ -3,26 +3,19 @@
 
 use std::{fs, path::PathBuf};
 
-use color_eyre::eyre::Result;
-use druid::im::Vector;
+use anyhow::Result;
+use arrayvec::ArrayString;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-
-use crate::{AppState, View};
 
 use super::{msa, BASE_DIR};
 
 static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"));
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct AccountsDocument {
-    pub accounts: Vector<msa::Account>,
-}
-
-impl AsRef<AccountsDocument> for AccountsDocument {
-    fn as_ref(&self) -> &Self {
-        self
-    }
+    pub active_account: Option<ArrayString<32>>,
+    pub accounts: Vec<msa::Account>,
 }
 
 fn write(accounts: &AccountsDocument) -> Result<()> {
@@ -49,8 +42,13 @@ pub fn read() -> Result<AccountsDocument> {
 pub fn get_active() -> Result<Option<msa::Account>> {
     let document = read()?;
 
-    for account in document.accounts {
-        if account.is_active {
+    if let Some(active_account) = document.active_account {
+        let account = document
+            .accounts
+            .into_iter()
+            .find(|account| account.mc_id == active_account);
+
+        if let Some(account) = account {
             return Ok(Some(account));
         }
     }
@@ -58,55 +56,31 @@ pub fn get_active() -> Result<Option<msa::Account>> {
     Ok(None)
 }
 
-pub fn set_active(account: msa::Account, event_sink: druid::ExtEventSink) -> Result<()> {
+pub fn set_active(account_id: ArrayString<32>) -> Result<()> {
     let mut document = read()?;
-
-    for a in document.accounts.iter_mut() {
-        a.is_active = a.mc_id == account.mc_id;
-    }
-
+    document.active_account = Some(account_id);
     write(&document)?;
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.accounts = document.accounts;
-        data.active_account = Some(account);
-    });
 
     Ok(())
 }
 
-pub fn add(event_sink: druid::ExtEventSink) -> Result<()> {
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.current_message = "Waiting for authentication...".to_string();
-        data.current_view = View::Loading;
-    });
-
+pub fn add() -> Result<()> {
     let (auth_url, csrf_token, pkce_verifier) = msa::get_auth_url();
     open::that(auth_url.to_string())?;
 
     let mut document = read()?;
     let account = msa::listen_login_callback(csrf_token, pkce_verifier)?;
-    document.accounts.push_back(account.unwrap());
+    document.accounts.push(account.unwrap());
     write(&document)?;
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.accounts = document.accounts;
-        data.current_view = View::Accounts;
-    });
 
     Ok(())
 }
 
-pub fn remove(account: msa::Account, event_sink: druid::ExtEventSink) -> Result<()> {
+pub fn remove(account: msa::Account) -> Result<()> {
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
     document.accounts.retain(|a| a.mc_id != account.mc_id);
     write(&document)?;
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.accounts = document.accounts;
-        data.current_view = View::Accounts;
-    });
 
     Ok(())
 }
@@ -116,12 +90,14 @@ pub fn refresh(account: msa::Account) -> Result<msa::Account> {
 
     let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
     let mut document: AccountsDocument = toml::from_str(&content)?;
-    document.accounts.iter_mut().for_each(|a| {
-        if a.mc_id == account.mc_id {
-            *a = account.clone();
-            a.is_active = true;
+
+    for account in document.accounts.iter_mut() {
+        if account.mc_id == account.mc_id {
+            *account = account.clone();
+            break;
         }
-    });
+    }
+
     write(&document)?;
 
     Ok(account)

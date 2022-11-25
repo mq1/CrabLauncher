@@ -3,20 +3,16 @@
 
 use std::{fs, path::PathBuf, process::Command};
 
-use color_eyre::Result;
-use druid::{im::Vector, Data};
+use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
-use crate::{
-    lib::{accounts, launcher_config, minecraft_assets::ASSETS_DIR},
-    AppState, View,
-};
+use crate::lib::{accounts, launcher_config, minecraft_assets::ASSETS_DIR};
 
 use super::{
-    minecraft_libraries::LibrariesExt, minecraft_version_manifest::Version, minecraft_version_meta,
-    runtime_manager, BASE_DIR,
+    minecraft_version_manifest::Version, minecraft_version_meta, runtime_manager, DownloadItem,
+    BASE_DIR,
 };
 
 // https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks
@@ -24,22 +20,21 @@ const OPTIMIZED_FLAGS: &str = "-XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagn
 
 const INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("instances"));
 
-#[derive(Display, Serialize, Deserialize, Clone, Data, PartialEq, Eq, Default)]
+#[derive(Display, Serialize, Deserialize, Debug, Clone)]
 pub enum InstanceType {
-    #[default]
     Vanilla,
     Fabric,
     Forge,
     ModrinthModpack,
 }
 
-#[derive(Serialize, Deserialize, Clone, Data, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct InstanceInfo {
     pub instance_type: InstanceType,
     pub minecraft_version: String,
 }
 
-#[derive(Clone, Data)]
+#[derive(Debug, Clone)]
 pub struct Instance {
     pub name: String,
     pub info: InstanceInfo,
@@ -59,8 +54,8 @@ fn read_info(instance_name: &str) -> Result<InstanceInfo> {
     Ok(info)
 }
 
-pub fn list() -> Result<Vector<Instance>> {
-    let mut instances = Vector::new();
+pub fn list() -> Result<Vec<Instance>> {
+    let mut instances = Vec::new();
 
     fs::create_dir_all(INSTANCES_DIR.as_path())?;
     let mut entries = fs::read_dir(INSTANCES_DIR.as_path())?;
@@ -76,73 +71,50 @@ pub fn list() -> Result<Vector<Instance>> {
         let name = path.file_name().unwrap().to_str().unwrap().to_string();
         let info = read_info(&name)?;
 
-        instances.push_back(Instance { name, info });
+        instances.push(Instance { name, info });
     }
 
     Ok(instances)
 }
 
-pub fn new(
-    instance_name: String,
-    minecraft_version: Version,
-    event_sink: druid::ExtEventSink,
-) -> Result<()> {
-    let meta = minecraft_version.get_meta(&event_sink)?;
-
-    let asset_index = meta.asset_index.get(&event_sink)?;
-    asset_index.download_objects(&event_sink)?;
-
-    let libraries = meta.libraries.get_valid_libraries();
-    libraries.download(&event_sink)?;
-
-    meta.download_client(&event_sink)?;
-
-    let jvm_assets = runtime_manager::get_assets_info("17")?;
-    if !runtime_manager::is_updated(&jvm_assets)? {
-        runtime_manager::update(&jvm_assets, &event_sink)?;
-    }
-
+pub fn new(instance_name: &str, minecraft_version: &Version) -> Result<Vec<DownloadItem>> {
     let instance_dir = INSTANCES_DIR.join(instance_name);
     fs::create_dir_all(&instance_dir)?;
 
     let info = InstanceInfo {
-        minecraft_version: minecraft_version.id,
-        ..Default::default()
+        minecraft_version: minecraft_version.id.clone(),
+        instance_type: InstanceType::Vanilla,
     };
 
     let path = instance_dir.join("instance.toml");
     let content = toml::to_string_pretty(&info)?;
     fs::write(&path, content)?;
-    let instances = list()?;
 
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.new_instance_state.available_minecraft_versions = Vector::new();
-        data.instances = instances;
-        data.current_view = View::Instances;
-    });
+    let meta = minecraft_version.get_meta()?;
+    let mut download_items = meta.get_download_items()?;
 
-    Ok(())
+    let jvm_assets = runtime_manager::get_assets_info("17")?;
+    if !runtime_manager::is_updated(&jvm_assets)? {
+        let path = jvm_assets.get_path();
+        if path.exists() {
+            fs::remove_dir_all(path)?;
+        }
+
+        download_items.push(jvm_assets.get_download_item());
+    }
+
+    Ok(download_items)
 }
 
-pub fn remove(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()> {
-    let instance_dir = INSTANCES_DIR.join(&instance.name);
+pub fn remove(instance_name: &str) -> Result<()> {
+    let instance_dir = INSTANCES_DIR.join(instance_name);
     fs::remove_dir_all(&instance_dir)?;
 
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.instances.retain(|i| i.name != instance.name);
-        data.current_view = View::Instances;
-    });
-
     Ok(())
 }
 
-pub fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()> {
+pub fn launch(instance: Instance) -> Result<()> {
     let instance_name = instance.name.clone();
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.current_message = format!("Running {}", instance_name);
-        data.current_view = View::Loading;
-    });
-
     let account = accounts::get_active()?.unwrap();
     let account = accounts::refresh(account)?;
 
@@ -151,19 +123,16 @@ pub fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()>
     let version = minecraft_version_meta::get(&instance.info.minecraft_version)?;
 
     if config.automatically_update_jvm {
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_message = "Checking for JVM updates...".to_string();
-        });
-
         let jvm_assets = runtime_manager::get_assets_info("17")?;
-        if !runtime_manager::is_updated(&jvm_assets)? {
-            runtime_manager::update(&jvm_assets, &event_sink)?;
-        }
 
-        let instance_name = instance.name.clone();
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_message = format!("Running {}", instance_name);
-        });
+        if !runtime_manager::is_updated(&jvm_assets)? {
+            let path = jvm_assets.get_path();
+            if path.exists() {
+                fs::remove_dir_all(path)?;
+            }
+
+            jvm_assets.get_download_item().download()?;
+        }
     }
 
     let java_path = runtime_manager::get_java_path("17")?;
@@ -201,7 +170,7 @@ pub fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()>
         "--assetIndex".to_string(),
         version.assets,
         "--uuid".to_string(),
-        account.mc_id,
+        account.mc_id.to_string(),
         "--accessToken".to_string(),
         account.mc_access_token,
         "--clientId".to_string(),
@@ -220,9 +189,5 @@ pub fn launch(instance: Instance, event_sink: druid::ExtEventSink) -> Result<()>
         .spawn()?;
 
     child.wait()?;
-
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.current_view = View::Instances;
-    });
     Ok(())
 }
