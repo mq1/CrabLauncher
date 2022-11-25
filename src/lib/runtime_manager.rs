@@ -1,23 +1,14 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{
-    fs::{self, File},
-    io::{self, BufReader, BufWriter},
-    path::{Path, PathBuf},
-};
+use std::{fs, path::PathBuf};
 
-use anyhow::{bail, Result};
-use flate2::read::GzDecoder;
+use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
-use tar::Archive;
-use tempfile::tempfile;
 use url::Url;
-use zip::ZipArchive;
 
-use super::{BASE_DIR, HTTP_CLIENT};
+use super::{DownloadItem, HashAlgorithm, BASE_DIR, HTTP_CLIENT};
 
 const ADOPTIUM_API_ENDPOINT: &str = "https://api.adoptium.net";
 
@@ -54,6 +45,20 @@ pub struct Assets {
     version: Version,
 }
 
+impl Assets {
+    pub fn get_path(&self) -> PathBuf {
+        RUNTIMES_DIR.join(self.version.major.to_string())
+    }
+
+    pub fn get_download_item(&self) -> DownloadItem {
+        let url = self.binary.package.link.clone();
+        let path = self.get_path();
+        let hash = (self.binary.package.checksum.clone(), HashAlgorithm::Sha256);
+
+        DownloadItem { url, path, hash }
+    }
+}
+
 pub fn get_assets_info(java_version: &str) -> Result<Assets> {
     let url = format!("{ADOPTIUM_API_ENDPOINT}/v3/assets/latest/{java_version}/hotspot?architecture={ARCH_STRING}&image_type=jre&os={OS_STRING}&vendor=eclipse");
 
@@ -71,59 +76,6 @@ pub fn is_updated(assets: &Assets) -> Result<bool> {
         .join(dir);
 
     Ok(runtime_path.exists())
-}
-
-fn extract_archive(file: &File, destination_path: &Path) -> Result<()> {
-    let reader = BufReader::new(file);
-
-    if cfg!(target_os = "windows") {
-        let mut archive = ZipArchive::new(reader)?;
-        archive.extract(destination_path)?;
-    } else {
-        let tar = GzDecoder::new(reader);
-        let mut archive = Archive::new(tar);
-        archive.unpack(destination_path)?;
-    }
-
-    Ok(())
-}
-
-fn install(assets: &Assets) -> Result<()> {
-    let version_dir = RUNTIMES_DIR.join(assets.version.major.to_string());
-    fs::create_dir_all(&version_dir)?;
-
-    let url = &assets.binary.package.link;
-    let mut resp = HTTP_CLIENT.get(url).send()?;
-    let tmpfile = tempfile()?;
-
-    {
-        let mut writer = BufWriter::new(&tmpfile);
-        io::copy(&mut resp, &mut writer)?;
-    }
-
-    {
-        let mut reader = BufReader::new(&tmpfile);
-        let mut hasher = Sha256::new();
-        io::copy(&mut reader, &mut hasher)?;
-
-        let hash = hasher.finalize();
-        let hex_hash = base16ct::lower::encode_string(&hash);
-
-        if hex_hash != assets.binary.package.checksum {
-            bail!("Hash mismatch");
-        }
-    }
-
-    extract_archive(&tmpfile, &version_dir)
-}
-
-pub fn update(assets: &Assets) -> Result<()> {
-    let runtime_dir = RUNTIMES_DIR.join(assets.version.major.to_string());
-    if runtime_dir.exists() {
-        fs::remove_dir_all(runtime_dir)?;
-    }
-
-    install(assets)
 }
 
 pub fn get_java_path(java_version: &str) -> Result<PathBuf> {

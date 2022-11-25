@@ -1,23 +1,16 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{
-    collections::HashMap,
-    fs::{self, File},
-    io::{self, BufReader, BufWriter},
-    path::PathBuf,
-};
+use std::{collections::HashMap, fs::File, path::PathBuf};
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use sha1::{Digest, Sha1};
 use url::Url;
 
-use super::{BASE_DIR, HTTP_CLIENT};
+use super::{DownloadItem, HashAlgorithm, BASE_DIR};
 
-const ASSETS_DOWNLOAD_ENDPOINT: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://resources.download.minecraft.net").unwrap());
+const ASSETS_DOWNLOAD_ENDPOINT: &str = "https://resources.download.minecraft.net";
 
 pub static ASSETS_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("assets"));
 static INDEXES_DIR: Lazy<PathBuf> = Lazy::new(|| ASSETS_DIR.join("indexes"));
@@ -39,49 +32,24 @@ impl AssetIndexInfo {
     }
 
     fn download(&self) -> Result<()> {
-        let path = self.get_path();
-        let url = &self.url;
+        let item = DownloadItem {
+            url: self.url.clone(),
+            path: self.get_path(),
+            hash: (self.sha1.clone(), HashAlgorithm::Sha1),
+        };
 
-        fs::create_dir_all(path.parent().ok_or(anyhow!("Invalid path"))?)?;
-        let mut resp = HTTP_CLIENT.get(url).send()?;
-        let file = File::create(&path)?;
-        let mut writer = BufWriter::new(file);
-        io::copy(&mut resp, &mut writer)?;
-
-        Ok(())
-    }
-
-    fn check_hash(&self) -> Result<bool> {
-        let path = self.get_path();
-        let file = File::open(&path)?;
-        let mut reader = BufReader::new(file);
-        let mut hasher = Sha1::new();
-        io::copy(&mut reader, &mut hasher)?;
-
-        let hash = hasher.finalize();
-        let hex_hash = base16ct::lower::encode_string(&hash);
-
-        Ok(hex_hash == self.sha1)
+        item.download()
     }
 
     pub fn get(&self) -> Result<AssetIndex> {
         let path = self.get_path();
 
-        if path.exists() && !self.check_hash()? {
-            fs::remove_file(&path)?;
-        }
-
         if !path.exists() {
             self.download()?;
         }
 
-        if !self.check_hash()? {
-            bail!("Asset index hash mismatch");
-        }
-
         let file = File::open(&path)?;
-        let reader = BufReader::new(file);
-        let index = serde_json::from_reader(reader)?;
+        let index = serde_json::from_reader(file)?;
 
         Ok(index)
     }
@@ -93,39 +61,28 @@ struct Object {
 }
 
 impl Object {
-    pub fn get_path(&self) -> PathBuf {
+    fn get_url(&self) -> String {
+        format!(
+            "{}/{}/{}",
+            ASSETS_DOWNLOAD_ENDPOINT,
+            &self.hash[0..2],
+            &self.hash
+        )
+    }
+
+    fn get_path(&self) -> PathBuf {
         OBJECTS_DIR.join(&self.hash[..2]).join(&self.hash)
     }
 
-    fn get_url(&self) -> Result<Url, url::ParseError> {
-        ASSETS_DOWNLOAD_ENDPOINT.join(&format!("{}/{}", &self.hash[..2], &self.hash))
-    }
-
-    pub fn download(&self) -> Result<()> {
-        let path = self.get_path();
-        let url = self.get_url()?;
-
-        fs::create_dir_all(path.parent().ok_or(anyhow!("Invalid path"))?)?;
-        let mut resp = HTTP_CLIENT.get(url).send()?;
-        let file = File::create(&path)?;
-        let mut writer = BufWriter::new(file);
-        io::copy(&mut resp, &mut writer)?;
-
-        Ok(())
-    }
-
-    pub fn check_hash(&self) -> Result<bool> {
+    pub fn get_download_item(&self) -> DownloadItem {
+        let url = self.get_url();
         let path = self.get_path();
 
-        let file = File::open(&path)?;
-        let mut reader = BufReader::new(file);
-        let mut hasher = Sha1::new();
-        io::copy(&mut reader, &mut hasher)?;
-
-        let hash = hasher.finalize();
-        let hex_hash = base16ct::lower::encode_string(&hash);
-
-        Ok(hex_hash == self.hash)
+        DownloadItem {
+            url: Url::parse(&url).unwrap(),
+            path,
+            hash: (self.hash.clone(), HashAlgorithm::Sha1),
+        }
     }
 }
 
@@ -136,23 +93,10 @@ pub struct AssetIndex {
 }
 
 impl AssetIndex {
-    pub fn download_objects(&self) -> Result<()> {
-        for object in self.objects.values() {
-            let path = object.get_path();
-
-            if path.exists() && !object.check_hash()? {
-                fs::remove_file(&path)?;
-            }
-
-            if !path.exists() {
-                object.download()?;
-            }
-
-            if !object.check_hash()? {
-                bail!("Failed to download object");
-            }
-        }
-
-        Ok(())
+    pub fn get_objects_download_items(&self) -> Vec<DownloadItem> {
+        self.objects
+            .values()
+            .map(|object| object.get_download_item())
+            .collect()
     }
 }

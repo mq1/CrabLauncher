@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{io::{self, Seek}, path::PathBuf, fs::File};
+use std::{
+    fs::{self, File},
+    io::{self, Seek},
+    path::PathBuf,
+};
 
 use anyhow::{bail, Result};
 use attohttpc::Session;
@@ -59,8 +63,13 @@ pub struct DownloadItem {
 
 impl DownloadItem {
     pub fn download(&self) -> Result<()> {
+        if self.path.exists() {
+            return Ok(());
+        }
+
         let mut tmp = tempfile()?;
         HTTP_CLIENT.get(self.url.clone()).send()?.write_to(&tmp)?;
+        tmp.seek(io::SeekFrom::Start(0))?;
 
         // Verify checksum
         {
@@ -84,17 +93,18 @@ impl DownloadItem {
             };
 
             if hex_hash != self.hash.0 {
-                bail!("Hash mismatch");
+                bail!("Hash mismatch for {}\nExpected: {}\nGot: {}", self.url, self.hash.0, hex_hash);
             }
         }
 
         tmp.seek(io::SeekFrom::Start(0))?;
+        fs::create_dir_all(self.path.parent().unwrap())?;
 
         // If the file is compressed, decompress it
-        if self.path.ends_with(".zip") {
+        if self.url.to_string().ends_with(".zip") {
             let mut zip = ZipArchive::new(tmp)?;
             zip.extract(&self.path)?;
-        } else if self.path.ends_with(".tar.gz") {
+        } else if self.url.to_string().ends_with(".tar.gz") {
             let tar = GzDecoder::new(tmp);
             let mut archive = Archive::new(tar);
             archive.unpack(&self.path)?;
