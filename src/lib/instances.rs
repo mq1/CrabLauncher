@@ -114,7 +114,6 @@ pub fn remove(instance_name: &str) -> Result<()> {
 }
 
 pub fn launch(instance: Instance) -> Result<()> {
-    let instance_name = instance.name.clone();
     let account = accounts::get_active()?.unwrap();
     let account = accounts::refresh(account)?;
 
