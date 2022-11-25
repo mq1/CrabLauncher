@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs::File, io::BufReader, path::PathBuf};
+use std::{fs::File, path::PathBuf};
 
 use anyhow::Result;
 use once_cell::sync::Lazy;
@@ -68,8 +68,7 @@ impl MinecraftVersionMeta {
             .join("mojang")
             .join("minecraft")
             .join(&self.id)
-            .join(format!("minecraft-{}-client", &self.id))
-            .with_extension("jar")
+            .join(format!("minecraft-{}-client.jar", self.id))
     }
 
     pub fn get_download_items(&self) -> Result<Vec<DownloadItem>> {
@@ -115,12 +114,10 @@ impl MinecraftVersionMeta {
 pub fn get(version_id: &str) -> Result<MinecraftVersionMeta> {
     let path = META_DIR
         .join("net.minecraft")
-        .join(version_id)
-        .with_extension("json");
+        .join(format!("{}.json", version_id));
 
     let file = File::open(&path)?;
-    let mut reader = BufReader::new(file);
-    let meta = serde_json::from_reader(&mut reader)?;
+    let meta = serde_json::from_reader(file)?;
 
     Ok(meta)
 }
