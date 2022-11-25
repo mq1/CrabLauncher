@@ -52,8 +52,7 @@ impl Version {
     fn get_meta_path(&self) -> PathBuf {
         META_DIR
             .join("net.minecraft")
-            .join(&self.id)
-            .with_extension("json")
+            .join(format!("{}.json", self.id))
     }
 
     fn get_meta_download_item(&self) -> Result<DownloadItem> {
