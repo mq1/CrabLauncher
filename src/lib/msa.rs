@@ -4,9 +4,9 @@
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
 
+use anyhow::{anyhow, bail, Result};
+use arrayvec::ArrayString;
 use base64ct::{Base64UrlUnpadded, Encoding};
-use color_eyre::eyre::{bail, Result};
-use druid::Data;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
@@ -180,24 +180,25 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
         .send()?
         .json::<MinecraftProfile>()?;
 
+    let mut mc_id = ArrayString::<32>::new();
+    mc_id.push_str(&minecraft_profile.id);
+
     let account = Account {
         ms_refresh_token: refresh_token,
-        mc_id: minecraft_profile.id,
+        mc_id,
         mc_access_token: minecraft_response.access_token,
         mc_username: minecraft_profile.name,
-        is_active: false,
     };
 
     Ok(account)
 }
 
-#[derive(Serialize, Deserialize, Clone, Data)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Account {
     pub ms_refresh_token: String,
-    pub mc_id: String,
+    pub mc_id: ArrayString<32>,
     pub mc_access_token: String,
     pub mc_username: String,
-    pub is_active: bool,
 }
 
 #[derive(Deserialize)]
@@ -273,7 +274,7 @@ pub fn listen_login_callback(csrf_token: String, pkce_verifier: String) -> Resul
                         let &(ref key, _) = pair;
                         key == "code"
                     })
-                    .unwrap();
+                    .ok_or(anyhow!("Code not found"))?;
 
                 let (_, value) = code_pair;
                 code = value.into_owned();
@@ -284,7 +285,7 @@ pub fn listen_login_callback(csrf_token: String, pkce_verifier: String) -> Resul
                         let &(ref key, _) = pair;
                         key == "state"
                     })
-                    .unwrap();
+                    .ok_or(anyhow!("State not found"))?;
 
                 let (_, value) = state_pair;
                 state = value.into_owned();

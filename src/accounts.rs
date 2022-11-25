@@ -1,76 +1,76 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::thread;
-
-use druid::{
-    widget::{Button, CrossAxisAlignment, Flex, Label, List, Scroll},
-    Color, Widget, WidgetExt,
+use anyhow::Result;
+use iced::{
+    widget::{button, column, container, horizontal_space, radio, row, text},
+    Element, Length,
 };
 
-use crate::{
-    lib::{self, msa::Account},
-    navbar, AppState, View,
-};
+use crate::{lib, style, Message};
 
-pub fn build_widget() -> impl Widget<AppState> {
-    let accounts = Flex::column()
-        .cross_axis_alignment(CrossAxisAlignment::Start)
-        .with_child(Label::new("👥 Accounts").with_text_size(32.))
-        .with_default_spacer()
-        .with_child(
-            Scroll::new(
-                List::new(|| {
-                    Flex::row()
-                        .with_child(Label::<Account>::dynamic(|account, _| {
-                            match account.is_active {
-                                true => "✅".to_string(),
-                                false => "☑️".to_string(),
-                            }
-                        }))
-                        .with_default_spacer()
-                        .with_child(Label::<Account>::dynamic(|account, _| {
-                            account.mc_username.to_owned()
-                        }))
-                        .with_flex_spacer(1.)
-                        .with_child(Button::<Account>::new("Remove 💣").on_click(
-                            |ctx, account, _| {
-                                let event_sink = ctx.get_external_handle();
-                                let account = account.to_owned();
-                                event_sink.add_idle_callback(move |data: &mut AppState| {
-                                    data.selected_account = Some(account);
-                                    data.current_view = View::ConfirmAccountRemove;
-                                });
-                            },
-                        ))
-                        .with_default_spacer()
-                        .with_child(Button::<Account>::new("Select ✅").on_click(
-                            |ctx, account, _| {
-                                let account = account.to_owned();
-                                let event_sink = ctx.get_external_handle();
-                                lib::accounts::set_active(account, event_sink).unwrap();
-                            },
-                        ))
-                        .padding(5.)
-                        .border(Color::GRAY, 1.)
-                        .rounded(5.)
-                })
-                .with_spacing(10.)
-                .lens(AppState::accounts),
+pub struct Accounts {
+    document: Result<lib::accounts::AccountsDocument>,
+}
+
+impl Accounts {
+    pub fn new() -> Self {
+        Self {
+            document: lib::accounts::read(),
+        }
+    }
+
+    pub fn refresh(&mut self) {
+        self.document = lib::accounts::read();
+    }
+
+    pub fn has_account_selected(&self) -> bool {
+        match &self.document {
+            Ok(document) => document.active_account.is_some(),
+            Err(_) => false,
+        }
+    }
+
+    pub fn view(&self) -> Element<Message> {
+        let heading = text("Accounts").size(50);
+
+        let accounts: Element<_> = match &self.document {
+            Ok(document) => column(
+                document
+                    .accounts
+                    .iter()
+                    .map(|account| {
+                        container(
+                            row![
+                                radio(
+                                    account.mc_username.to_owned(),
+                                    account.mc_id,
+                                    document.active_account,
+                                    Message::AccountSelected
+                                ),
+                                horizontal_space(Length::Fill),
+                                button("Remove").on_press(Message::RemoveAccount(account.clone())),
+                            ]
+                            .spacing(10)
+                            .padding(10),
+                        )
+                        .style(style::card())
+                        .into()
+                    })
+                    .collect(),
             )
-            .vertical(),
-        )
-        .with_default_spacer()
-        .with_child(
-            Button::<AppState>::new("New Account 🎉").on_click(|ctx, _, _| {
-                let event_sink = ctx.get_external_handle();
-                thread::spawn(move || lib::accounts::add(event_sink));
-            }),
-        )
-        .with_flex_spacer(1.)
-        .padding(10.);
+            .spacing(10)
+            .into(),
+            Err(_) => text("Failed to load accounts").into(),
+        };
 
-    Flex::row()
-        .with_child(navbar::build_widget())
-        .with_flex_child(accounts, 1.)
+        column![
+            heading,
+            accounts,
+            button("Add account").on_press(Message::AddAccount),
+        ]
+        .spacing(20)
+        .padding(20)
+        .into()
+    }
 }

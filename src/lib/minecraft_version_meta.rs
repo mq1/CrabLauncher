@@ -1,27 +1,17 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{
-    fs::{self, File},
-    io::{self, BufReader, BufWriter},
-    path::PathBuf,
-};
+use std::{fs::File, io::BufReader, path::PathBuf};
 
-use color_eyre::{
-    eyre::{bail, eyre},
-    Result,
-};
+use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use sha1::{Digest, Sha1};
 use url::Url;
-
-use crate::{AppState, View};
 
 use super::{
     minecraft_assets::AssetIndexInfo,
     minecraft_libraries::{Libraries, LibrariesExt, LIBRARIES_DIR},
-    BASE_DIR, HTTP_CLIENT,
+    DownloadItem, HashAlgorithm, BASE_DIR,
 };
 
 pub const META_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("meta"));
@@ -82,45 +72,24 @@ impl MinecraftVersionMeta {
             .with_extension("jar")
     }
 
-    fn check_client_hash(&self) -> Result<bool> {
-        let path = self.get_client_path();
-        let file = File::open(&path)?;
-        let mut reader = BufReader::new(file);
-        let mut hasher = Sha1::new();
-        io::copy(&mut reader, &mut hasher)?;
+    pub fn get_download_items(&self) -> Result<Vec<DownloadItem>> {
+        let mut items = Vec::new();
 
-        let hash = hasher.finalize();
-        let hex_hash = base16ct::lower::encode_string(&hash);
+        // Assets
+        let asset_index = self.asset_index.get()?;
+        items.append(&mut asset_index.get_objects_download_items());
 
-        Ok(hex_hash == self.downloads.client.sha1)
-    }
+        // Libraries
+        items.append(&mut self.libraries.get_download_items());
 
-    pub fn download_client(&self, event_sink: &druid::ExtEventSink) -> Result<()> {
-        let path = self.get_client_path();
-        let url = &self.downloads.client.url;
-
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_view = View::Loading;
-            data.current_message = "Downloading client...".to_string();
+        // Client
+        items.push(DownloadItem {
+            url: self.downloads.client.url.clone(),
+            path: self.get_client_path(),
+            hash: (self.downloads.client.sha1.clone(), HashAlgorithm::Sha1),
         });
 
-        if path.exists() && !self.check_client_hash()? {
-            fs::remove_file(&path)?;
-        }
-
-        if !path.exists() {
-            fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
-            let mut response = HTTP_CLIENT.get(url).send()?;
-            let file = File::create(&path)?;
-            let mut writer = BufWriter::new(file);
-            io::copy(&mut response, &mut writer)?;
-        }
-
-        if !self.check_client_hash()? {
-            bail!("Hash mismatch");
-        }
-
-        Ok(())
+        Ok(items)
     }
 
     pub fn get_classpath(&self) -> String {

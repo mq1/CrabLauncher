@@ -1,126 +1,387 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-// On Windows platform, don't show a console when opening the app.
-#![windows_subsystem = "windows"]
-
 mod about;
 mod accounts;
-mod confirm_account_remove;
-mod confirm_instance_delete;
-mod instance_name_selection;
-mod instance_type_selection;
-mod instance_version_selection;
+mod download;
 mod instances;
 mod lib;
 mod loading;
-mod modrinth_modpack;
-mod modrinth_modpack_selection;
-mod navbar;
+mod new_instance;
 mod news;
-mod progress;
 mod settings;
-mod view;
+mod style;
+mod subscriptions;
 
-use std::{fs, process::exit, thread};
+use about::About;
+use accounts::Accounts;
+use anyhow::Result;
+use arrayvec::ArrayString;
+use download::Download;
+use iced::{
+    executor,
+    widget::{button, column, container, row, vertical_space},
+    Application, Command, Element, Length, Settings as IcedSettings, Subscription, Theme,
+};
+use instances::Instances;
+use native_dialog::{MessageDialog, MessageType};
+use new_instance::NewInstance;
+use news::News;
+use settings::Settings;
 
-use color_eyre::eyre::Result;
-use druid::{im::Vector, AppDelegate, AppLauncher, Data, Lens, WindowDesc};
-use lib::BASE_DIR;
-
-#[derive(PartialEq, Eq, Data, Clone, Copy, Default)]
-enum View {
-    #[default]
-    Instances,
-    Loading,
-    Progress,
-    InstanceTypeSelection,
-    InstanceVersionSelection,
-    InstanceNameSelection,
-    ConfirmInstanceDelete,
-    Accounts,
-    ConfirmAccountRemove,
-    News,
-    Settings,
-    About,
-    ModrinthModpackSelection,
-    ModrinthModpack,
+pub fn main() -> iced::Result {
+    IceLauncher::run(IcedSettings::default())
 }
 
-#[derive(Data, Clone, Lens, Default)]
-pub struct NewInstanceState {
-    available_minecraft_versions: Vector<lib::minecraft_version_manifest::Version>,
-    selected_version: Option<lib::minecraft_version_manifest::Version>,
-    instance_type: lib::instances::InstanceType,
-    instance_name: String,
-}
-
-#[derive(Data, Clone, Lens, Default)]
-pub struct AppState {
-    is_update_available: bool,
-    current_message: String,
-    current_progress: f64,
-    config: lib::launcher_config::LauncherConfig,
+struct IceLauncher {
     current_view: View,
-    instances: Vector<lib::instances::Instance>,
-    selected_instance: Option<lib::instances::Instance>,
-    new_instance_state: NewInstanceState,
-    accounts: Vector<lib::msa::Account>,
-    active_account: Option<lib::msa::Account>,
-    selected_account: Option<lib::msa::Account>,
-    news: lib::minecraft_news::News,
-    modrinth_hits: lib::modrinth::Hits,
-    selected_modrinth_hit: Option<lib::modrinth::Hit>,
+    about: About,
+    instances: Instances,
+    new_instance: NewInstance,
+    accounts: Accounts,
+    news: News,
+    settings: Settings,
+    download: Download,
 }
 
-struct Delegate;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum View {
+    Instances,
+    NewInstance,
+    Accounts,
+    News,
+    About,
+    Settings,
+    Loading(String),
+    Download,
+}
 
-impl AppDelegate<AppState> for Delegate {
-    fn command(
-        &mut self,
-        _ctx: &mut druid::DelegateCtx,
-        _target: druid::Target,
-        cmd: &druid::Command,
-        _data: &mut AppState,
-        _env: &druid::Env,
-    ) -> druid::Handled {
-        if let Some(_) = cmd.get(druid::commands::CLOSE_WINDOW) {
-            exit(0);
+#[derive(Debug, Clone)]
+pub enum Message {
+    ViewChanged(View),
+    FetchedNews(Result<lib::minecraft_news::News, String>),
+    OpenURL(String),
+    RemoveInstance(String),
+    LaunchInstance(lib::instances::Instance),
+    InstanceClosed(Result<(), String>),
+    NewInstanceNameChanged(String),
+    FetchedVersions(Result<Vec<lib::minecraft_version_manifest::Version>, String>),
+    VersionSelected(lib::minecraft_version_manifest::Version),
+    CreateInstance,
+    InstanceCreated(Result<(), String>),
+    RemoveAccount(lib::msa::Account),
+    AddAccount,
+    AccountAdded(Result<(), String>),
+    AccountSelected(ArrayString<32>),
+    GotUpdates(Result<Option<(String, String)>, String>),
+    UpdatesTogglerChanged(bool),
+    UpdateJvmTogglerChanged(bool),
+    OptimizeJvmTogglerChanged(bool),
+    UpdateJvmMemory(String),
+    ResetConfig,
+    SaveConfig,
+    DownloadEvent(subscriptions::download::Event),
+}
+
+impl Application for IceLauncher {
+    type Message = Message;
+    type Theme = Theme;
+    type Executor = executor::Default;
+    type Flags = ();
+
+    fn new(_flags: ()) -> (Self, Command<Self::Message>) {
+        (
+            Self {
+                current_view: View::Instances,
+                about: About::new(),
+                accounts: Accounts::new(),
+                instances: Instances::new(),
+                new_instance: NewInstance::new(),
+                news: News::new(),
+                settings: Settings::new(),
+                download: Download::new(),
+            },
+            Command::perform(check_for_updates(), Message::GotUpdates),
+        )
+    }
+
+    fn title(&self) -> String {
+        String::from("🧊 Ice Launcher")
+    }
+
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+        match message {
+            Message::ViewChanged(view) => {
+                self.current_view = view.clone();
+
+                if view == View::News && self.news.news.is_none() {
+                    return Command::perform(News::fetch(), Message::FetchedNews);
+                }
+
+                if view == View::NewInstance && self.new_instance.available_versions.is_none() {
+                    return Command::perform(
+                        NewInstance::fetch_versions(),
+                        Message::FetchedVersions,
+                    );
+                }
+            }
+            Message::FetchedNews(news) => {
+                self.news.news = Some(news);
+            }
+            Message::OpenURL(url) => {
+                open::that(url).unwrap();
+            }
+            Message::RemoveInstance(instance) => {
+                let yes = MessageDialog::new()
+                    .set_type(MessageType::Warning)
+                    .set_title("Remove instance")
+                    .set_text(&format!("Are you sure you want to remove {}?", instance))
+                    .show_confirm()
+                    .unwrap();
+
+                if yes {
+                    lib::instances::remove(&instance).unwrap();
+                    self.instances.refresh();
+                }
+            }
+            Message::LaunchInstance(instance) => {
+                if !self.accounts.has_account_selected() {
+                    MessageDialog::new()
+                        .set_type(MessageType::Warning)
+                        .set_title("No account selected")
+                        .set_text("Please select an account to launch the game")
+                        .show_alert()
+                        .unwrap();
+
+                    return Command::none();
+                }
+
+                self.current_view = View::Loading(format!("Launching {}", instance.name));
+
+                return Command::perform(Instances::launch(instance), Message::InstanceClosed);
+            }
+            Message::InstanceClosed(res) => {
+                if let Err(e) = res {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error")
+                        .set_text(&e)
+                        .show_alert()
+                        .unwrap();
+                }
+
+                self.current_view = View::Instances;
+            }
+            Message::NewInstanceNameChanged(name) => {
+                self.new_instance.name = name;
+            }
+            Message::FetchedVersions(versions) => {
+                self.new_instance.available_versions = Some(versions);
+            }
+            Message::VersionSelected(version) => {
+                self.new_instance.selected_version = Some(version);
+            }
+            Message::CreateInstance => {
+                if self.new_instance.name.is_empty() {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error")
+                        .set_text("Please enter a name for the instance")
+                        .show_alert()
+                        .unwrap();
+
+                    return Command::none();
+                }
+
+                if self.new_instance.selected_version.is_none() {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error")
+                        .set_text("Please select a version")
+                        .show_alert()
+                        .unwrap();
+
+                    return Command::none();
+                }
+
+                let name = &self.new_instance.name;
+                let version = self.new_instance.selected_version.as_ref().unwrap();
+
+                self.current_view = View::Loading(format!("Creating instance {}", name));
+
+                let download_items = lib::instances::new(name, version).unwrap();
+                self.current_view = View::Download;
+                self.download.start(download_items);
+            }
+            Message::InstanceCreated(res) => {
+                if let Err(e) = res {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error")
+                        .set_text(&e)
+                        .show_alert()
+                        .unwrap();
+                }
+
+                self.current_view = View::Instances;
+                self.instances.refresh();
+            }
+            Message::RemoveAccount(account) => {
+                let yes = MessageDialog::new()
+                    .set_type(MessageType::Warning)
+                    .set_title("Remove account")
+                    .set_text(&format!(
+                        "Are you sure you want to remove {}?",
+                        account.mc_username
+                    ))
+                    .show_confirm()
+                    .unwrap();
+
+                if yes {
+                    lib::accounts::remove(account).unwrap();
+                    self.accounts.refresh();
+                }
+            }
+            Message::AccountSelected(account) => {
+                lib::accounts::set_active(account).unwrap();
+                self.accounts.refresh();
+            }
+            Message::AddAccount => {
+                async fn add_account() -> Result<(), String> {
+                    lib::accounts::add().map_err(|e| e.to_string())
+                }
+
+                self.current_view = View::Loading("Logging in...".to_string());
+
+                return Command::perform(add_account(), Message::AccountAdded);
+            }
+            Message::AccountAdded(res) => {
+                if let Some(err) = res.err() {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error adding account")
+                        .set_text(&err)
+                        .show_alert()
+                        .unwrap();
+                }
+
+                self.current_view = View::Accounts;
+                self.accounts.refresh();
+            }
+            Message::GotUpdates(updates) => {
+                if let Ok(Some((version, url))) = updates {
+                    let yes = MessageDialog::new()
+                        .set_type(MessageType::Info)
+                        .set_title("Update available")
+                        .set_text(&format!("A new version of Ice Launcher is available: {version}, would you like to download it?"))
+                        .show_confirm()
+                        .unwrap();
+
+                    if yes {
+                        open::that(url).unwrap();
+                    }
+                }
+            }
+            Message::UpdatesTogglerChanged(enabled) => {
+                let mut config = self.settings.config.as_mut().unwrap();
+                config.automatically_check_for_updates = enabled;
+            }
+            Message::UpdateJvmTogglerChanged(enabled) => {
+                let mut config = self.settings.config.as_mut().unwrap();
+                config.automatically_update_jvm = enabled;
+            }
+            Message::OptimizeJvmTogglerChanged(enabled) => {
+                let mut config = self.settings.config.as_mut().unwrap();
+                config.automatically_optimize_jvm_arguments = enabled;
+            }
+            Message::UpdateJvmMemory(memory) => {
+                println!("Set memory to {}", memory);
+                let mut config = self.settings.config.as_mut().unwrap();
+                config.jvm_memory = memory;
+            }
+            Message::ResetConfig => {
+                let yes = MessageDialog::new()
+                    .set_type(MessageType::Warning)
+                    .set_title("Reset config")
+                    .set_text("Are you sure you want to reset the config?")
+                    .show_confirm()
+                    .unwrap();
+
+                if yes {
+                    lib::launcher_config::reset().unwrap();
+                    self.settings.refresh();
+                }
+            }
+            Message::SaveConfig => {
+                lib::launcher_config::write(self.settings.config.as_ref().unwrap()).unwrap();
+            }
+            Message::DownloadEvent(event) => {
+                match event {
+                    subscriptions::download::Event::Finished => {
+                        self.current_view = View::Instances;
+                        self.instances.refresh();
+                    }
+                    _ => {}
+                }
+
+                self.download.update(event);
+            }
         }
+        Command::none()
+    }
 
-        druid::Handled::No
+    fn view(&self) -> Element<Self::Message> {
+        let navbar = container(
+            container(
+                column![
+                    button("Instances")
+                        .on_press(Message::ViewChanged(View::Instances))
+                        .width(Length::Fill),
+                    button("Accounts")
+                        .on_press(Message::ViewChanged(View::Accounts))
+                        .width(Length::Fill),
+                    button("News")
+                        .on_press(Message::ViewChanged(View::News))
+                        .width(Length::Fill),
+                    vertical_space(Length::Fill),
+                    button("Settings")
+                        .on_press(Message::ViewChanged(View::Settings))
+                        .width(Length::Fill),
+                    button("About")
+                        .on_press(Message::ViewChanged(View::About))
+                        .width(Length::Fill),
+                ]
+                .spacing(10)
+                .padding(20)
+                .width(Length::Units(150)),
+            )
+            .style(style::card()),
+        )
+        .padding(10);
+
+        let current_view = match self.current_view {
+            View::Instances => self.instances.view(),
+            View::NewInstance => self.new_instance.view(),
+            View::Accounts => self.accounts.view(),
+            View::News => self.news.view(),
+            View::About => self.about.view(),
+            View::Settings => self.settings.view(),
+            View::Loading(ref message) => loading::view(message),
+            View::Download => self.download.view(),
+        };
+
+        row![navbar, current_view].into()
+    }
+
+    fn theme(&self) -> Self::Theme {
+        Theme::Dark
+    }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        self.download.subscription()
     }
 }
 
-fn main() -> Result<()> {
-    color_eyre::install()?;
-
-    fs::create_dir_all(BASE_DIR.as_path()).expect("Could not create base directory");
-
-    let window = WindowDesc::new(view::build_widget())
-        .title("🧊 Ice Launcher")
-        .window_size((800.0, 600.0));
-
-    let initial_state = AppState {
-        config: lib::launcher_config::read()?,
-        instances: lib::instances::list()?,
-        accounts: lib::accounts::read()?.accounts,
-        active_account: lib::accounts::get_active()?,
-        ..Default::default()
-    };
-
-    let launcher = AppLauncher::with_window(window);
-
-    // Spawn a task to check for updates.
-    if initial_state.config.automatically_check_for_updates {
-        let event_sink = launcher.get_external_handle();
-        thread::spawn(move || lib::launcher_updater::check_for_updates(event_sink));
-    }
-
-    launcher
-        .delegate(Delegate {})
-        .log_to_console()
-        .launch(initial_state)?;
-
-    Ok(())
+async fn check_for_updates() -> Result<Option<(String, String)>, String> {
+    lib::launcher_updater::check_for_updates().map_err(|e| e.to_string())
 }

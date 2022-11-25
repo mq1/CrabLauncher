@@ -1,25 +1,16 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{
-    fs::{self, File},
-    io::{self, BufReader, BufWriter},
-    path::PathBuf,
-};
+use core::fmt;
+use std::{fs::File, path::PathBuf};
 
-use color_eyre::{
-    eyre::{bail, eyre},
-    Result,
-};
-use druid::{im::Vector, Data, Lens};
+use anyhow::Result;
 use serde::Deserialize;
-use sha1::{Digest, Sha1};
-
-use crate::{AppState, View};
+use url::Url;
 
 use super::{
     minecraft_version_meta::{MinecraftVersionMeta, META_DIR},
-    HTTP_CLIENT,
+    DownloadItem, HashAlgorithm, HTTP_CLIENT,
 };
 
 const VERSION_MANIFEST_URL: &str =
@@ -28,7 +19,7 @@ const VERSION_MANIFEST_URL: &str =
 #[derive(Deserialize)]
 pub struct MinecraftVersionManifest {
     pub latest: Latest,
-    pub versions: Vector<Version>,
+    pub versions: Vec<Version>,
 }
 
 #[derive(Deserialize)]
@@ -37,7 +28,7 @@ pub struct Latest {
     pub snapshot: String,
 }
 
-#[derive(Deserialize, Clone, Data, PartialEq, Eq, Lens)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Version {
     pub id: String,
     #[serde(rename = "type")]
@@ -51,6 +42,12 @@ pub struct Version {
     compliance_level: i32,
 }
 
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.id)
+    }
+}
+
 impl Version {
     fn get_meta_path(&self) -> PathBuf {
         META_DIR
@@ -59,61 +56,29 @@ impl Version {
             .with_extension("json")
     }
 
-    fn download_meta(&self) -> Result<()> {
+    fn get_meta_download_item(&self) -> Result<DownloadItem> {
+        let url = Url::parse(&self.url)?;
         let path = self.get_meta_path();
-        let url = &self.url;
 
-        fs::create_dir_all(path.parent().ok_or(eyre!("Invalid path"))?)?;
-        let mut resp = HTTP_CLIENT.get(url).send()?;
-        let file = File::create(&path)?;
-        let mut writer = BufWriter::new(file);
-        io::copy(&mut resp, &mut writer)?;
-
-        Ok(())
+        Ok(super::DownloadItem {
+            url,
+            path,
+            hash: (self.sha1.clone(), HashAlgorithm::Sha1),
+        })
     }
 
-    fn check_meta_hash(&self) -> Result<bool> {
+    pub fn get_meta(&self) -> Result<MinecraftVersionMeta> {
+        self.get_meta_download_item()?.download()?;
+
         let path = self.get_meta_path();
         let file = File::open(&path)?;
-        let mut reader = BufReader::new(file);
-        let mut hasher = Sha1::new();
-        io::copy(&mut reader, &mut hasher)?;
-
-        let hash = hasher.finalize();
-        let hex_hash = base16ct::lower::encode_string(&hash);
-
-        Ok(hex_hash == self.sha1)
-    }
-
-    pub fn get_meta(&self, event_sink: &druid::ExtEventSink) -> Result<MinecraftVersionMeta> {
-        let path = self.get_meta_path();
-
-        event_sink.add_idle_callback(move |data: &mut AppState| {
-            data.current_view = View::Loading;
-            data.current_message = "Downloading version meta...".to_string();
-        });
-
-        if path.exists() && !self.check_meta_hash()? {
-            fs::remove_file(&path)?;
-        }
-
-        if !path.exists() {
-            self.download_meta()?;
-        }
-
-        if !self.check_meta_hash()? {
-            bail!("Asset index hash mismatch");
-        }
-
-        let file = File::open(&path)?;
-        let reader = BufReader::new(file);
-        let meta = serde_json::from_reader(reader)?;
+        let meta = serde_json::from_reader(file)?;
 
         Ok(meta)
     }
 }
 
-#[derive(Deserialize, Clone, Data, PartialEq, Eq)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum VersionType {
     #[serde(rename = "old_alpha")]
     OldAlpha,
@@ -131,28 +96,22 @@ fn fetch_manifest() -> Result<MinecraftVersionManifest> {
     Ok(manifest)
 }
 
-fn fetch_versions() -> Result<Vector<Version>> {
+pub fn fetch_versions() -> Result<Vec<Version>> {
     let manifest = fetch_manifest()?;
     let versions = manifest.versions;
 
-    Ok(versions)
-}
+    // Filter out versions < 1.19
+    let mut filtered_versions = Vec::new();
 
-pub fn update_available_versions(event_sink: druid::ExtEventSink) -> Result<()> {
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.new_instance_state.available_minecraft_versions = Vector::new();
-        data.current_message = "Fetching available Minecraft versions...".to_string();
-        data.current_view = View::Loading;
-    });
+    for version in versions {
+        let stop = version.id == "1.19";
 
-    let available_versions = fetch_versions()?;
+        filtered_versions.push(version);
 
-    event_sink.add_idle_callback(move |data: &mut AppState| {
-        data.new_instance_state.available_minecraft_versions = available_versions;
-        data.new_instance_state.selected_version =
-            Some(data.new_instance_state.available_minecraft_versions[0].clone());
-        data.current_view = View::InstanceVersionSelection;
-    });
+        if stop {
+            break;
+        }
+    }
 
-    Ok(())
+    Ok(filtered_versions)
 }

@@ -1,25 +1,22 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use druid::{
-    widget::{Flex, Label, Spinner},
-    UnitPoint, Widget, WidgetExt,
+use iced::{
+    widget::{column, horizontal_space, row, text, vertical_space},
+    Element, Length,
 };
 
-use crate::AppState;
+use crate::Message;
 
-pub fn build_widget() -> impl Widget<AppState> {
-    Flex::column()
-        .with_flex_child(
-            Flex::column()
-                .with_child(Label::<AppState>::dynamic(|data, _| {
-                    data.current_message.to_owned()
-                }))
-                .with_default_spacer()
-                .with_child(Spinner::new())
-                .align_horizontal(UnitPoint::CENTER)
-                .align_vertical(UnitPoint::CENTER),
-            1.,
-        )
-        .padding(10.)
+pub fn view(message: &str) -> Element<Message> {
+    column![
+        vertical_space(Length::Fill),
+        row![
+            horizontal_space(Length::Fill),
+            text(message).size(50),
+            horizontal_space(Length::Fill),
+        ],
+        vertical_space(Length::Fill),
+    ]
+    .into()
 }
