@@ -79,7 +79,11 @@ pub fn is_updated(assets: &Assets) -> Result<bool> {
 }
 
 pub fn get_java_path(java_version: &str) -> Result<PathBuf> {
-    let mut entries = fs::read_dir(RUNTIMES_DIR.join(java_version))?;
+    let mut entries = fs::read_dir(RUNTIMES_DIR.join(java_version))?.filter(|entry| {
+        let entry = entry.as_ref().unwrap();
+        entry.file_type().unwrap().is_dir()
+    });
+
     let runtime_dir = entries.next().unwrap()?.path();
 
     let runtime_path = if cfg!(target_os = "windows") {
