@@ -73,7 +73,9 @@ pub enum Message {
     AddAccount,
     AccountAdded(Result<(), String>),
     AccountSelected(ArrayString<32>),
+    #[cfg(feature = "check-for-updates")]
     GotUpdates(Result<Option<(String, String)>, String>),
+    #[cfg(feature = "check-for-updates")]
     UpdatesTogglerChanged(bool),
     UpdateJvmTogglerChanged(bool),
     OptimizeJvmTogglerChanged(bool),
@@ -101,7 +103,12 @@ impl Application for IceLauncher {
                 settings: Settings::new(),
                 download: Download::new(),
             },
+            
+            #[cfg(feature = "check-for-updates")]
             Command::perform(check_for_updates(), Message::GotUpdates),
+
+            #[cfg(not(feature = "check-for-updates"))]
+            Command::none(),
         )
     }
 
@@ -268,6 +275,7 @@ impl Application for IceLauncher {
                 self.current_view = View::Accounts;
                 self.accounts.refresh();
             }
+            #[cfg(feature = "check-for-updates")]
             Message::GotUpdates(updates) => {
                 if let Ok(Some((version, url))) = updates {
                     let yes = MessageDialog::new()
@@ -282,6 +290,7 @@ impl Application for IceLauncher {
                     }
                 }
             }
+            #[cfg(feature = "check-for-updates")]
             Message::UpdatesTogglerChanged(enabled) => {
                 let mut config = self.settings.config.as_mut().unwrap();
                 config.automatically_check_for_updates = enabled;
@@ -382,6 +391,7 @@ impl Application for IceLauncher {
     }
 }
 
+#[cfg(feature = "check-for-updates")]
 async fn check_for_updates() -> Result<Option<(String, String)>, String> {
     lib::launcher_updater::check_for_updates().map_err(|e| e.to_string())
 }
