@@ -20,6 +20,7 @@ use zip::ZipArchive;
 pub mod accounts;
 pub mod instances;
 pub mod launcher_config;
+#[cfg(feature = "check-for-updates")]
 pub mod launcher_updater;
 mod minecraft_assets;
 mod minecraft_libraries;

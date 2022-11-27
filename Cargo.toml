@@ -33,6 +33,10 @@ tempfile = "3"
 rand = "0.8"
 arrayvec = { version = "0.7", features = ["serde"] }
 
+[features]
+default = ["check-for-updates"]
+check-for-updates = []
+
 [profile.release]
 opt-level = "z"
 lto = true
