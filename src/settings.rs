@@ -35,7 +35,7 @@ impl Settings {
                 let settings = Column::new().spacing(10);
 
                 #[cfg(feature = "check-for-updates")]
-                settings.push(
+                let settings = settings.push(
                     container(toggler(
                         "Automatically check for updates".to_string(),
                         config.automatically_check_for_updates,
