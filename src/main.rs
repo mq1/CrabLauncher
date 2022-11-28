@@ -4,14 +4,15 @@
 mod about;
 mod accounts;
 mod download;
+mod installers;
 mod instances;
-mod util;
 mod loading;
-mod new_instance;
+mod new_vanilla_instance;
 mod news;
 mod settings;
 mod style;
 mod subscriptions;
+mod util;
 
 use about::About;
 use accounts::Accounts;
@@ -23,9 +24,10 @@ use iced::{
     widget::{button, column, container, row, vertical_space},
     Application, Command, Element, Length, Settings as IcedSettings, Subscription, Theme,
 };
+use installers::Installers;
 use instances::Instances;
 use native_dialog::{MessageDialog, MessageType};
-use new_instance::NewInstance;
+use new_vanilla_instance::NewVanillaInstance;
 use news::News;
 use settings::Settings;
 
@@ -37,23 +39,25 @@ struct IceLauncher {
     current_view: View,
     about: About,
     instances: Instances,
-    new_instance: NewInstance,
+    new_vanilla_instance: NewVanillaInstance,
     accounts: Accounts,
     news: News,
     settings: Settings,
     download: Download,
+    installers: Installers,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum View {
     Instances,
-    NewInstance,
+    NewVanillaInstance,
     Accounts,
     News,
     About,
     Settings,
     Loading(String),
     Download,
+    Installers,
 }
 
 #[derive(Debug, Clone)]
@@ -83,6 +87,7 @@ pub enum Message {
     ResetConfig,
     SaveConfig,
     DownloadEvent(subscriptions::download::Event),
+    VanillaSelected,
 }
 
 impl Application for IceLauncher {
@@ -106,10 +111,11 @@ impl Application for IceLauncher {
             about: About::new(),
             accounts: Accounts::new(),
             instances: Instances::new(),
-            new_instance: NewInstance::new(),
+            new_vanilla_instance: NewVanillaInstance::new(),
             news: News::new(),
             settings,
             download: Download::new(),
+            installers: Installers::new(),
         };
 
         #[cfg(feature = "check-for-updates")]
@@ -138,9 +144,11 @@ impl Application for IceLauncher {
                     return Command::perform(News::fetch(), Message::FetchedNews);
                 }
 
-                if view == View::NewInstance && self.new_instance.available_versions.is_none() {
+                if view == View::NewVanillaInstance
+                    && self.new_vanilla_instance.available_versions.is_none()
+                {
                     return Command::perform(
-                        NewInstance::fetch_versions(),
+                        NewVanillaInstance::fetch_versions(),
                         Message::FetchedVersions,
                     );
                 }
@@ -193,16 +201,16 @@ impl Application for IceLauncher {
                 self.current_view = View::Instances;
             }
             Message::NewInstanceNameChanged(name) => {
-                self.new_instance.name = name;
+                self.new_vanilla_instance.name = name;
             }
             Message::FetchedVersions(versions) => {
-                self.new_instance.available_versions = Some(versions);
+                self.new_vanilla_instance.available_versions = Some(versions);
             }
             Message::VersionSelected(version) => {
-                self.new_instance.selected_version = Some(version);
+                self.new_vanilla_instance.selected_version = Some(version);
             }
             Message::CreateInstance => {
-                if self.new_instance.name.is_empty() {
+                if self.new_vanilla_instance.name.is_empty() {
                     MessageDialog::new()
                         .set_type(MessageType::Error)
                         .set_title("Error")
@@ -213,7 +221,7 @@ impl Application for IceLauncher {
                     return Command::none();
                 }
 
-                if self.new_instance.selected_version.is_none() {
+                if self.new_vanilla_instance.selected_version.is_none() {
                     MessageDialog::new()
                         .set_type(MessageType::Error)
                         .set_title("Error")
@@ -224,8 +232,8 @@ impl Application for IceLauncher {
                     return Command::none();
                 }
 
-                let name = &self.new_instance.name;
-                let version = self.new_instance.selected_version.as_ref().unwrap();
+                let name = &self.new_vanilla_instance.name;
+                let version = self.new_vanilla_instance.selected_version.as_ref().unwrap();
 
                 self.current_view = View::Loading(format!("Creating instance {}", name));
 
@@ -348,6 +356,9 @@ impl Application for IceLauncher {
 
                 self.download.update(event);
             }
+            Message::VanillaSelected => {
+                self.current_view = View::NewVanillaInstance;
+            }
         }
         Command::none()
     }
@@ -383,13 +394,14 @@ impl Application for IceLauncher {
 
         let current_view = match self.current_view {
             View::Instances => self.instances.view(),
-            View::NewInstance => self.new_instance.view(),
+            View::NewVanillaInstance => self.new_vanilla_instance.view(),
             View::Accounts => self.accounts.view(),
             View::News => self.news.view(),
             View::About => self.about.view(),
             View::Settings => self.settings.view(),
             View::Loading(ref message) => loading::view(message),
             View::Download => self.download.view(),
+            View::Installers => self.installers.view(),
         };
 
         row![navbar, current_view].into()
