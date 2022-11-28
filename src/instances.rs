@@ -7,25 +7,25 @@ use iced::{
     Element, Length,
 };
 
-use crate::{lib, style, Message, View};
+use crate::{util, style, Message, View};
 
 pub struct Instances {
-    list: Result<Vec<lib::instances::Instance>>,
+    list: Result<Vec<util::instances::Instance>>,
 }
 
 impl Instances {
     pub fn new() -> Self {
         Self {
-            list: lib::instances::list(),
+            list: util::instances::list(),
         }
     }
 
     pub fn refresh(&mut self) {
-        self.list = lib::instances::list();
+        self.list = util::instances::list();
     }
 
-    pub async fn launch(instance: lib::instances::Instance) -> Result<(), String> {
-        lib::instances::launch(instance).map_err(|e| e.to_string())
+    pub async fn launch(instance: util::instances::Instance) -> Result<(), String> {
+        util::instances::launch(instance).map_err(|e| e.to_string())
     }
 
     pub fn view(&self) -> Element<Message> {

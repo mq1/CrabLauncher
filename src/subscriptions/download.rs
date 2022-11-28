@@ -4,7 +4,7 @@
 use iced::{subscription, Subscription};
 use url::Url;
 
-use crate::lib::DownloadItem;
+use crate::util::DownloadItem;
 
 enum State {
     Ready(Vec<DownloadItem>),

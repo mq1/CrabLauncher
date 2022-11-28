@@ -6,12 +6,12 @@ use iced::{
     Element, Length,
 };
 
-use crate::{lib, style, Message};
+use crate::{util, style, Message};
 
 pub struct NewInstance {
     pub name: String,
-    pub available_versions: Option<Result<Vec<lib::minecraft_version_manifest::Version>, String>>,
-    pub selected_version: Option<lib::minecraft_version_manifest::Version>,
+    pub available_versions: Option<Result<Vec<util::minecraft_version_manifest::Version>, String>>,
+    pub selected_version: Option<util::minecraft_version_manifest::Version>,
 }
 
 impl NewInstance {
@@ -23,8 +23,8 @@ impl NewInstance {
         }
     }
 
-    pub async fn fetch_versions() -> Result<Vec<lib::minecraft_version_manifest::Version>, String> {
-        lib::minecraft_version_manifest::fetch_versions().map_err(|e| e.to_string())
+    pub async fn fetch_versions() -> Result<Vec<util::minecraft_version_manifest::Version>, String> {
+        util::minecraft_version_manifest::fetch_versions().map_err(|e| e.to_string())
     }
 
     pub fn view(&self) -> Element<Message> {
