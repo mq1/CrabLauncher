@@ -64,7 +64,7 @@ impl Instances {
         };
 
         let new_instance_button =
-            button("New instance").on_press(Message::ViewChanged(View::NewInstance));
+            button("New instance").on_press(Message::ViewChanged(View::Installers));
 
         column![heading, instances_list, new_instance_button]
             .spacing(20)
