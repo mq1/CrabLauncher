@@ -7,21 +7,21 @@ use iced::{
     Element, Length,
 };
 
-use crate::{lib, style, Message};
+use crate::{util, style, Message};
 
 pub struct Accounts {
-    document: Result<lib::accounts::AccountsDocument>,
+    document: Result<util::accounts::AccountsDocument>,
 }
 
 impl Accounts {
     pub fn new() -> Self {
         Self {
-            document: lib::accounts::read(),
+            document: util::accounts::read(),
         }
     }
 
     pub fn refresh(&mut self) {
-        self.document = lib::accounts::read();
+        self.document = util::accounts::read();
     }
 
     pub fn has_account_selected(&self) -> bool {

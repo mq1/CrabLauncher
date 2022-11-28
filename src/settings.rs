@@ -10,21 +10,21 @@ use iced::{
     Element, Length,
 };
 
-use crate::{lib, style, Message};
+use crate::{util, style, Message};
 
 pub struct Settings {
-    pub config: Result<lib::launcher_config::LauncherConfig>,
+    pub config: Result<util::launcher_config::LauncherConfig>,
 }
 
 impl Settings {
     pub fn new() -> Self {
         Self {
-            config: lib::launcher_config::read(),
+            config: util::launcher_config::read(),
         }
     }
 
     pub fn refresh(&mut self) {
-        self.config = lib::launcher_config::read();
+        self.config = util::launcher_config::read();
     }
 
     pub fn view(&self) -> Element<Message> {

@@ -5,7 +5,7 @@ mod about;
 mod accounts;
 mod download;
 mod instances;
-mod lib;
+mod util;
 mod loading;
 mod new_instance;
 mod news;
@@ -59,17 +59,17 @@ pub enum View {
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewChanged(View),
-    FetchedNews(Result<lib::minecraft_news::News, String>),
+    FetchedNews(Result<util::minecraft_news::News, String>),
     OpenURL(String),
     RemoveInstance(String),
-    LaunchInstance(lib::instances::Instance),
+    LaunchInstance(util::instances::Instance),
     InstanceClosed(Result<(), String>),
     NewInstanceNameChanged(String),
-    FetchedVersions(Result<Vec<lib::minecraft_version_manifest::Version>, String>),
-    VersionSelected(lib::minecraft_version_manifest::Version),
+    FetchedVersions(Result<Vec<util::minecraft_version_manifest::Version>, String>),
+    VersionSelected(util::minecraft_version_manifest::Version),
     CreateInstance,
     InstanceCreated(Result<(), String>),
-    RemoveAccount(lib::msa::Account),
+    RemoveAccount(util::msa::Account),
     AddAccount,
     AccountAdded(Result<(), String>),
     AccountSelected(ArrayString<32>),
@@ -160,7 +160,7 @@ impl Application for IceLauncher {
                     .unwrap();
 
                 if yes {
-                    lib::instances::remove(&instance).unwrap();
+                    util::instances::remove(&instance).unwrap();
                     self.instances.refresh();
                 }
             }
@@ -229,7 +229,7 @@ impl Application for IceLauncher {
 
                 self.current_view = View::Loading(format!("Creating instance {}", name));
 
-                let download_items = lib::instances::new(name, version).unwrap();
+                let download_items = util::instances::new(name, version).unwrap();
                 self.current_view = View::Download;
                 self.download.start(download_items);
             }
@@ -258,17 +258,17 @@ impl Application for IceLauncher {
                     .unwrap();
 
                 if yes {
-                    lib::accounts::remove(account).unwrap();
+                    util::accounts::remove(account).unwrap();
                     self.accounts.refresh();
                 }
             }
             Message::AccountSelected(account) => {
-                lib::accounts::set_active(account).unwrap();
+                util::accounts::set_active(account).unwrap();
                 self.accounts.refresh();
             }
             Message::AddAccount => {
                 async fn add_account() -> Result<(), String> {
-                    lib::accounts::add().map_err(|e| e.to_string())
+                    util::accounts::add().map_err(|e| e.to_string())
                 }
 
                 self.current_view = View::Loading("Logging in...".to_string());
@@ -330,12 +330,12 @@ impl Application for IceLauncher {
                     .unwrap();
 
                 if yes {
-                    lib::launcher_config::reset().unwrap();
+                    util::launcher_config::reset().unwrap();
                     self.settings.refresh();
                 }
             }
             Message::SaveConfig => {
-                lib::launcher_config::write(self.settings.config.as_ref().unwrap()).unwrap();
+                util::launcher_config::write(self.settings.config.as_ref().unwrap()).unwrap();
             }
             Message::DownloadEvent(event) => {
                 match event {
@@ -406,5 +406,5 @@ impl Application for IceLauncher {
 
 #[cfg(feature = "check-for-updates")]
 async fn check_for_updates() -> Result<Option<(String, String)>, String> {
-    lib::launcher_updater::check_for_updates().map_err(|e| e.to_string())
+    util::launcher_updater::check_for_updates().map_err(|e| e.to_string())
 }

@@ -8,7 +8,7 @@ use iced::{
 use url::Url;
 
 use crate::{
-    lib::DownloadItem,
+    util::DownloadItem,
     subscriptions::download::{self, Event},
     Message,
 };
