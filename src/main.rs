@@ -92,24 +92,37 @@ impl Application for IceLauncher {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Self::Message>) {
-        (
-            Self {
-                current_view: View::Instances,
-                about: About::new(),
-                accounts: Accounts::new(),
-                instances: Instances::new(),
-                new_instance: NewInstance::new(),
-                news: News::new(),
-                settings: Settings::new(),
-                download: Download::new(),
-            },
-            
-            #[cfg(feature = "check-for-updates")]
-            Command::perform(check_for_updates(), Message::GotUpdates),
+        let settings = Settings::new();
 
-            #[cfg(not(feature = "check-for-updates"))]
-            Command::none(),
-        )
+        #[cfg(feature = "check-for-updates")]
+        let check_updates = settings
+            .config
+            .as_ref()
+            .unwrap()
+            .automatically_check_for_updates;
+
+        let app = Self {
+            current_view: View::Instances,
+            about: About::new(),
+            accounts: Accounts::new(),
+            instances: Instances::new(),
+            new_instance: NewInstance::new(),
+            news: News::new(),
+            settings,
+            download: Download::new(),
+        };
+
+        #[cfg(feature = "check-for-updates")]
+        let command = if check_updates {
+            Command::perform(check_for_updates(), Message::GotUpdates)
+        } else {
+            Command::none()
+        };
+
+        #[cfg(not(feature = "check-for-updates"))]
+        let command = Command::none();
+
+        (app, command)
     }
 
     fn title(&self) -> String {
