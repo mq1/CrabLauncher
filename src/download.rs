@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{column, horizontal_space, progress_bar, row, text, vertical_space},
+    widget::{column, progress_bar, text, vertical_space},
     Element, Length, Subscription,
 };
 use url::Url;
