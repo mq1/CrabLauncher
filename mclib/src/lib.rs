@@ -20,12 +20,11 @@ use zip::ZipArchive;
 pub mod accounts;
 pub mod instances;
 pub mod launcher_config;
-#[cfg(feature = "check-for-updates")]
 pub mod launcher_updater;
-mod minecraft_assets;
-mod minecraft_libraries;
+pub mod minecraft_assets;
+pub mod minecraft_libraries;
 pub mod minecraft_news;
-mod minecraft_rules;
+pub mod minecraft_rules;
 pub mod minecraft_version_manifest;
 pub mod minecraft_version_meta;
 pub mod modrinth;
@@ -94,7 +93,12 @@ impl DownloadItem {
             };
 
             if hex_hash != self.hash.0 {
-                bail!("Hash mismatch for {}\nExpected: {}\nGot: {}", self.url, self.hash.0, hex_hash);
+                bail!(
+                    "Hash mismatch for {}\nExpected: {}\nGot: {}",
+                    self.url,
+                    self.hash.0,
+                    hex_hash
+                );
             }
         }
 

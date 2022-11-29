@@ -8,11 +8,9 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
-use crate::util::{accounts, launcher_config, minecraft_assets::ASSETS_DIR};
-
 use super::{
-    minecraft_version_manifest::Version, minecraft_version_meta, runtime_manager, DownloadItem,
-    BASE_DIR,
+    accounts, launcher_config, minecraft_assets::ASSETS_DIR, minecraft_version_manifest::Version,
+    minecraft_version_meta, runtime_manager, DownloadItem, BASE_DIR,
 };
 
 // https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks

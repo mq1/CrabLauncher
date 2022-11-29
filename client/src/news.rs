@@ -7,10 +7,10 @@ use iced::{
     Element, Length,
 };
 
-use crate::{util, style, Message};
+use crate::{style, Message};
 
 pub struct News {
-    pub news: Option<Result<util::minecraft_news::News, String>>,
+    pub news: Option<Result<mclib::minecraft_news::News, String>>,
 }
 
 impl News {
@@ -18,8 +18,8 @@ impl News {
         Self { news: None }
     }
 
-    pub async fn fetch() -> Result<util::minecraft_news::News, String> {
-        util::minecraft_news::fetch(None).map_err(|e| e.to_string())
+    pub async fn fetch() -> Result<mclib::minecraft_news::News, String> {
+        mclib::minecraft_news::fetch(None).map_err(|e| e.to_string())
     }
 
     pub fn view(&self) -> Element<Message> {

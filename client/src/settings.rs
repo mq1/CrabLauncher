@@ -10,21 +10,21 @@ use iced::{
     Element, Length,
 };
 
-use crate::{util, style, Message};
+use crate::{style, Message};
 
 pub struct Settings {
-    pub config: Result<util::launcher_config::LauncherConfig>,
+    pub config: Result<mclib::launcher_config::LauncherConfig>,
 }
 
 impl Settings {
     pub fn new() -> Self {
         Self {
-            config: util::launcher_config::read(),
+            config: mclib::launcher_config::read(),
         }
     }
 
     pub fn refresh(&mut self) {
-        self.config = util::launcher_config::read();
+        self.config = mclib::launcher_config::read();
     }
 
     pub fn view(&self) -> Element<Message> {
@@ -32,20 +32,21 @@ impl Settings {
 
         let settings: Element<_> = match &self.config {
             Ok(config) => {
-                let settings = Column::new().spacing(10);
+                let mut settings = Column::new().spacing(10);
 
-                #[cfg(feature = "check-for-updates")]
-                let settings = settings.push(
-                    container(toggler(
-                        "Automatically check for updates".to_string(),
-                        config.automatically_check_for_updates,
-                        Message::UpdatesTogglerChanged,
-                    ))
-                    .padding(10)
-                    .style(style::card()),
-                );
+                if cfg!(feature = "check-for-updates") {
+                    settings = settings.push(
+                        container(toggler(
+                            "Automatically check for updates".to_string(),
+                            config.automatically_check_for_updates,
+                            Message::UpdatesTogglerChanged,
+                        ))
+                        .padding(10)
+                        .style(style::card()),
+                    );
+                }
 
-                let settings = settings.push(
+                settings = settings.push(
                     container(toggler(
                         "Automatically update JVM".to_string(),
                         config.automatically_update_jvm,
@@ -55,7 +56,7 @@ impl Settings {
                     .style(style::card()),
                 );
 
-                let settings = settings.push(
+                settings = settings.push(
                     container(toggler(
                         "Automatically optimize JVM".to_string(),
                         config.automatically_optimize_jvm_arguments,
@@ -65,7 +66,7 @@ impl Settings {
                     .style(style::card()),
                 );
 
-                let settings = settings.push(
+                settings = settings.push(
                     container(row![
                         text("JVM memory"),
                         horizontal_space(Length::Fill),

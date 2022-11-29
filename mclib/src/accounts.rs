@@ -4,9 +4,10 @@
 use std::{fs, path::PathBuf};
 
 use anyhow::Result;
-use arrayvec::ArrayString;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+
+use crate::msa::AccountId;
 
 use super::{msa, BASE_DIR};
 
@@ -14,7 +15,7 @@ static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct AccountsDocument {
-    pub active_account: Option<ArrayString<32>>,
+    pub active_account: Option<AccountId>,
     pub accounts: Vec<msa::Account>,
 }
 
@@ -56,7 +57,7 @@ pub fn get_active() -> Result<Option<msa::Account>> {
     Ok(None)
 }
 
-pub fn set_active(account_id: ArrayString<32>) -> Result<()> {
+pub fn set_active(account_id: AccountId) -> Result<()> {
     let mut document = read()?;
     document.active_account = Some(account_id);
     write(&document)?;

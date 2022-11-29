@@ -12,12 +12,10 @@ mod news;
 mod settings;
 mod style;
 mod subscriptions;
-mod util;
 
 use about::About;
 use accounts::Accounts;
 use anyhow::Result;
-use arrayvec::ArrayString;
 use download::Download;
 use iced::{
     executor,
@@ -26,6 +24,7 @@ use iced::{
 };
 use installers::Installers;
 use instances::Instances;
+use mclib::msa::AccountId;
 use native_dialog::{MessageDialog, MessageType};
 use new_vanilla_instance::NewVanillaInstance;
 use news::News;
@@ -63,23 +62,21 @@ pub enum View {
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewChanged(View),
-    FetchedNews(Result<util::minecraft_news::News, String>),
+    FetchedNews(Result<mclib::minecraft_news::News, String>),
     OpenURL(String),
     RemoveInstance(String),
-    LaunchInstance(util::instances::Instance),
+    LaunchInstance(mclib::instances::Instance),
     InstanceClosed(Result<(), String>),
     NewInstanceNameChanged(String),
-    FetchedVersions(Result<Vec<util::minecraft_version_manifest::Version>, String>),
-    VersionSelected(util::minecraft_version_manifest::Version),
+    FetchedVersions(Result<Vec<mclib::minecraft_version_manifest::Version>, String>),
+    VersionSelected(mclib::minecraft_version_manifest::Version),
     CreateInstance,
     InstanceCreated(Result<(), String>),
-    RemoveAccount(util::msa::Account),
+    RemoveAccount(mclib::msa::Account),
     AddAccount,
     AccountAdded(Result<(), String>),
-    AccountSelected(ArrayString<32>),
-    #[cfg(feature = "check-for-updates")]
+    AccountSelected(AccountId),
     GotUpdates(Result<Option<(String, String)>, String>),
-    #[cfg(feature = "check-for-updates")]
     UpdatesTogglerChanged(bool),
     UpdateJvmTogglerChanged(bool),
     OptimizeJvmTogglerChanged(bool),
@@ -99,12 +96,12 @@ impl Application for IceLauncher {
     fn new(_flags: ()) -> (Self, Command<Self::Message>) {
         let settings = Settings::new();
 
-        #[cfg(feature = "check-for-updates")]
         let check_updates = settings
             .config
             .as_ref()
             .unwrap()
-            .automatically_check_for_updates;
+            .automatically_check_for_updates
+            && cfg!(feature = "check-for-updates");
 
         let app = Self {
             current_view: View::Instances,
@@ -118,15 +115,11 @@ impl Application for IceLauncher {
             installers: Installers::new(),
         };
 
-        #[cfg(feature = "check-for-updates")]
         let command = if check_updates {
             Command::perform(check_for_updates(), Message::GotUpdates)
         } else {
             Command::none()
         };
-
-        #[cfg(not(feature = "check-for-updates"))]
-        let command = Command::none();
 
         (app, command)
     }
@@ -168,7 +161,7 @@ impl Application for IceLauncher {
                     .unwrap();
 
                 if yes {
-                    util::instances::remove(&instance).unwrap();
+                    mclib::instances::remove(&instance).unwrap();
                     self.instances.refresh();
                 }
             }
@@ -237,7 +230,7 @@ impl Application for IceLauncher {
 
                 self.current_view = View::Loading(format!("Creating instance {}", name));
 
-                let download_items = util::instances::new(name, version).unwrap();
+                let download_items = mclib::instances::new(name, version).unwrap();
                 self.current_view = View::Download;
                 self.download.start(download_items);
             }
@@ -266,17 +259,17 @@ impl Application for IceLauncher {
                     .unwrap();
 
                 if yes {
-                    util::accounts::remove(account).unwrap();
+                    mclib::accounts::remove(account).unwrap();
                     self.accounts.refresh();
                 }
             }
             Message::AccountSelected(account) => {
-                util::accounts::set_active(account).unwrap();
+                mclib::accounts::set_active(account).unwrap();
                 self.accounts.refresh();
             }
             Message::AddAccount => {
                 async fn add_account() -> Result<(), String> {
-                    util::accounts::add().map_err(|e| e.to_string())
+                    mclib::accounts::add().map_err(|e| e.to_string())
                 }
 
                 self.current_view = View::Loading("Logging in...".to_string());
@@ -296,7 +289,6 @@ impl Application for IceLauncher {
                 self.current_view = View::Accounts;
                 self.accounts.refresh();
             }
-            #[cfg(feature = "check-for-updates")]
             Message::GotUpdates(updates) => {
                 if let Ok(Some((version, url))) = updates {
                     let yes = MessageDialog::new()
@@ -311,7 +303,6 @@ impl Application for IceLauncher {
                     }
                 }
             }
-            #[cfg(feature = "check-for-updates")]
             Message::UpdatesTogglerChanged(enabled) => {
                 let mut config = self.settings.config.as_mut().unwrap();
                 config.automatically_check_for_updates = enabled;
@@ -338,12 +329,12 @@ impl Application for IceLauncher {
                     .unwrap();
 
                 if yes {
-                    util::launcher_config::reset().unwrap();
+                    mclib::launcher_config::reset().unwrap();
                     self.settings.refresh();
                 }
             }
             Message::SaveConfig => {
-                util::launcher_config::write(self.settings.config.as_ref().unwrap()).unwrap();
+                mclib::launcher_config::write(self.settings.config.as_ref().unwrap()).unwrap();
             }
             Message::DownloadEvent(event) => {
                 match event {
@@ -416,7 +407,6 @@ impl Application for IceLauncher {
     }
 }
 
-#[cfg(feature = "check-for-updates")]
 async fn check_for_updates() -> Result<Option<(String, String)>, String> {
-    util::launcher_updater::check_for_updates().map_err(|e| e.to_string())
+    mclib::launcher_updater::check_for_updates().map_err(|e| e.to_string())
 }
