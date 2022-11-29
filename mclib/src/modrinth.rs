@@ -6,24 +6,24 @@ use serde::Deserialize;
 
 use super::HTTP_CLIENT;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Hit {
     pub title: String,
     pub versions: Vec<String>,
+    pub latest_version: String,
+    pub slug: String,
 }
 
-pub type Hits = Vec<Hit>;
-
-#[derive(Deserialize)]
-struct SearchResults {
-    hits: Hits,
+#[derive(Deserialize, Debug, Clone)]
+pub struct SearchResults {
+    pub hits: Vec<Hit>,
 }
 
-pub fn fetch_modpacks() -> Result<Hits> {
+pub fn fetch_modpacks() -> Result<SearchResults> {
     let resp = HTTP_CLIENT
         .get("https://api.modrinth.com/v2/search?facets=[[\"project_type:modpack\"]]&limit=20")
         .send()?
-        .json::<SearchResults>()?;
+        .json()?;
 
-    Ok(resp.hits)
+    Ok(resp)
 }

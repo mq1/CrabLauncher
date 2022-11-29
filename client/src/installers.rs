@@ -21,7 +21,8 @@ impl Installers {
         let vanilla_button =
             button("Vanilla").on_press(Message::ViewChanged(View::NewVanillaInstance));
 
-        let modrinth_button = button("Modrinth");
+        let modrinth_button =
+            button("Modrinth").on_press(Message::ViewChanged(View::ModrinthModpacks));
 
         let installers = column![vanilla_button, modrinth_button].spacing(10);
 
