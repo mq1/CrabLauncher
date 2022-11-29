@@ -7,6 +7,7 @@ mod download;
 mod installers;
 mod instances;
 mod loading;
+mod modrinth_modpacks;
 mod new_vanilla_instance;
 mod news;
 mod settings;
@@ -25,6 +26,7 @@ use iced::{
 use installers::Installers;
 use instances::Instances;
 use mclib::msa::AccountId;
+use modrinth_modpacks::ModrinthModpacks;
 use native_dialog::{MessageDialog, MessageType};
 use new_vanilla_instance::NewVanillaInstance;
 use news::News;
@@ -44,6 +46,7 @@ struct IceLauncher {
     settings: Settings,
     download: Download,
     installers: Installers,
+    modrinth_modpacks: ModrinthModpacks,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,6 +60,7 @@ pub enum View {
     Loading(String),
     Download,
     Installers,
+    ModrinthModpacks,
 }
 
 #[derive(Debug, Clone)]
@@ -85,6 +89,7 @@ pub enum Message {
     SaveConfig,
     DownloadEvent(subscriptions::download::Event),
     VanillaSelected,
+    GotModrinthModpacks(Result<mclib::modrinth::SearchResults, String>),
 }
 
 impl Application for IceLauncher {
@@ -113,6 +118,7 @@ impl Application for IceLauncher {
             settings,
             download: Download::new(),
             installers: Installers::new(),
+            modrinth_modpacks: ModrinthModpacks::new(),
         };
 
         let command = if check_updates {
@@ -143,6 +149,15 @@ impl Application for IceLauncher {
                     return Command::perform(
                         NewVanillaInstance::fetch_versions(),
                         Message::FetchedVersions,
+                    );
+                }
+
+                if view == View::ModrinthModpacks
+                    && self.modrinth_modpacks.available_modpacks.is_none()
+                {
+                    return Command::perform(
+                        ModrinthModpacks::fetch_modpacks(),
+                        Message::GotModrinthModpacks,
                     );
                 }
             }
@@ -350,6 +365,9 @@ impl Application for IceLauncher {
             Message::VanillaSelected => {
                 self.current_view = View::NewVanillaInstance;
             }
+            Message::GotModrinthModpacks(modpacks) => {
+                self.modrinth_modpacks.available_modpacks = Some(modpacks);
+            }
         }
         Command::none()
     }
@@ -393,6 +411,7 @@ impl Application for IceLauncher {
             View::Loading(ref message) => loading::view(message),
             View::Download => self.download.view(),
             View::Installers => self.installers.view(),
+            View::ModrinthModpacks => self.modrinth_modpacks.view(),
         };
 
         row![navbar, current_view].into()
