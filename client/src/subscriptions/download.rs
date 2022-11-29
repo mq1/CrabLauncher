@@ -2,9 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{subscription, Subscription};
-use url::Url;
-
-use crate::util::DownloadItem;
+use mclib::DownloadItem;
 
 enum State {
     Ready(Vec<DownloadItem>),
@@ -18,7 +16,7 @@ enum State {
 
 #[derive(Debug, Clone)]
 pub enum Event {
-    Progress { percentage: f32, url: Url },
+    Progress { percentage: f32, url: String },
     Errored,
     Finished,
 }
@@ -38,7 +36,7 @@ pub fn files(items: Vec<DownloadItem>) -> Subscription<Event> {
                     (
                         Some(Event::Progress {
                             percentage: 0.0,
-                            url: items[total - 1].url.clone(),
+                            url: items[total - 1].url.to_string(),
                         }),
                         State::Downloading {
                             items,
@@ -63,7 +61,7 @@ pub fn files(items: Vec<DownloadItem>) -> Subscription<Event> {
                                 Ok(_) => (
                                     Some(Event::Progress {
                                         percentage,
-                                        url: item.url,
+                                        url: item.url.to_string(),
                                     }),
                                     State::Downloading {
                                         items,

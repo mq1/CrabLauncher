@@ -5,10 +5,9 @@ use iced::{
     widget::{column, progress_bar, text, vertical_space},
     Element, Length, Subscription,
 };
-use url::Url;
+use mclib::DownloadItem;
 
 use crate::{
-    util::DownloadItem,
     subscriptions::download::{self, Event},
     Message,
 };
@@ -24,7 +23,7 @@ enum State {
     Idle,
     Downloading {
         current_percentage: f32,
-        current_url: Option<Url>,
+        current_url: Option<String>,
     },
     Finished,
     Errored,

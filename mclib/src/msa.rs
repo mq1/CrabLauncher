@@ -28,6 +28,8 @@ const CLIENT_ID: &str = "ae26ac80-2153-4801-94f6-8859ce8e058a";
 const REDIRECT_URI: &str = "http://127.0.0.1:3003/login";
 const SCOPE: &str = "XboxLive.signin offline_access";
 
+pub type AccountId = ArrayString<32>;
+
 fn get_code_challenge() -> (String, String) {
     let code_verifier = thread_rng()
         .sample_iter(&Alphanumeric)
@@ -180,7 +182,7 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
         .send()?
         .json::<MinecraftProfile>()?;
 
-    let mut mc_id = ArrayString::<32>::new();
+    let mut mc_id = AccountId::new();
     mc_id.push_str(&minecraft_profile.id);
 
     let account = Account {
@@ -196,7 +198,7 @@ fn get_minecraft_account_data(access_token: String, refresh_token: String) -> Re
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Account {
     pub ms_refresh_token: String,
-    pub mc_id: ArrayString<32>,
+    pub mc_id: AccountId,
     pub mc_access_token: String,
     pub mc_username: String,
 }
