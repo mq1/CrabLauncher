@@ -8,11 +8,11 @@ mod installers;
 mod instances;
 mod loading;
 mod modrinth_modpacks;
-mod new_vanilla_instance;
 mod news;
 mod settings;
 mod style;
 mod subscriptions;
+mod vanilla_installer;
 
 use about::About;
 use accounts::Accounts;
@@ -28,9 +28,9 @@ use instances::Instances;
 use mclib::msa::AccountId;
 use modrinth_modpacks::ModrinthModpacks;
 use native_dialog::{MessageDialog, MessageType};
-use new_vanilla_instance::NewVanillaInstance;
 use news::News;
 use settings::Settings;
+use vanilla_installer::VanillaInstaller;
 
 pub fn main() -> iced::Result {
     IceLauncher::run(IcedSettings::default())
@@ -40,7 +40,7 @@ struct IceLauncher {
     current_view: View,
     about: About,
     instances: Instances,
-    new_vanilla_instance: NewVanillaInstance,
+    vanilla_installer: VanillaInstaller,
     accounts: Accounts,
     news: News,
     settings: Settings,
@@ -113,7 +113,7 @@ impl Application for IceLauncher {
             about: About::new(),
             accounts: Accounts::new(),
             instances: Instances::new(),
-            new_vanilla_instance: NewVanillaInstance::new(),
+            vanilla_installer: VanillaInstaller::new(),
             news: News::new(),
             settings,
             download: Download::new(),
@@ -144,10 +144,10 @@ impl Application for IceLauncher {
                 }
 
                 if view == View::NewVanillaInstance
-                    && self.new_vanilla_instance.available_versions.is_none()
+                    && self.vanilla_installer.available_versions.is_none()
                 {
                     return Command::perform(
-                        NewVanillaInstance::fetch_versions(),
+                        VanillaInstaller::fetch_versions(),
                         Message::FetchedVersions,
                     );
                 }
@@ -209,16 +209,16 @@ impl Application for IceLauncher {
                 self.current_view = View::Instances;
             }
             Message::NewInstanceNameChanged(name) => {
-                self.new_vanilla_instance.name = name;
+                self.vanilla_installer.name = name;
             }
             Message::FetchedVersions(versions) => {
-                self.new_vanilla_instance.available_versions = Some(versions);
+                self.vanilla_installer.available_versions = Some(versions);
             }
             Message::VersionSelected(version) => {
-                self.new_vanilla_instance.selected_version = Some(version);
+                self.vanilla_installer.selected_version = Some(version);
             }
             Message::CreateInstance => {
-                if self.new_vanilla_instance.name.is_empty() {
+                if self.vanilla_installer.name.is_empty() {
                     MessageDialog::new()
                         .set_type(MessageType::Error)
                         .set_title("Error")
@@ -229,7 +229,7 @@ impl Application for IceLauncher {
                     return Command::none();
                 }
 
-                if self.new_vanilla_instance.selected_version.is_none() {
+                if self.vanilla_installer.selected_version.is_none() {
                     MessageDialog::new()
                         .set_type(MessageType::Error)
                         .set_title("Error")
@@ -240,8 +240,8 @@ impl Application for IceLauncher {
                     return Command::none();
                 }
 
-                let name = &self.new_vanilla_instance.name;
-                let version = self.new_vanilla_instance.selected_version.as_ref().unwrap();
+                let name = &self.vanilla_installer.name;
+                let version = self.vanilla_installer.selected_version.as_ref().unwrap();
 
                 self.current_view = View::Loading(format!("Creating instance {}", name));
 
@@ -403,7 +403,7 @@ impl Application for IceLauncher {
 
         let current_view = match self.current_view {
             View::Instances => self.instances.view(),
-            View::NewVanillaInstance => self.new_vanilla_instance.view(),
+            View::NewVanillaInstance => self.vanilla_installer.view(),
             View::Accounts => self.accounts.view(),
             View::News => self.news.view(),
             View::About => self.about.view(),

@@ -8,13 +8,13 @@ use iced::{
 
 use crate::{style, Message};
 
-pub struct NewVanillaInstance {
+pub struct VanillaInstaller {
     pub name: String,
     pub available_versions: Option<Result<Vec<mclib::minecraft_version_manifest::Version>, String>>,
     pub selected_version: Option<mclib::minecraft_version_manifest::Version>,
 }
 
-impl NewVanillaInstance {
+impl VanillaInstaller {
     pub fn new() -> Self {
         Self {
             name: String::new(),
