@@ -11,7 +11,22 @@ pub struct Hit {
     pub title: String,
     pub versions: Vec<String>,
     pub latest_version: String,
-    pub slug: String,
+    pub project_id: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Version {
+    pub id: String,
+    pub name: String,
+    pub featured: bool,
+}
+
+impl Hit {
+    pub fn fetch_versions(&self) -> Result<Vec<Version>> {
+        let resp = HTTP_CLIENT.get(format!("https://api.modrinth.com/v2/project/{}/version", self.project_id)).send()?.json()?;
+
+        Ok(resp)
+    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
