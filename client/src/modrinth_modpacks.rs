@@ -11,14 +11,12 @@ use crate::{style, Message};
 
 pub struct ModrinthModpacks {
     pub available_modpacks: Option<Result<SearchResults, String>>,
-    selected_modpack: Option<modrinth::Hit>,
 }
 
 impl ModrinthModpacks {
     pub fn new() -> Self {
         Self {
             available_modpacks: None,
-            selected_modpack: None,
         }
     }
 
@@ -35,7 +33,9 @@ impl ModrinthModpacks {
                 for modpack in &modpacks.hits {
                     let version_text =
                         text(format!("[Latest Version: {}]", modpack.latest_version));
-                    let select_button = button("Select");
+                    let select_button = button("Select").on_press(Message::ModrinthModpackSelected(
+                        modpack.clone(),
+                    ));
 
                     let row = row![
                         text(&modpack.title),
