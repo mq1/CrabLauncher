@@ -26,7 +26,6 @@ use iced::{
 };
 use installers::Installers;
 use instances::Instances;
-use mclib::msa::AccountId;
 use modrinth_installer::ModrinthInstaller;
 use modrinth_modpacks::ModrinthModpacks;
 use native_dialog::{MessageDialog, MessageType};
@@ -79,10 +78,7 @@ pub enum Message {
     VersionSelected(mclib::minecraft_version_manifest::Version),
     CreateInstance,
     InstanceCreated(Result<(), String>),
-    RemoveAccount(mclib::msa::Account),
-    AddAccount,
-    AccountAdded(Result<(), String>),
-    AccountSelected(AccountId),
+    AccountsMessage(accounts::Message),
     GotUpdates(Result<Option<(String, String)>, String>),
     SettingsMessage(settings::Message),
     DownloadEvent(subscriptions::download::Event),
@@ -247,47 +243,18 @@ impl Application for IceLauncher {
                     &self.accounts.document,
                 );
             }
-            Message::RemoveAccount(account) => {
-                let yes = MessageDialog::new()
-                    .set_type(MessageType::Warning)
-                    .set_title("Remove account")
-                    .set_text(&format!(
-                        "Are you sure you want to remove {}?",
-                        account.mc_username
-                    ))
-                    .show_confirm()
-                    .unwrap();
-
-                if yes {
-                    mclib::accounts::remove(account).unwrap();
-                    self.accounts.refresh();
-                }
-            }
-            Message::AccountSelected(account) => {
-                mclib::accounts::set_active(account).unwrap();
-                self.accounts.refresh();
-            }
-            Message::AddAccount => {
-                async fn add_account() -> Result<(), String> {
-                    mclib::accounts::add().map_err(|e| e.to_string())
+            Message::AccountsMessage(message) => {
+                match message {
+                    accounts::Message::AddAccount => {
+                        self.current_view = View::Loading("Logging in".to_string());
+                    }
+                    accounts::Message::AccountAdded(_) => {
+                        self.current_view = View::Accounts;
+                    }
+                    _ => {}
                 }
 
-                self.current_view = View::Loading("Logging in...".to_string());
-
-                return Command::perform(add_account(), Message::AccountAdded);
-            }
-            Message::AccountAdded(res) => {
-                if let Some(err) = res.err() {
-                    MessageDialog::new()
-                        .set_type(MessageType::Error)
-                        .set_title("Error adding account")
-                        .set_text(&err)
-                        .show_alert()
-                        .unwrap();
-                }
-
-                self.current_view = View::Accounts;
-                self.accounts.refresh();
+                return self.accounts.update(message).map(Message::AccountsMessage);
             }
             Message::GotUpdates(updates) => {
                 if let Ok(Some((version, url))) = updates {
@@ -374,7 +341,7 @@ impl Application for IceLauncher {
         let current_view = match self.current_view {
             View::Instances => self.instances.view().map(Message::InstancesMessage),
             View::NewVanillaInstance => self.vanilla_installer.view(),
-            View::Accounts => self.accounts.view(),
+            View::Accounts => self.accounts.view().map(Message::AccountsMessage),
             View::News => self.news.view(),
             View::About => self.about.view(),
             View::Settings => self.settings.view().map(Message::SettingsMessage),
