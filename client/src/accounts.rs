@@ -10,7 +10,7 @@ use iced::{
 use crate::{style, Message};
 
 pub struct Accounts {
-    document: Result<mclib::accounts::AccountsDocument>,
+    pub document: Result<mclib::accounts::AccountsDocument>,
 }
 
 impl Accounts {

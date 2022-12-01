@@ -72,8 +72,7 @@ pub enum Message {
     ViewChanged(View),
     FetchedNews(Result<mclib::minecraft_news::News, String>),
     OpenURL(String),
-    RemoveInstance(String),
-    LaunchInstance(mclib::instances::Instance),
+    InstancesMessage(instances::Message),
     InstanceClosed(Result<(), String>),
     NewInstanceNameChanged(String),
     FetchedVersions(Result<Vec<mclib::minecraft_version_manifest::Version>, String>),
@@ -169,34 +168,15 @@ impl Application for IceLauncher {
             Message::OpenURL(url) => {
                 open::that(url).unwrap();
             }
-            Message::RemoveInstance(instance) => {
-                let yes = MessageDialog::new()
-                    .set_type(MessageType::Warning)
-                    .set_title("Remove instance")
-                    .set_text(&format!("Are you sure you want to remove {}?", instance))
-                    .show_confirm()
-                    .unwrap();
-
-                if yes {
-                    mclib::instances::remove(&instance).unwrap();
-                    self.instances.refresh();
-                }
-            }
-            Message::LaunchInstance(instance) => {
-                if !self.accounts.has_account_selected() {
-                    MessageDialog::new()
-                        .set_type(MessageType::Warning)
-                        .set_title("No account selected")
-                        .set_text("Please select an account to launch the game")
-                        .show_alert()
-                        .unwrap();
-
-                    return Command::none();
+            Message::InstancesMessage(message) => {
+                match message {
+                    instances::Message::NewInstance => {
+                        self.current_view = View::Installers;
+                    }
+                    _ => {}
                 }
 
-                self.current_view = View::Loading(format!("Launching {}", instance.name));
-
-                return Command::perform(Instances::launch(instance), Message::InstanceClosed);
+                self.instances.update(message, &self.accounts.document);
             }
             Message::InstanceClosed(res) => {
                 if let Err(e) = res {
@@ -262,7 +242,10 @@ impl Application for IceLauncher {
                 }
 
                 self.current_view = View::Instances;
-                self.instances.refresh();
+                self.instances.update(
+                    instances::Message::RefreshInstances,
+                    &self.accounts.document,
+                );
             }
             Message::RemoveAccount(account) => {
                 let yes = MessageDialog::new()
@@ -327,7 +310,10 @@ impl Application for IceLauncher {
                 match event {
                     subscriptions::download::Event::Finished => {
                         self.current_view = View::Instances;
-                        self.instances.refresh();
+                        self.instances.update(
+                            instances::Message::RefreshInstances,
+                            &self.accounts.document,
+                        );
                     }
                     _ => {}
                 }
@@ -386,7 +372,7 @@ impl Application for IceLauncher {
         .padding(10);
 
         let current_view = match self.current_view {
-            View::Instances => self.instances.view(),
+            View::Instances => self.instances.view().map(Message::InstancesMessage),
             View::NewVanillaInstance => self.vanilla_installer.view(),
             View::Accounts => self.accounts.view(),
             View::News => self.news.view(),
