@@ -4,10 +4,21 @@
 use anyhow::Result;
 use iced::{
     widget::{button, column, container, horizontal_space, radio, row, text},
-    Element, Length,
+    Command, Element, Length,
 };
+use mclib::msa::{Account, AccountId};
+use native_dialog::{MessageDialog, MessageType};
 
-use crate::{style, Message};
+use crate::style;
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    RefreshAccounts,
+    RemoveAccount(Account),
+    AddAccount,
+    AccountAdded(Result<(), String>),
+    AccountSelected(AccountId),
+}
 
 pub struct Accounts {
     pub document: Result<mclib::accounts::AccountsDocument>,
@@ -20,15 +31,52 @@ impl Accounts {
         }
     }
 
-    pub fn refresh(&mut self) {
-        self.document = mclib::accounts::read();
-    }
+    pub fn update(&mut self, message: Message) -> Command<Message> {
+        match message {
+            Message::RefreshAccounts => {
+                self.document = mclib::accounts::read();
+            }
+            Message::RemoveAccount(account) => {
+                let yes = MessageDialog::new()
+                    .set_type(MessageType::Warning)
+                    .set_title("Remove account")
+                    .set_text(&format!(
+                        "Are you sure you want to remove {}?",
+                        account.mc_username
+                    ))
+                    .show_confirm()
+                    .unwrap();
 
-    pub fn has_account_selected(&self) -> bool {
-        match &self.document {
-            Ok(document) => document.active_account.is_some(),
-            Err(_) => false,
+                if yes {
+                    mclib::accounts::remove(account).unwrap();
+                    self.update(Message::RefreshAccounts);
+                }
+            }
+            Message::AccountSelected(account) => {
+                mclib::accounts::set_active(account).unwrap();
+                self.update(Message::RefreshAccounts);
+            }
+            Message::AddAccount => {
+                return Command::perform(
+                    async { mclib::accounts::add().map_err(|e| e.to_string()) },
+                    Message::AccountAdded,
+                );
+            }
+            Message::AccountAdded(res) => {
+                if let Some(err) = res.err() {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error adding account")
+                        .set_text(&err)
+                        .show_alert()
+                        .unwrap();
+                }
+
+                self.update(Message::RefreshAccounts);
+            }
         }
+
+        Command::none()
     }
 
     pub fn view(&self) -> Element<Message> {
