@@ -9,8 +9,19 @@ use iced::{
     },
     Element, Length,
 };
+use native_dialog::{MessageDialog, MessageType};
 
-use crate::{style, Message};
+use crate::style;
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    UpdatesTogglerChanged(bool),
+    UpdateJvmTogglerChanged(bool),
+    OptimizeJvmTogglerChanged(bool),
+    UpdateJvmMemory(String),
+    ResetConfig,
+    SaveConfig,
+}
 
 pub struct Settings {
     pub config: Result<mclib::launcher_config::LauncherConfig>,
@@ -23,8 +34,47 @@ impl Settings {
         }
     }
 
-    pub fn refresh(&mut self) {
-        self.config = mclib::launcher_config::read();
+    pub fn update(&mut self, message: Message) {
+        match message {
+            Message::UpdatesTogglerChanged(enabled) => {
+                if let Ok(ref mut config) = self.config {
+                    config.automatically_check_for_updates = enabled;
+                }
+            }
+            Message::UpdateJvmTogglerChanged(enabled) => {
+                if let Ok(ref mut config) = self.config {
+                    config.automatically_update_jvm = enabled;
+                }
+            }
+            Message::OptimizeJvmTogglerChanged(enabled) => {
+                if let Ok(ref mut config) = self.config {
+                    config.automatically_optimize_jvm_arguments = enabled;
+                }
+            }
+            Message::UpdateJvmMemory(memory) => {
+                if let Ok(ref mut config) = self.config {
+                    config.jvm_memory = memory;
+                }
+            }
+            Message::ResetConfig => {
+                let yes = MessageDialog::new()
+                    .set_type(MessageType::Warning)
+                    .set_title("Reset config")
+                    .set_text("Are you sure you want to reset the config?")
+                    .show_confirm()
+                    .unwrap();
+
+                if yes {
+                    mclib::launcher_config::reset().unwrap();
+                    self.config = mclib::launcher_config::read();
+                }
+            }
+            Message::SaveConfig => {
+                if let Ok(ref config) = self.config {
+                    mclib::launcher_config::write(config).unwrap();
+                }
+            }
+        }
     }
 
     pub fn view(&self) -> Element<Message> {

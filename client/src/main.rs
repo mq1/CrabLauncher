@@ -85,12 +85,7 @@ pub enum Message {
     AccountAdded(Result<(), String>),
     AccountSelected(AccountId),
     GotUpdates(Result<Option<(String, String)>, String>),
-    UpdatesTogglerChanged(bool),
-    UpdateJvmTogglerChanged(bool),
-    OptimizeJvmTogglerChanged(bool),
-    UpdateJvmMemory(String),
-    ResetConfig,
-    SaveConfig,
+    SettingsMessage(settings::Message),
     DownloadEvent(subscriptions::download::Event),
     VanillaSelected,
     GotModrinthModpacks(Result<mclib::modrinth::SearchResults, String>),
@@ -325,38 +320,8 @@ impl Application for IceLauncher {
                     }
                 }
             }
-            Message::UpdatesTogglerChanged(enabled) => {
-                let mut config = self.settings.config.as_mut().unwrap();
-                config.automatically_check_for_updates = enabled;
-            }
-            Message::UpdateJvmTogglerChanged(enabled) => {
-                let mut config = self.settings.config.as_mut().unwrap();
-                config.automatically_update_jvm = enabled;
-            }
-            Message::OptimizeJvmTogglerChanged(enabled) => {
-                let mut config = self.settings.config.as_mut().unwrap();
-                config.automatically_optimize_jvm_arguments = enabled;
-            }
-            Message::UpdateJvmMemory(memory) => {
-                println!("Set memory to {}", memory);
-                let mut config = self.settings.config.as_mut().unwrap();
-                config.jvm_memory = memory;
-            }
-            Message::ResetConfig => {
-                let yes = MessageDialog::new()
-                    .set_type(MessageType::Warning)
-                    .set_title("Reset config")
-                    .set_text("Are you sure you want to reset the config?")
-                    .show_confirm()
-                    .unwrap();
-
-                if yes {
-                    mclib::launcher_config::reset().unwrap();
-                    self.settings.refresh();
-                }
-            }
-            Message::SaveConfig => {
-                mclib::launcher_config::write(self.settings.config.as_ref().unwrap()).unwrap();
+            Message::SettingsMessage(message) => {
+                self.settings.update(message);
             }
             Message::DownloadEvent(event) => {
                 match event {
@@ -426,7 +391,7 @@ impl Application for IceLauncher {
             View::Accounts => self.accounts.view(),
             View::News => self.news.view(),
             View::About => self.about.view(),
-            View::Settings => self.settings.view(),
+            View::Settings => self.settings.view().map(Message::SettingsMessage),
             View::Loading(ref message) => loading::view(message),
             View::Download => self.download.view(),
             View::Installers => self.installers.view(),
