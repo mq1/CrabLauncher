@@ -19,6 +19,12 @@ pub struct AccountsDocument {
     pub accounts: Vec<msa::Account>,
 }
 
+impl AccountsDocument {
+    pub fn has_account_selected(&self) -> bool {
+        self.active_account.is_some()
+    }
+}
+
 fn write(accounts: &AccountsDocument) -> Result<()> {
     let content = toml::to_string_pretty(accounts)?;
     fs::write(ACCOUNTS_PATH.as_path(), content)?;
