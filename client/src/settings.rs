@@ -65,13 +65,19 @@ impl Settings {
                     .unwrap();
 
                 if yes {
-                    mclib::launcher_config::reset().unwrap();
-                    self.config = mclib::launcher_config::read();
+                    self.config = mclib::launcher_config::reset();
                 }
             }
             Message::SaveConfig => {
                 if let Ok(ref config) = self.config {
-                    mclib::launcher_config::write(config).unwrap();
+                    if let Err(e) = mclib::launcher_config::write(config) {
+                        MessageDialog::new()
+                            .set_type(MessageType::Error)
+                            .set_title("Error")
+                            .set_text(&format!("Failed to save config: {e}"))
+                            .show_alert()
+                            .unwrap();
+                    }
                 }
             }
         }
