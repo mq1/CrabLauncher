@@ -3,10 +3,20 @@
 
 use iced::{
     widget::{button, column, container, horizontal_space, pick_list, row, text, text_input},
-    Element, Length,
+    Command, Element, Length,
 };
+use mclib::minecraft_version_manifest::Version;
 
-use crate::{style, Message};
+use crate::style;
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    FetchVersions,
+    FetchedVersions(Result<Vec<Version>, String>),
+    NewInstanceNameChanged(String),
+    VersionSelected(Version),
+    CreateInstance,
+}
 
 pub struct VanillaInstaller {
     pub name: String,
@@ -23,9 +33,32 @@ impl VanillaInstaller {
         }
     }
 
-    pub async fn fetch_versions() -> Result<Vec<mclib::minecraft_version_manifest::Version>, String>
-    {
-        mclib::minecraft_version_manifest::fetch_versions().map_err(|e| e.to_string())
+    pub fn update(&mut self, message: Message) -> Command<Message> {
+        match message {
+            Message::FetchVersions => {
+                return Command::perform(
+                    async {
+                        mclib::minecraft_version_manifest::fetch_versions()
+                            .map_err(|e| e.to_string())
+                    },
+                    Message::FetchedVersions,
+                );
+            }
+            Message::FetchedVersions(versions) => {
+                self.available_versions = Some(versions);
+            }
+            Message::NewInstanceNameChanged(name) => {
+                self.name = name;
+            }
+            Message::VersionSelected(version) => {
+                self.selected_version = Some(version);
+            }
+            Message::CreateInstance => {
+                
+            }
+        }
+
+        Command::none()
     }
 
     pub fn view(&self) -> Element<Message> {
