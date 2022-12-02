@@ -254,7 +254,6 @@ impl Application for IceLauncher {
                     _ => {}
                 }
 
-                // TODO check if this works
                 return self.accounts.update(message).map(Message::AccountsMessage);
             }
             Message::GotUpdates(updates) => {
