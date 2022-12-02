@@ -5,7 +5,7 @@ use iced::{
     widget::{column, container, horizontal_rule, scrollable, text, Column},
     Command, Element,
 };
-use mclib::modrinth::Version;
+use mclib::modrinth::{Hit, Version};
 
 use crate::style;
 
@@ -16,8 +16,8 @@ pub enum Message {
 }
 
 pub struct ModrinthInstaller {
-    pub hit: Option<mclib::modrinth::Hit>,
-    pub versions: Option<Result<Vec<mclib::modrinth::Version>, String>>,
+    pub hit: Option<Hit>,
+    pub versions: Option<Result<Vec<Version>, String>>,
 }
 
 impl ModrinthInstaller {
