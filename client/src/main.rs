@@ -79,7 +79,6 @@ pub enum Message {
     GotUpdates(Result<Option<(String, String)>, String>),
     SettingsMessage(settings::Message),
     DownloadEvent(subscriptions::download::Event),
-    VanillaSelected,
     GotModrinthModpacks(Result<mclib::modrinth::SearchResults, String>),
     ModrinthModpackSelected(mclib::modrinth::Hit),
     GotModrinthVersions(Result<Vec<mclib::modrinth::Version>, String>),
@@ -288,9 +287,6 @@ impl Application for IceLauncher {
                 }
 
                 self.download.update(event);
-            }
-            Message::VanillaSelected => {
-                self.current_view = View::NewVanillaInstance;
             }
             Message::GotModrinthModpacks(modpacks) => {
                 self.modrinth_modpacks.available_modpacks = Some(modpacks);
