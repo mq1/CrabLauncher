@@ -79,7 +79,7 @@ pub enum Message {
     SettingsMessage(settings::Message),
     DownloadEvent(subscriptions::download::Event),
     ModrinthModpacksMessage(modrinth_modpacks::Message),
-    GotModrinthVersions(Result<Vec<mclib::modrinth::Version>, String>),
+    ModrinthInstallerMessage(modrinth_installer::Message),
 }
 
 impl Application for IceLauncher {
@@ -193,10 +193,10 @@ impl Application for IceLauncher {
                             .set_text("Please enter a name for the instance")
                             .show_alert()
                             .unwrap();
-    
+
                         return Command::none();
                     }
-    
+
                     if self.vanilla_installer.selected_version.is_none() {
                         MessageDialog::new()
                             .set_type(MessageType::Error)
@@ -204,18 +204,18 @@ impl Application for IceLauncher {
                             .set_text("Please select a version")
                             .show_alert()
                             .unwrap();
-    
+
                         return Command::none();
                     }
-    
+
                     let name = &self.vanilla_installer.name;
                     let version = self.vanilla_installer.selected_version.as_ref().unwrap();
-    
+
                     self.current_view = View::Loading(format!("Creating instance {}", name));
-    
+
                     let download_items = mclib::instances::new(name, version).unwrap();
                     self.current_view = View::Download;
-                    self.download.start(download_items);    
+                    self.download.start(download_items);
                 }
 
                 return self
@@ -287,20 +287,23 @@ impl Application for IceLauncher {
                 if let modrinth_modpacks::Message::Selected(hit) = message {
                     self.modrinth_installer.hit = Some(hit.clone());
                     self.current_view = View::ModrinthInstaller;
-    
-                    return Command::perform(
-                        ModrinthInstaller::fetch_versions(hit),
-                        Message::GotModrinthVersions,
-                    );
-                    }
+
+                    return self
+                        .modrinth_installer
+                        .update(modrinth_installer::Message::Fetch)
+                        .map(Message::ModrinthInstallerMessage);
+                }
 
                 return self
                     .modrinth_modpacks
                     .update(message)
                     .map(Message::ModrinthModpacksMessage);
             }
-            Message::GotModrinthVersions(versions) => {
-                self.modrinth_installer.versions = Some(versions);
+            Message::ModrinthInstallerMessage(message) => {
+                return self
+                    .modrinth_installer
+                    .update(message)
+                    .map(Message::ModrinthInstallerMessage);
             }
         }
         Command::none()
@@ -348,8 +351,14 @@ impl Application for IceLauncher {
             View::Loading(ref message) => loading::view(message),
             View::Download => self.download.view(),
             View::Installers => self.installers.view(),
-            View::ModrinthModpacks => self.modrinth_modpacks.view().map(Message::ModrinthModpacksMessage),
-            View::ModrinthInstaller => self.modrinth_installer.view(),
+            View::ModrinthModpacks => self
+                .modrinth_modpacks
+                .view()
+                .map(Message::ModrinthModpacksMessage),
+            View::ModrinthInstaller => self
+                .modrinth_installer
+                .view()
+                .map(Message::ModrinthInstallerMessage),
         };
 
         row![navbar, current_view].into()

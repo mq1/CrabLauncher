@@ -3,10 +3,17 @@
 
 use iced::{
     widget::{column, container, horizontal_rule, scrollable, text, Column},
-    Element,
+    Command, Element,
 };
+use mclib::modrinth::Version;
 
-use crate::{style, Message};
+use crate::style;
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    Fetch,
+    Fetched(Result<Vec<Version>, String>),
+}
 
 pub struct ModrinthInstaller {
     pub hit: Option<mclib::modrinth::Hit>,
@@ -21,10 +28,22 @@ impl ModrinthInstaller {
         }
     }
 
-    pub async fn fetch_versions(
-        hit: mclib::modrinth::Hit,
-    ) -> Result<Vec<mclib::modrinth::Version>, String> {
-        hit.fetch_versions().map_err(|e| e.to_string())
+    pub fn update(&mut self, message: Message) -> Command<Message> {
+        match message {
+            Message::Fetch => {
+                if let Some(hit) = self.hit.to_owned() {
+                    return Command::perform(
+                        async move { hit.fetch_versions().map_err(|e| e.to_string()) },
+                        Message::Fetched,
+                    );
+                }
+            }
+            Message::Fetched(versions) => {
+                self.versions = Some(versions);
+            }
+        }
+
+        Command::none()
     }
 
     pub fn view(&self) -> Element<Message> {
