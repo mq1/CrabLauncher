@@ -53,9 +53,7 @@ impl VanillaInstaller {
             Message::VersionSelected(version) => {
                 self.selected_version = Some(version);
             }
-            Message::CreateInstance => {
-                
-            }
+            _ => {}
         }
 
         Command::none()
