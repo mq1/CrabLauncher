@@ -4,13 +4,21 @@
 use anyhow::Result;
 use iced::{
     widget::{button, column, container, horizontal_space, row, scrollable, text},
-    Element, Length,
+    Command, Element, Length,
 };
+use mclib::minecraft_news::News as NewsResponse;
 
-use crate::{style, Message};
+use crate::style;
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    FetchNews,
+    NewsFetched(Result<NewsResponse, String>),
+    OpenArticle(String),
+}
 
 pub struct News {
-    pub news: Option<Result<mclib::minecraft_news::News, String>>,
+    pub news: Option<Result<NewsResponse, String>>,
 }
 
 impl News {
@@ -18,8 +26,21 @@ impl News {
         Self { news: None }
     }
 
-    pub async fn fetch() -> Result<mclib::minecraft_news::News, String> {
-        mclib::minecraft_news::fetch(None).map_err(|e| e.to_string())
+    pub fn update(&mut self, message: Message) -> Command<Message> {
+        match message {
+            Message::FetchNews => {
+                return Command::perform(
+                    async { mclib::minecraft_news::fetch(None).map_err(|e| e.to_string()) },
+                    Message::NewsFetched,
+                );
+            }
+            Message::NewsFetched(news) => {
+                self.news = Some(news);
+            }
+            _ => {}
+        }
+
+        Command::none()
     }
 
     pub fn view(&self) -> Element<Message> {
@@ -35,7 +56,8 @@ impl News {
                                 row![
                                     text(&article.default_tile.title),
                                     horizontal_space(Length::Fill),
-                                    button("Open").on_press(Message::OpenURL(article.get_url())),
+                                    button("Open")
+                                        .on_press(Message::OpenArticle(article.get_url())),
                                 ]
                                 .padding(10),
                             )
