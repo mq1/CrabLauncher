@@ -113,7 +113,10 @@ impl Application for IceLauncher {
         };
 
         let command = if check_updates {
-            Command::perform(check_for_updates(), Message::GotUpdates)
+            Command::perform(
+                async { mclib::launcher_updater::check_for_updates().map_err(|e| e.to_string()) },
+                Message::GotUpdates,
+            )
         } else {
             Command::none()
         };
@@ -371,8 +374,4 @@ impl Application for IceLauncher {
     fn subscription(&self) -> Subscription<Self::Message> {
         self.download.subscription()
     }
-}
-
-async fn check_for_updates() -> Result<Option<(String, String)>, String> {
-    mclib::launcher_updater::check_for_updates().map_err(|e| e.to_string())
 }
