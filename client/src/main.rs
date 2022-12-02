@@ -72,9 +72,7 @@ pub enum Message {
     OpenURL(String),
     NewsMessage(news::Message),
     InstancesMessage(instances::Message),
-    NewInstanceNameChanged(String),
-    FetchedVersions(Result<Vec<mclib::minecraft_version_manifest::Version>, String>),
-    VersionSelected(mclib::minecraft_version_manifest::Version),
+    VanillaInstallerMessage(vanilla_installer::Message),
     CreateInstance,
     InstanceCreated(Result<(), String>),
     AccountsMessage(accounts::Message),
@@ -145,10 +143,10 @@ impl Application for IceLauncher {
                 if view == View::NewVanillaInstance
                     && self.vanilla_installer.available_versions.is_none()
                 {
-                    return Command::perform(
-                        VanillaInstaller::fetch_versions(),
-                        Message::FetchedVersions,
-                    );
+                    return self
+                        .vanilla_installer
+                        .update(vanilla_installer::Message::FetchVersions)
+                        .map(Message::VanillaInstallerMessage);
                 }
 
                 if view == View::ModrinthModpacks
@@ -189,14 +187,15 @@ impl Application for IceLauncher {
                     .update(message, &self.accounts.document)
                     .map(Message::InstancesMessage);
             }
-            Message::NewInstanceNameChanged(name) => {
-                self.vanilla_installer.name = name;
-            }
-            Message::FetchedVersions(versions) => {
-                self.vanilla_installer.available_versions = Some(versions);
-            }
-            Message::VersionSelected(version) => {
-                self.vanilla_installer.selected_version = Some(version);
+            Message::VanillaInstallerMessage(message) => {
+                if let vanilla_installer::Message::CreateInstance = message {
+                    return self.update(Message::CreateInstance);
+                }
+
+                return self
+                    .vanilla_installer
+                    .update(message)
+                    .map(Message::VanillaInstallerMessage);
             }
             Message::CreateInstance => {
                 if self.vanilla_installer.name.is_empty() {
@@ -343,7 +342,10 @@ impl Application for IceLauncher {
 
         let current_view = match self.current_view {
             View::Instances => self.instances.view().map(Message::InstancesMessage),
-            View::NewVanillaInstance => self.vanilla_installer.view(),
+            View::NewVanillaInstance => self
+                .vanilla_installer
+                .view()
+                .map(Message::VanillaInstallerMessage),
             View::Accounts => self.accounts.view().map(Message::AccountsMessage),
             View::News => self.news.view().map(Message::NewsMessage),
             View::About => self.about.view(),
