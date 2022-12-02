@@ -3,11 +3,18 @@
 
 use iced::{
     widget::{button, column, container, horizontal_space, row, scrollable, text, Column},
-    Element, Length,
+    Command, Element, Length,
 };
-use mclib::modrinth::{self, SearchResults};
+use mclib::modrinth::{self, Hit, SearchResults};
 
-use crate::{style, Message};
+use crate::style;
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    Fetch,
+    Fetched(Result<SearchResults, String>),
+    Selected(Hit),
+}
 
 pub struct ModrinthModpacks {
     pub available_modpacks: Option<Result<SearchResults, String>>,
@@ -20,8 +27,21 @@ impl ModrinthModpacks {
         }
     }
 
-    pub async fn fetch_modpacks() -> Result<SearchResults, String> {
-        modrinth::fetch_modpacks().map_err(|e| e.to_string())
+    pub fn update(&mut self, message: Message) -> Command<Message> {
+        match message {
+            Message::Fetch => {
+                return Command::perform(
+                    async { modrinth::fetch_modpacks().map_err(|e| e.to_string()) },
+                    Message::Fetched,
+                );
+            }
+            Message::Fetched(modpacks) => {
+                self.available_modpacks = Some(modpacks);
+            }
+            _ => {}
+        }
+
+        Command::none()
     }
 
     pub fn view(&self) -> Element<Message> {
@@ -33,9 +53,9 @@ impl ModrinthModpacks {
                 for modpack in &modpacks.hits {
                     let version_text =
                         text(format!("[Latest Version: {}]", modpack.latest_version));
-                    let select_button = button("Select").on_press(Message::ModrinthModpackSelected(
-                        modpack.clone(),
-                    ));
+
+                    let select_button =
+                        button("Select").on_press(Message::Selected(modpack.clone()));
 
                     let row = row![
                         text(&modpack.title),

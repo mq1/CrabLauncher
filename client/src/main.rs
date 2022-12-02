@@ -73,14 +73,12 @@ pub enum Message {
     NewsMessage(news::Message),
     InstancesMessage(instances::Message),
     VanillaInstallerMessage(vanilla_installer::Message),
-    CreateInstance,
     InstanceCreated(Result<(), String>),
     AccountsMessage(accounts::Message),
     GotUpdates(Result<Option<(String, String)>, String>),
     SettingsMessage(settings::Message),
     DownloadEvent(subscriptions::download::Event),
-    GotModrinthModpacks(Result<mclib::modrinth::SearchResults, String>),
-    ModrinthModpackSelected(mclib::modrinth::Hit),
+    ModrinthModpacksMessage(modrinth_modpacks::Message),
     GotModrinthVersions(Result<Vec<mclib::modrinth::Version>, String>),
 }
 
@@ -151,10 +149,10 @@ impl Application for IceLauncher {
                 if view == View::ModrinthModpacks
                     && self.modrinth_modpacks.available_modpacks.is_none()
                 {
-                    return Command::perform(
-                        ModrinthModpacks::fetch_modpacks(),
-                        Message::GotModrinthModpacks,
-                    );
+                    return self
+                        .modrinth_modpacks
+                        .update(modrinth_modpacks::Message::Fetch)
+                        .map(Message::ModrinthModpacksMessage);
                 }
             }
             Message::NewsMessage(message) => {
@@ -188,45 +186,42 @@ impl Application for IceLauncher {
             }
             Message::VanillaInstallerMessage(message) => {
                 if let vanilla_installer::Message::CreateInstance = message {
-                    return self.update(Message::CreateInstance);
+                    if self.vanilla_installer.name.is_empty() {
+                        MessageDialog::new()
+                            .set_type(MessageType::Error)
+                            .set_title("Error")
+                            .set_text("Please enter a name for the instance")
+                            .show_alert()
+                            .unwrap();
+    
+                        return Command::none();
+                    }
+    
+                    if self.vanilla_installer.selected_version.is_none() {
+                        MessageDialog::new()
+                            .set_type(MessageType::Error)
+                            .set_title("Error")
+                            .set_text("Please select a version")
+                            .show_alert()
+                            .unwrap();
+    
+                        return Command::none();
+                    }
+    
+                    let name = &self.vanilla_installer.name;
+                    let version = self.vanilla_installer.selected_version.as_ref().unwrap();
+    
+                    self.current_view = View::Loading(format!("Creating instance {}", name));
+    
+                    let download_items = mclib::instances::new(name, version).unwrap();
+                    self.current_view = View::Download;
+                    self.download.start(download_items);    
                 }
 
                 return self
                     .vanilla_installer
                     .update(message)
                     .map(Message::VanillaInstallerMessage);
-            }
-            Message::CreateInstance => {
-                if self.vanilla_installer.name.is_empty() {
-                    MessageDialog::new()
-                        .set_type(MessageType::Error)
-                        .set_title("Error")
-                        .set_text("Please enter a name for the instance")
-                        .show_alert()
-                        .unwrap();
-
-                    return Command::none();
-                }
-
-                if self.vanilla_installer.selected_version.is_none() {
-                    MessageDialog::new()
-                        .set_type(MessageType::Error)
-                        .set_title("Error")
-                        .set_text("Please select a version")
-                        .show_alert()
-                        .unwrap();
-
-                    return Command::none();
-                }
-
-                let name = &self.vanilla_installer.name;
-                let version = self.vanilla_installer.selected_version.as_ref().unwrap();
-
-                self.current_view = View::Loading(format!("Creating instance {}", name));
-
-                let download_items = mclib::instances::new(name, version).unwrap();
-                self.current_view = View::Download;
-                self.download.start(download_items);
             }
             Message::InstanceCreated(res) => {
                 if let Err(e) = res {
@@ -288,17 +283,21 @@ impl Application for IceLauncher {
 
                 self.download.update(event);
             }
-            Message::GotModrinthModpacks(modpacks) => {
-                self.modrinth_modpacks.available_modpacks = Some(modpacks);
-            }
-            Message::ModrinthModpackSelected(hit) => {
-                self.modrinth_installer.hit = Some(hit.clone());
-                self.current_view = View::ModrinthInstaller;
+            Message::ModrinthModpacksMessage(message) => {
+                if let modrinth_modpacks::Message::Selected(hit) = message {
+                    self.modrinth_installer.hit = Some(hit.clone());
+                    self.current_view = View::ModrinthInstaller;
+    
+                    return Command::perform(
+                        ModrinthInstaller::fetch_versions(hit),
+                        Message::GotModrinthVersions,
+                    );
+                    }
 
-                return Command::perform(
-                    ModrinthInstaller::fetch_versions(hit),
-                    Message::GotModrinthVersions,
-                );
+                return self
+                    .modrinth_modpacks
+                    .update(message)
+                    .map(Message::ModrinthModpacksMessage);
             }
             Message::GotModrinthVersions(versions) => {
                 self.modrinth_installer.versions = Some(versions);
@@ -349,7 +348,7 @@ impl Application for IceLauncher {
             View::Loading(ref message) => loading::view(message),
             View::Download => self.download.view(),
             View::Installers => self.installers.view(),
-            View::ModrinthModpacks => self.modrinth_modpacks.view(),
+            View::ModrinthModpacks => self.modrinth_modpacks.view().map(Message::ModrinthModpacksMessage),
             View::ModrinthInstaller => self.modrinth_installer.view(),
         };
 
