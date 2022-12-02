@@ -72,7 +72,6 @@ pub enum Message {
     FetchedNews(Result<mclib::minecraft_news::News, String>),
     OpenURL(String),
     InstancesMessage(instances::Message),
-    InstanceClosed(Result<(), String>),
     NewInstanceNameChanged(String),
     FetchedVersions(Result<Vec<mclib::minecraft_version_manifest::Version>, String>),
     VersionSelected(mclib::minecraft_version_manifest::Version),
@@ -169,22 +168,19 @@ impl Application for IceLauncher {
                     instances::Message::NewInstance => {
                         self.current_view = View::Installers;
                     }
+                    instances::Message::LaunchInstance(ref instance) => {
+                        self.current_view = View::Loading(format!("Running {}", instance.name));
+                    }
+                    instances::Message::InstanceClosed(_) => {
+                        self.current_view = View::Instances;
+                    }
                     _ => {}
                 }
 
-                self.instances.update(message, &self.accounts.document);
-            }
-            Message::InstanceClosed(res) => {
-                if let Err(e) = res {
-                    MessageDialog::new()
-                        .set_type(MessageType::Error)
-                        .set_title("Error")
-                        .set_text(&e)
-                        .show_alert()
-                        .unwrap();
-                }
-
-                self.current_view = View::Instances;
+                return self
+                    .instances
+                    .update(message, &self.accounts.document)
+                    .map(Message::InstancesMessage);
             }
             Message::NewInstanceNameChanged(name) => {
                 self.vanilla_installer.name = name;

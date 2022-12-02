@@ -4,7 +4,7 @@
 use anyhow::Result;
 use iced::{
     widget::{button, column, container, horizontal_space, row, text},
-    Element, Length,
+    Command, Element, Length,
 };
 use mclib::{accounts::AccountsDocument, instances::Instance};
 use native_dialog::{MessageDialog, MessageType};
@@ -17,6 +17,7 @@ pub enum Message {
     LaunchInstance(Instance),
     NewInstance,
     RefreshInstances,
+    InstanceClosed(Result<(), String>),
 }
 
 pub struct Instances {
@@ -30,7 +31,11 @@ impl Instances {
         }
     }
 
-    pub fn update(&mut self, message: Message, accounts: &Result<AccountsDocument>) {
+    pub fn update(
+        &mut self,
+        message: Message,
+        accounts: &Result<AccountsDocument>,
+    ) -> Command<Message> {
         match message {
             Message::RemoveInstance(name) => {
                 let yes = MessageDialog::new()
@@ -54,16 +59,33 @@ impl Instances {
                             .set_text("Please select an account to launch the game")
                             .show_alert()
                             .unwrap();
-                    } else {
-                        mclib::instances::launch(instance).unwrap();
+
+                        return Command::none();
                     }
+
+                    return Command::perform(
+                        async { mclib::instances::launch(instance).map_err(|e| e.to_string()) },
+                        Message::InstanceClosed,
+                    );
                 }
             }
             Message::NewInstance => {}
             Message::RefreshInstances => {
                 self.list = mclib::instances::list();
             }
+            Message::InstanceClosed(res) => {
+                if let Err(e) = res {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error")
+                        .set_text(&e)
+                        .show_alert()
+                        .unwrap();
+                }
+            }
         }
+
+        Command::none()
     }
 
     pub fn view(&self) -> Element<Message> {
