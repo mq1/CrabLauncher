@@ -69,8 +69,8 @@ pub enum View {
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewChanged(View),
-    FetchedNews(Result<mclib::minecraft_news::News, String>),
     OpenURL(String),
+    NewsMessage(news::Message),
     InstancesMessage(instances::Message),
     NewInstanceNameChanged(String),
     FetchedVersions(Result<Vec<mclib::minecraft_version_manifest::Version>, String>),
@@ -136,7 +136,10 @@ impl Application for IceLauncher {
                 self.current_view = view.clone();
 
                 if view == View::News && self.news.news.is_none() {
-                    return Command::perform(News::fetch(), Message::FetchedNews);
+                    return self
+                        .news
+                        .update(news::Message::FetchNews)
+                        .map(Message::NewsMessage);
                 }
 
                 if view == View::NewVanillaInstance
@@ -157,8 +160,12 @@ impl Application for IceLauncher {
                     );
                 }
             }
-            Message::FetchedNews(news) => {
-                self.news.news = Some(news);
+            Message::NewsMessage(message) => {
+                if let news::Message::OpenArticle(ref url) = message {
+                    self.update(Message::OpenURL(url.to_owned()));
+                }
+
+                return self.news.update(message).map(Message::NewsMessage);
             }
             Message::OpenURL(url) => {
                 open::that(url).unwrap();
@@ -338,7 +345,7 @@ impl Application for IceLauncher {
             View::Instances => self.instances.view().map(Message::InstancesMessage),
             View::NewVanillaInstance => self.vanilla_installer.view(),
             View::Accounts => self.accounts.view().map(Message::AccountsMessage),
-            View::News => self.news.view(),
+            View::News => self.news.view().map(Message::NewsMessage),
             View::About => self.about.view(),
             View::Settings => self.settings.view().map(Message::SettingsMessage),
             View::Loading(ref message) => loading::view(message),
