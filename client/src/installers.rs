@@ -6,7 +6,7 @@ use iced::{
     Element,
 };
 
-use crate::{Message, View};
+use crate::Message;
 
 pub struct Installers;
 
@@ -18,11 +18,9 @@ impl Installers {
     pub fn view(&self) -> Element<Message> {
         let heading = text("Installers").size(50);
 
-        let vanilla_button =
-            button("Vanilla").on_press(Message::ViewChanged(View::NewVanillaInstance));
+        let vanilla_button = button("Vanilla").on_press(Message::OpenVanillaInstaller);
 
-        let modrinth_button =
-            button("Modrinth").on_press(Message::ViewChanged(View::ModrinthModpacks));
+        let modrinth_button = button("Modrinth").on_press(Message::OpenVanillaInstaller);
 
         let installers = column![vanilla_button, modrinth_button].spacing(10);
 

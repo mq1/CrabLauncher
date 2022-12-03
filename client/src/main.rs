@@ -54,7 +54,7 @@ struct IceLauncher {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum View {
     Instances,
-    NewVanillaInstance,
+    VanillaInstaller,
     Accounts,
     News,
     About,
@@ -69,15 +69,18 @@ pub enum View {
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewChanged(View),
+    OpenNews,
     OpenURL(String),
     NewsMessage(news::Message),
     InstancesMessage(instances::Message),
+    OpenVanillaInstaller,
     VanillaInstallerMessage(vanilla_installer::Message),
     InstanceCreated(Result<(), String>),
     AccountsMessage(accounts::Message),
     GotUpdates(Result<Option<(String, String)>, String>),
     SettingsMessage(settings::Message),
     DownloadEvent(subscriptions::download::Event),
+    OpenModrinthModpacks,
     ModrinthModpacksMessage(modrinth_modpacks::Message),
     ModrinthInstallerMessage(modrinth_installer::Message),
 }
@@ -131,32 +134,15 @@ impl Application for IceLauncher {
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             Message::ViewChanged(view) => {
-                self.current_view = view.clone();
+                self.current_view = view;
+            }
+            Message::OpenNews => {
+                self.current_view = View::News;
 
-                if view == View::News && self.news.news.is_none() {
-                    return self
-                        .news
-                        .update(news::Message::FetchNews)
-                        .map(Message::NewsMessage);
-                }
-
-                if view == View::NewVanillaInstance
-                    && self.vanilla_installer.available_versions.is_none()
-                {
-                    return self
-                        .vanilla_installer
-                        .update(vanilla_installer::Message::FetchVersions)
-                        .map(Message::VanillaInstallerMessage);
-                }
-
-                if view == View::ModrinthModpacks
-                    && self.modrinth_modpacks.available_modpacks.is_none()
-                {
-                    return self
-                        .modrinth_modpacks
-                        .update(modrinth_modpacks::Message::Fetch)
-                        .map(Message::ModrinthModpacksMessage);
-                }
+                return self
+                    .news
+                    .update(news::Message::FetchNews)
+                    .map(Message::NewsMessage);
             }
             Message::NewsMessage(message) => {
                 if let news::Message::OpenArticle(ref url) = message {
@@ -186,6 +172,14 @@ impl Application for IceLauncher {
                     .instances
                     .update(message, &self.accounts.document)
                     .map(Message::InstancesMessage);
+            }
+            Message::OpenVanillaInstaller => {
+                self.current_view = View::VanillaInstaller;
+
+                return self
+                    .vanilla_installer
+                    .update(vanilla_installer::Message::FetchVersions)
+                    .map(Message::VanillaInstallerMessage);
             }
             Message::VanillaInstallerMessage(message) => {
                 if let vanilla_installer::Message::CreateInstance = message {
@@ -286,6 +280,14 @@ impl Application for IceLauncher {
 
                 self.download.update(event);
             }
+            Message::OpenModrinthModpacks => {
+                self.current_view = View::ModrinthModpacks;
+
+                return self
+                    .modrinth_modpacks
+                    .update(modrinth_modpacks::Message::Fetch)
+                    .map(Message::ModrinthModpacksMessage);
+            }
             Message::ModrinthModpacksMessage(message) => {
                 if let modrinth_modpacks::Message::Selected(hit) = message {
                     self.modrinth_installer.hit = Some(hit.clone());
@@ -323,7 +325,7 @@ impl Application for IceLauncher {
                         .on_press(Message::ViewChanged(View::Accounts))
                         .width(Length::Fill),
                     button("News")
-                        .on_press(Message::ViewChanged(View::News))
+                        .on_press(Message::OpenNews)
                         .width(Length::Fill),
                     vertical_space(Length::Fill),
                     button("Settings")
@@ -343,7 +345,7 @@ impl Application for IceLauncher {
 
         let current_view = match self.current_view {
             View::Instances => self.instances.view().map(Message::InstancesMessage),
-            View::NewVanillaInstance => self
+            View::VanillaInstaller => self
                 .vanilla_installer
                 .view()
                 .map(Message::VanillaInstallerMessage),
