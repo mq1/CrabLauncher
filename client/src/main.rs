@@ -51,7 +51,7 @@ struct IceLauncher {
     modrinth_installer: ModrinthInstaller,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum View {
     Instances,
     VanillaInstaller,
