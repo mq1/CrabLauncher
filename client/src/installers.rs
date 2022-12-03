@@ -20,7 +20,7 @@ impl Installers {
 
         let vanilla_button = button("Vanilla").on_press(Message::OpenVanillaInstaller);
 
-        let modrinth_button = button("Modrinth").on_press(Message::OpenVanillaInstaller);
+        let modrinth_button = button("Modrinth").on_press(Message::OpenModrinthModpacks);
 
         let installers = column![vanilla_button, modrinth_button].spacing(10);
 
