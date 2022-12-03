@@ -26,6 +26,7 @@ use iced::{
 };
 use installers::Installers;
 use instances::Instances;
+use loading::Loading;
 use modrinth_installer::ModrinthInstaller;
 use modrinth_modpacks::ModrinthModpacks;
 use native_dialog::{MessageDialog, MessageType};
@@ -49,6 +50,7 @@ struct IceLauncher {
     installers: Installers,
     modrinth_modpacks: ModrinthModpacks,
     modrinth_installer: ModrinthInstaller,
+    loading: Loading,
 }
 
 #[derive(Debug, Clone)]
@@ -59,7 +61,7 @@ pub enum View {
     News,
     About,
     Settings,
-    Loading(String),
+    Loading,
     Download,
     Installers,
     ModrinthModpacks,
@@ -113,6 +115,7 @@ impl Application for IceLauncher {
             installers: Installers::new(),
             modrinth_modpacks: ModrinthModpacks::new(),
             modrinth_installer: ModrinthInstaller::new(),
+            loading: Loading::new(),
         };
 
         let command = if check_updates {
@@ -160,7 +163,8 @@ impl Application for IceLauncher {
                         self.current_view = View::Installers;
                     }
                     instances::Message::LaunchInstance(ref instance) => {
-                        self.current_view = View::Loading(format!("Running {}", instance.name));
+                        self.loading.message = format!("Running {}", instance.name);
+                        self.current_view = View::Loading;
                     }
                     instances::Message::InstanceClosed(_) => {
                         self.current_view = View::Instances;
@@ -208,7 +212,8 @@ impl Application for IceLauncher {
                     let name = &self.vanilla_installer.name;
                     let version = self.vanilla_installer.selected_version.as_ref().unwrap();
 
-                    self.current_view = View::Loading(format!("Creating instance {}", name));
+                    self.loading.message = format!("Creating instance {}", name);
+                    self.current_view = View::Loading;
 
                     let download_items = mclib::instances::new(name, version).unwrap();
                     self.current_view = View::Download;
@@ -239,7 +244,8 @@ impl Application for IceLauncher {
             Message::AccountsMessage(message) => {
                 match message {
                     accounts::Message::AddAccount => {
-                        self.current_view = View::Loading("Logging in".to_string());
+                        self.loading.message = "Logging in".to_string();
+                        self.current_view = View::Loading;
                     }
                     accounts::Message::AccountAdded(_) => {
                         self.current_view = View::Accounts;
@@ -353,7 +359,7 @@ impl Application for IceLauncher {
             View::News => self.news.view().map(Message::NewsMessage),
             View::About => self.about.view(),
             View::Settings => self.settings.view().map(Message::SettingsMessage),
-            View::Loading(ref message) => loading::view(message),
+            View::Loading => self.loading.view(),
             View::Download => self.download.view(),
             View::Installers => self.installers.view(),
             View::ModrinthModpacks => self
