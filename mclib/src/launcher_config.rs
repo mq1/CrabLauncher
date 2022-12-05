@@ -30,30 +30,28 @@ impl Default for LauncherConfig {
     }
 }
 
-pub fn write(config: &LauncherConfig) -> Result<()> {
-    let content = toml::to_string_pretty(config)?;
-    fs::write(LAUNCHER_CONFIG_PATH.as_path(), content)?;
-
-    Ok(())
-}
-
-pub fn read() -> Result<LauncherConfig> {
-    if !LAUNCHER_CONFIG_PATH.exists() {
-        let default = LauncherConfig::default();
-        write(&default)?;
-
-        return Ok(default);
+impl LauncherConfig {
+    pub fn load() -> Result<Self> {
+        if LAUNCHER_CONFIG_PATH.exists() {
+            let config = fs::read_to_string(&*LAUNCHER_CONFIG_PATH)?;
+            let config = toml::from_str(&config)?;
+            Ok(config)
+        } else {
+            let config = Self::default();
+            config.save()?;
+            Ok(config)
+        }
     }
 
-    let content = fs::read_to_string(LAUNCHER_CONFIG_PATH.as_path())?;
-    let config: LauncherConfig = toml::from_str(&content)?;
+    pub fn save(&self) -> Result<()> {
+        let config = toml::to_string_pretty(self)?;
+        fs::write(&*LAUNCHER_CONFIG_PATH, config)?;
+        Ok(())
+    }
 
-    Ok(config)
-}
-
-pub fn reset() -> Result<LauncherConfig> {
-    let default = LauncherConfig::default();
-    write(&default)?;
-
-    Ok(default)
+    pub fn reset(&mut self) -> Result<()> {
+        *self = Self::default();
+        self.save()?;
+        Ok(())
+    }
 }
