@@ -16,7 +16,6 @@ mod subscriptions;
 mod vanilla_installer;
 
 use about::About;
-use accounts::Accounts;
 use anyhow::Result;
 use download::Download;
 use iced::{
@@ -25,12 +24,16 @@ use iced::{
     Application, Command, Element, Length, Settings as IcedSettings, Subscription, Theme,
 };
 use installers::Installers;
-use instances::Instances;
 use loading::Loading;
+use mclib::{
+    accounts::AccountsDocument,
+    instances::Instance,
+    minecraft_news::News as NewsResponse,
+    msa::{Account, AccountId},
+};
 use modrinth_installer::ModrinthInstaller;
 use modrinth_modpacks::ModrinthModpacks;
 use native_dialog::{MessageDialog, MessageType};
-use news::News;
 use settings::Settings;
 use vanilla_installer::VanillaInstaller;
 
@@ -40,11 +43,11 @@ pub fn main() -> iced::Result {
 
 struct IceLauncher {
     current_view: View,
+    news: Option<Result<NewsResponse, String>>,
+    instances: Result<Vec<Instance>>,
+    accounts_doc: Result<AccountsDocument>,
     about: About,
-    instances: Instances,
     vanilla_installer: VanillaInstaller,
-    accounts: Accounts,
-    news: News,
     settings: Settings,
     download: Download,
     installers: Installers,
@@ -71,14 +74,29 @@ pub enum View {
 #[derive(Debug, Clone)]
 pub enum Message {
     ViewChanged(View),
-    OpenNews,
     OpenURL(String),
-    NewsMessage(news::Message),
-    InstancesMessage(instances::Message),
+
+    // News
+    OpenNews,
+    NewsFetched(Result<NewsResponse, String>),
+
+    // Instances
+    RemoveInstance(Instance),
+    LaunchInstance(Instance),
+    NewInstance,
+    RefreshInstances,
+    InstanceClosed(Result<(), String>),
+
+    // Accounts
+    RefreshAccounts,
+    RemoveAccount(Account),
+    AddAccount,
+    AccountAdded(Result<(), String>),
+    AccountSelected(AccountId),
+
     OpenVanillaInstaller,
     VanillaInstallerMessage(vanilla_installer::Message),
     InstanceCreated(Result<(), String>),
-    AccountsMessage(accounts::Message),
     GotUpdates(Result<Option<(String, String)>, String>),
     SettingsMessage(settings::Message),
     DownloadEvent(subscriptions::download::Event),
@@ -105,11 +123,11 @@ impl Application for IceLauncher {
 
         let app = Self {
             current_view: View::Instances,
+            news: None,
             about: About::new(),
-            accounts: Accounts::new(),
-            instances: Instances::new(),
+            accounts_doc: mclib::accounts::read(),
+            instances: mclib::instances::list(),
             vanilla_installer: VanillaInstaller::new(),
-            news: News::new(),
             settings,
             download: Download::new(),
             installers: Installers::new(),
@@ -142,40 +160,74 @@ impl Application for IceLauncher {
             Message::OpenNews => {
                 self.current_view = View::News;
 
-                return self
-                    .news
-                    .update(news::Message::FetchNews)
-                    .map(Message::NewsMessage);
-            }
-            Message::NewsMessage(message) => {
-                if let news::Message::OpenArticle(ref url) = message {
-                    self.update(Message::OpenURL(url.to_owned()));
+                if self.news.is_none() {
+                    return Command::perform(
+                        async { mclib::minecraft_news::fetch(None).map_err(|e| e.to_string()) },
+                        Message::NewsFetched,
+                    );
                 }
-
-                return self.news.update(message).map(Message::NewsMessage);
+            }
+            Message::NewsFetched(res) => {
+                self.news = Some(res);
             }
             Message::OpenURL(url) => {
                 open::that(url).unwrap();
             }
-            Message::InstancesMessage(message) => {
-                match message {
-                    instances::Message::NewInstance => {
-                        self.current_view = View::Installers;
+            Message::RemoveInstance(instance) => {
+                let yes = MessageDialog::new()
+                    .set_type(MessageType::Warning)
+                    .set_title("Remove instance")
+                    .set_text(&format!(
+                        "Are you sure you want to remove {}?",
+                        &instance.name
+                    ))
+                    .show_confirm()
+                    .unwrap();
+
+                if yes {
+                    instance.remove().unwrap();
+                    self.update(Message::RefreshInstances);
+                }
+            }
+            Message::LaunchInstance(instance) => {
+                self.loading.message = format!("Running {}", instance.name);
+                self.current_view = View::Loading;
+
+                if let Ok(doc) = &self.accounts_doc {
+                    if !doc.has_account_selected() {
+                        MessageDialog::new()
+                            .set_type(MessageType::Warning)
+                            .set_title("No account selected")
+                            .set_text("Please select an account to launch the game")
+                            .show_alert()
+                            .unwrap();
+
+                        return Command::none();
                     }
-                    instances::Message::LaunchInstance(ref instance) => {
-                        self.loading.message = format!("Running {}", instance.name);
-                        self.current_view = View::Loading;
-                    }
-                    instances::Message::InstanceClosed(_) => {
-                        self.current_view = View::Instances;
-                    }
-                    _ => {}
+
+                    return Command::perform(
+                        async move { instance.launch().map_err(|e| e.to_string()) },
+                        Message::InstanceClosed,
+                    );
+                }
+            }
+            Message::NewInstance => {
+                self.current_view = View::Installers;
+            }
+            Message::RefreshInstances => {
+                self.instances = mclib::instances::list();
+            }
+            Message::InstanceClosed(res) => {
+                if let Err(e) = res {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error")
+                        .set_text(&e)
+                        .show_alert()
+                        .unwrap();
                 }
 
-                return self
-                    .instances
-                    .update(message, &self.accounts.document)
-                    .map(Message::InstancesMessage);
+                self.current_view = View::Instances;
             }
             Message::OpenVanillaInstaller => {
                 self.current_view = View::VanillaInstaller;
@@ -236,24 +288,50 @@ impl Application for IceLauncher {
                 }
 
                 self.current_view = View::Instances;
-                self.instances.update(
-                    instances::Message::RefreshInstances,
-                    &self.accounts.document,
+                self.update(Message::RefreshInstances);
+            }
+            Message::RefreshAccounts => {
+                self.accounts_doc = mclib::accounts::read();
+            }
+            Message::RemoveAccount(account) => {
+                let yes = MessageDialog::new()
+                    .set_type(MessageType::Warning)
+                    .set_title("Remove account")
+                    .set_text(&format!(
+                        "Are you sure you want to remove {}?",
+                        &account.mc_username
+                    ))
+                    .show_confirm()
+                    .unwrap();
+
+                if yes {
+                    self.accounts_doc.as_mut().unwrap().remove(account).unwrap();
+                }
+            }
+            Message::AccountSelected(account) => {
+                self.accounts_doc.as_mut().unwrap().set_active(account).unwrap();
+            }
+            Message::AddAccount => {
+                self.loading.message = "Logging in".to_string();
+                self.current_view = View::Loading;
+
+                return Command::perform(
+                    async { mclib::accounts::add().map_err(|e| e.to_string()) },
+                    Message::AccountAdded,
                 );
             }
-            Message::AccountsMessage(message) => {
-                match message {
-                    accounts::Message::AddAccount => {
-                        self.loading.message = "Logging in".to_string();
-                        self.current_view = View::Loading;
-                    }
-                    accounts::Message::AccountAdded(_) => {
-                        self.current_view = View::Accounts;
-                    }
-                    _ => {}
+            Message::AccountAdded(res) => {
+                if let Some(err) = res.err() {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error adding account")
+                        .set_text(&err)
+                        .show_alert()
+                        .unwrap();
                 }
 
-                return self.accounts.update(message).map(Message::AccountsMessage);
+                self.current_view = View::Accounts;
+                self.update(Message::RefreshAccounts);
             }
             Message::GotUpdates(updates) => {
                 if let Ok(Some((version, url))) = updates {
@@ -276,10 +354,7 @@ impl Application for IceLauncher {
                 match event {
                     subscriptions::download::Event::Finished => {
                         self.current_view = View::Instances;
-                        self.instances.update(
-                            instances::Message::RefreshInstances,
-                            &self.accounts.document,
-                        );
+                        self.update(Message::RefreshInstances);
                     }
                     _ => {}
                 }
@@ -350,13 +425,13 @@ impl Application for IceLauncher {
         .padding(10);
 
         let current_view = match self.current_view {
-            View::Instances => self.instances.view().map(Message::InstancesMessage),
+            View::Instances => instances::view(&self.instances),
             View::VanillaInstaller => self
                 .vanilla_installer
                 .view()
                 .map(Message::VanillaInstallerMessage),
-            View::Accounts => self.accounts.view().map(Message::AccountsMessage),
-            View::News => self.news.view().map(Message::NewsMessage),
+            View::Accounts => accounts::view(&self.accounts_doc),
+            View::News => news::view(&self.news),
             View::About => self.about.view(),
             View::Settings => self.settings.view().map(Message::SettingsMessage),
             View::Loading => self.loading.view(),
