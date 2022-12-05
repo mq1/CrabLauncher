@@ -42,6 +42,88 @@ impl Instance {
     pub fn get_path(&self) -> PathBuf {
         INSTANCES_DIR.join(&self.name)
     }
+
+    pub fn remove(&self) -> Result<(), std::io::Error> {
+        fs::remove_dir_all(self.get_path())
+    }
+
+    pub fn launch(&self) -> Result<()> {
+        let account = accounts::get_active()?.unwrap();
+        let account = accounts::refresh(account)?;
+
+        let config = launcher_config::read()?;
+
+        let version = minecraft_version_meta::get(&self.info.minecraft_version)?;
+
+        if config.automatically_update_jvm {
+            let jvm_assets = runtime_manager::get_assets_info("17")?;
+
+            if !runtime_manager::is_updated(&jvm_assets)? {
+                let path = jvm_assets.get_path();
+                if path.exists() {
+                    fs::remove_dir_all(path)?;
+                }
+
+                jvm_assets.get_download_item().download()?;
+            }
+        }
+
+        let java_path = runtime_manager::get_java_path("17")?;
+
+        let mut jvm_args = vec![
+            "-Dminecraft.launcher.brand=ice-launcher".to_string(),
+            format!("-Dminecraft.launcher.version={}", env!("CARGO_PKG_VERSION")),
+            format!("-Xmx{}", config.jvm_memory),
+            format!("-Xms{}", config.jvm_memory),
+            "-cp".to_string(),
+            version.get_classpath(),
+        ];
+
+        #[cfg(target_os = "macos")]
+        jvm_args.push("-XstartOnFirstThread".to_string());
+
+        if config.automatically_optimize_jvm_arguments {
+            jvm_args.extend(
+                OPTIMIZED_FLAGS
+                    .split_whitespace()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<_>>(),
+            );
+        }
+
+        let game_args = vec![
+            "--username".to_string(),
+            account.mc_username,
+            "--version".to_string(),
+            self.info.minecraft_version.to_owned(),
+            "--gameDir".to_string(),
+            ".".to_string(),
+            "--assetsDir".to_string(),
+            ASSETS_DIR.to_string_lossy().to_string(),
+            "--assetIndex".to_string(),
+            version.assets,
+            "--uuid".to_string(),
+            account.mc_id.to_string(),
+            "--accessToken".to_string(),
+            account.mc_access_token,
+            "--clientId".to_string(),
+            format!("ice-launcher/{}", env!("CARGO_PKG_VERSION")),
+            "--userType".to_string(),
+            "mojang".to_string(),
+            "--versionType".to_string(),
+            self.info.instance_type.to_string(),
+        ];
+
+        let mut child = Command::new(java_path)
+            .current_dir(self.get_path())
+            .args(jvm_args)
+            .arg(version.main_class)
+            .args(game_args)
+            .spawn()?;
+
+        child.wait()?;
+        Ok(())
+    }
 }
 
 fn read_info(instance_name: &str) -> Result<InstanceInfo> {
@@ -102,89 +184,4 @@ pub fn new(instance_name: &str, minecraft_version: &Version) -> Result<Vec<Downl
     }
 
     Ok(download_items)
-}
-
-pub fn remove(instance_name: &str) -> Result<()> {
-    let instance_dir = INSTANCES_DIR.join(instance_name);
-    fs::remove_dir_all(&instance_dir)?;
-
-    Ok(())
-}
-
-pub fn launch(instance: Instance) -> Result<()> {
-    let account = accounts::get_active()?.unwrap();
-    let account = accounts::refresh(account)?;
-
-    let config = launcher_config::read()?;
-
-    let version = minecraft_version_meta::get(&instance.info.minecraft_version)?;
-
-    if config.automatically_update_jvm {
-        let jvm_assets = runtime_manager::get_assets_info("17")?;
-
-        if !runtime_manager::is_updated(&jvm_assets)? {
-            let path = jvm_assets.get_path();
-            if path.exists() {
-                fs::remove_dir_all(path)?;
-            }
-
-            jvm_assets.get_download_item().download()?;
-        }
-    }
-
-    let java_path = runtime_manager::get_java_path("17")?;
-
-    let mut jvm_args = vec![
-        "-Dminecraft.launcher.brand=ice-launcher".to_string(),
-        format!("-Dminecraft.launcher.version={}", env!("CARGO_PKG_VERSION")),
-        format!("-Xmx{}", config.jvm_memory),
-        format!("-Xms{}", config.jvm_memory),
-        "-cp".to_string(),
-        version.get_classpath(),
-    ];
-
-    #[cfg(target_os = "macos")]
-    jvm_args.push("-XstartOnFirstThread".to_string());
-
-    if config.automatically_optimize_jvm_arguments {
-        jvm_args.extend(
-            OPTIMIZED_FLAGS
-                .split_whitespace()
-                .map(|s| s.to_string())
-                .collect::<Vec<_>>(),
-        );
-    }
-
-    let game_args = vec![
-        "--username".to_string(),
-        account.mc_username,
-        "--version".to_string(),
-        instance.info.minecraft_version.to_owned(),
-        "--gameDir".to_string(),
-        ".".to_string(),
-        "--assetsDir".to_string(),
-        ASSETS_DIR.to_string_lossy().to_string(),
-        "--assetIndex".to_string(),
-        version.assets,
-        "--uuid".to_string(),
-        account.mc_id.to_string(),
-        "--accessToken".to_string(),
-        account.mc_access_token,
-        "--clientId".to_string(),
-        format!("ice-launcher/{}", env!("CARGO_PKG_VERSION")),
-        "--userType".to_string(),
-        "mojang".to_string(),
-        "--versionType".to_string(),
-        instance.info.instance_type.to_string(),
-    ];
-
-    let mut child = Command::new(java_path)
-        .current_dir(instance.get_path())
-        .args(jvm_args)
-        .arg(version.main_class)
-        .args(game_args)
-        .spawn()?;
-
-    child.wait()?;
-    Ok(())
 }

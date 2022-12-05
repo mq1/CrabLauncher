@@ -23,6 +23,22 @@ impl AccountsDocument {
     pub fn has_account_selected(&self) -> bool {
         self.active_account.is_some()
     }
+
+    pub fn write(&self) -> Result<()> {
+        let content = toml::to_string_pretty(self)?;
+        fs::write(&*ACCOUNTS_PATH, content)?;
+        Ok(())
+    }
+
+    pub fn remove(&mut self, account: msa::Account) -> Result<()> {
+        self.accounts.retain(|a| a.mc_id != account.mc_id);
+        self.write()
+    }
+
+    pub fn set_active(&mut self, account: AccountId) -> Result<()> {
+        self.active_account = Some(account);
+        self.write()
+    }
 }
 
 fn write(accounts: &AccountsDocument) -> Result<()> {
@@ -63,14 +79,6 @@ pub fn get_active() -> Result<Option<msa::Account>> {
     Ok(None)
 }
 
-pub fn set_active(account_id: AccountId) -> Result<()> {
-    let mut document = read()?;
-    document.active_account = Some(account_id);
-    write(&document)?;
-
-    Ok(())
-}
-
 pub fn add() -> Result<()> {
     let (auth_url, csrf_token, pkce_verifier) = msa::get_auth_url();
     open::that(auth_url.to_string())?;
@@ -78,15 +86,6 @@ pub fn add() -> Result<()> {
     let mut document = read()?;
     let account = msa::listen_login_callback(csrf_token, pkce_verifier)?;
     document.accounts.push(account.unwrap());
-    write(&document)?;
-
-    Ok(())
-}
-
-pub fn remove(account: msa::Account) -> Result<()> {
-    let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
-    let mut document: AccountsDocument = toml::from_str(&content)?;
-    document.accounts.retain(|a| a.mc_id != account.mc_id);
     write(&document)?;
 
     Ok(())
