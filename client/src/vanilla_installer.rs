@@ -5,29 +5,24 @@ use iced::{
     widget::{button, column, container, horizontal_space, pick_list, row, text, text_input},
     Element, Length,
 };
-use mclib::minecraft_version_manifest::Version;
 
-use crate::{style, Message};
+use crate::{style, InstallerInfo, Message};
 
-pub fn view<'a>(
-    name: &'a str,
-    versions: &'a Option<Result<Vec<Version>, String>>,
-    selected_version: &'a Option<Version>,
-) -> Element<'a, Message> {
+pub fn view(info: &InstallerInfo) -> Element<Message> {
     let heading = text("New instance").size(50);
 
     let instance_name = container(row![
         text("Instance name"),
         horizontal_space(Length::Fill),
-        text_input("Instance name", name, Message::NewInstanceNameChanged),
+        text_input("Instance name", &info.name, Message::NewInstanceNameChanged),
     ])
     .padding(10)
     .style(style::card());
 
-    let version: Element<_> = match versions {
+    let version: Element<_> = match &info.vanilla_versions {
         Some(Ok(versions)) => pick_list(
             versions,
-            selected_version.to_owned(),
+            info.selected_vanilla_version.clone(),
             Message::VanillaVersionSelected,
         )
         .into(),
