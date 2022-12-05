@@ -27,12 +27,12 @@ use mclib::{
     instances::Instance,
     launcher_config::LauncherConfig,
     minecraft_news::News as NewsResponse,
+    minecraft_version_manifest::Version as VanillaVersion,
     msa::{Account, AccountId},
 };
 use modrinth_installer::ModrinthInstaller;
 use modrinth_modpacks::ModrinthModpacks;
 use native_dialog::{MessageDialog, MessageType};
-use vanilla_installer::VanillaInstaller;
 
 pub fn main() -> iced::Result {
     IceLauncher::run(IcedSettings::default())
@@ -44,7 +44,9 @@ struct IceLauncher {
     instances: Result<Vec<Instance>>,
     accounts_doc: Result<AccountsDocument>,
     config: Result<LauncherConfig>,
-    vanilla_installer: VanillaInstaller,
+    vanilla_versions: Option<Result<Vec<VanillaVersion>, String>>,
+    selected_vanilla_version: Option<VanillaVersion>,
+    new_instance_name: String,
     download: Download,
     modrinth_modpacks: ModrinthModpacks,
     modrinth_installer: ModrinthInstaller,
@@ -69,6 +71,8 @@ pub enum View {
 pub enum Message {
     ViewChanged(View),
     OpenURL(String),
+    GotUpdates(Result<Option<(String, String)>, String>),
+    DownloadEvent(subscriptions::download::Event),
 
     // News
     OpenNews,
@@ -91,6 +95,11 @@ pub enum Message {
     // Installers
     OpenVanillaInstaller,
     OpenModrinthModpacks,
+    NewInstanceNameChanged(String),
+    VanillaVersionsFetched(Result<Vec<VanillaVersion>, String>),
+    VanillaVersionSelected(VanillaVersion),
+    CreateVanillaInstance,
+    InstanceCreated(Result<(), String>),
 
     // Settings
     UpdatesTogglerChanged(bool),
@@ -100,10 +109,6 @@ pub enum Message {
     ResetConfig,
     SaveConfig,
 
-    VanillaInstallerMessage(vanilla_installer::Message),
-    InstanceCreated(Result<(), String>),
-    GotUpdates(Result<Option<(String, String)>, String>),
-    DownloadEvent(subscriptions::download::Event),
     ModrinthModpacksMessage(modrinth_modpacks::Message),
     ModrinthInstallerMessage(modrinth_installer::Message),
 }
@@ -126,7 +131,9 @@ impl Application for IceLauncher {
             accounts_doc: mclib::accounts::read(),
             instances: mclib::instances::list(),
             config,
-            vanilla_installer: VanillaInstaller::new(),
+            new_instance_name: String::new(),
+            vanilla_versions: None,
+            selected_vanilla_version: None,
             download: Download::new(),
             modrinth_modpacks: ModrinthModpacks::new(),
             modrinth_installer: ModrinthInstaller::new(),
@@ -224,52 +231,57 @@ impl Application for IceLauncher {
 
                 self.current_view = View::Instances;
             }
+            Message::NewInstanceNameChanged(name) => {
+                self.new_instance_name = name;
+            }
             Message::OpenVanillaInstaller => {
                 self.current_view = View::VanillaInstaller;
 
-                return self
-                    .vanilla_installer
-                    .update(vanilla_installer::Message::FetchVersions)
-                    .map(Message::VanillaInstallerMessage);
+                return Command::perform(
+                    async {
+                        mclib::minecraft_version_manifest::fetch_versions()
+                            .map_err(|e| e.to_string())
+                    },
+                    Message::VanillaVersionsFetched,
+                );
             }
-            Message::VanillaInstallerMessage(message) => {
-                if let vanilla_installer::Message::CreateInstance = message {
-                    if self.vanilla_installer.name.is_empty() {
-                        MessageDialog::new()
-                            .set_type(MessageType::Error)
-                            .set_title("Error")
-                            .set_text("Please enter a name for the instance")
-                            .show_alert()
-                            .unwrap();
+            Message::VanillaVersionsFetched(res) => {
+                self.vanilla_versions = Some(res);
+            }
+            Message::VanillaVersionSelected(version) => {
+                self.selected_vanilla_version = Some(version);
+            }
+            Message::CreateVanillaInstance => {
+                if self.new_instance_name.is_empty() {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error")
+                        .set_text("Please enter a name for the instance")
+                        .show_alert()
+                        .unwrap();
 
-                        return Command::none();
-                    }
-
-                    if self.vanilla_installer.selected_version.is_none() {
-                        MessageDialog::new()
-                            .set_type(MessageType::Error)
-                            .set_title("Error")
-                            .set_text("Please select a version")
-                            .show_alert()
-                            .unwrap();
-
-                        return Command::none();
-                    }
-
-                    let name = &self.vanilla_installer.name;
-                    let version = self.vanilla_installer.selected_version.as_ref().unwrap();
-
-                    self.current_view = View::Loading(format!("Creating instance {name}"));
-
-                    let download_items = mclib::instances::new(name, version).unwrap();
-                    self.current_view = View::Download;
-                    self.download.start(download_items);
+                    return Command::none();
                 }
 
-                return self
-                    .vanilla_installer
-                    .update(message)
-                    .map(Message::VanillaInstallerMessage);
+                if self.selected_vanilla_version.is_none() {
+                    MessageDialog::new()
+                        .set_type(MessageType::Error)
+                        .set_title("Error")
+                        .set_text("Please select a version")
+                        .show_alert()
+                        .unwrap();
+
+                    return Command::none();
+                }
+
+                let name = &self.new_instance_name;
+                let version = self.selected_vanilla_version.as_ref().unwrap();
+
+                self.current_view = View::Loading(format!("Creating instance {name}"));
+
+                let download_items = mclib::instances::new(name, version).unwrap();
+                self.current_view = View::Download;
+                self.download.start(download_items);
             }
             Message::InstanceCreated(res) => {
                 if let Err(e) = res {
@@ -466,10 +478,11 @@ impl Application for IceLauncher {
 
         let current_view = match self.current_view {
             View::Instances => instances::view(&self.instances),
-            View::VanillaInstaller => self
-                .vanilla_installer
-                .view()
-                .map(Message::VanillaInstallerMessage),
+            View::VanillaInstaller => vanilla_installer::view(
+                &self.new_instance_name,
+                &self.vanilla_versions,
+                &self.selected_vanilla_version,
+            ),
             View::Accounts => accounts::view(&self.accounts_doc),
             View::News => news::view(&self.news),
             View::About => about::view(),
