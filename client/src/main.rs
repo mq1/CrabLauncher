@@ -22,7 +22,6 @@ use iced::{
     widget::{button, column, container, row, vertical_space},
     Application, Command, Element, Length, Settings as IcedSettings, Subscription, Theme,
 };
-use loading::Loading;
 use mclib::{
     accounts::AccountsDocument,
     instances::Instance,
@@ -49,7 +48,6 @@ struct IceLauncher {
     download: Download,
     modrinth_modpacks: ModrinthModpacks,
     modrinth_installer: ModrinthInstaller,
-    loading: Loading,
 }
 
 #[derive(Debug, Clone)]
@@ -60,7 +58,7 @@ pub enum View {
     News,
     About,
     Settings,
-    Loading,
+    Loading(String),
     Download,
     Installers,
     ModrinthModpacks,
@@ -129,7 +127,6 @@ impl Application for IceLauncher {
             download: Download::new(),
             modrinth_modpacks: ModrinthModpacks::new(),
             modrinth_installer: ModrinthInstaller::new(),
-            loading: Loading::new(),
         };
 
         let command = if check_updates {
@@ -186,8 +183,7 @@ impl Application for IceLauncher {
                 }
             }
             Message::LaunchInstance(instance) => {
-                self.loading.message = format!("Running {}", instance.name);
-                self.current_view = View::Loading;
+                self.current_view = View::Loading(format!("Running {}", instance.name));
 
                 if let Ok(doc) = &self.accounts_doc {
                     if !doc.has_account_selected() {
@@ -260,8 +256,7 @@ impl Application for IceLauncher {
                     let name = &self.vanilla_installer.name;
                     let version = self.vanilla_installer.selected_version.as_ref().unwrap();
 
-                    self.loading.message = format!("Creating instance {}", name);
-                    self.current_view = View::Loading;
+                    self.current_view = View::Loading(format!("Creating instance {name}"));
 
                     let download_items = mclib::instances::new(name, version).unwrap();
                     self.current_view = View::Download;
@@ -312,8 +307,7 @@ impl Application for IceLauncher {
                     .unwrap();
             }
             Message::AddAccount => {
-                self.loading.message = "Logging in".to_string();
-                self.current_view = View::Loading;
+                self.current_view = View::Loading("Logging in".to_string());
 
                 return Command::perform(
                     async { mclib::accounts::add().map_err(|e| e.to_string()) },
@@ -434,7 +428,7 @@ impl Application for IceLauncher {
             View::News => news::view(&self.news),
             View::About => about::view(),
             View::Settings => self.settings.view().map(Message::SettingsMessage),
-            View::Loading => self.loading.view(),
+            View::Loading(ref message) => loading::view(message),
             View::Download => self.download.view(),
             View::Installers => installers::view(),
             View::ModrinthModpacks => self
