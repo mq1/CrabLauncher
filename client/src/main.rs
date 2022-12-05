@@ -22,7 +22,6 @@ use iced::{
     widget::{button, column, container, row, vertical_space},
     Application, Command, Element, Length, Settings as IcedSettings, Subscription, Theme,
 };
-use installers::Installers;
 use loading::Loading;
 use mclib::{
     accounts::AccountsDocument,
@@ -48,7 +47,6 @@ struct IceLauncher {
     vanilla_installer: VanillaInstaller,
     settings: Settings,
     download: Download,
-    installers: Installers,
     modrinth_modpacks: ModrinthModpacks,
     modrinth_installer: ModrinthInstaller,
     loading: Loading,
@@ -129,7 +127,6 @@ impl Application for IceLauncher {
             vanilla_installer: VanillaInstaller::new(),
             settings,
             download: Download::new(),
-            installers: Installers::new(),
             modrinth_modpacks: ModrinthModpacks::new(),
             modrinth_installer: ModrinthInstaller::new(),
             loading: Loading::new(),
@@ -308,7 +305,11 @@ impl Application for IceLauncher {
                 }
             }
             Message::AccountSelected(account) => {
-                self.accounts_doc.as_mut().unwrap().set_active(account).unwrap();
+                self.accounts_doc
+                    .as_mut()
+                    .unwrap()
+                    .set_active(account)
+                    .unwrap();
             }
             Message::AddAccount => {
                 self.loading.message = "Logging in".to_string();
@@ -435,7 +436,7 @@ impl Application for IceLauncher {
             View::Settings => self.settings.view().map(Message::SettingsMessage),
             View::Loading => self.loading.view(),
             View::Download => self.download.view(),
-            View::Installers => self.installers.view(),
+            View::Installers => installers::view(),
             View::ModrinthModpacks => self
                 .modrinth_modpacks
                 .view()
