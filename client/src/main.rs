@@ -15,7 +15,6 @@ mod style;
 mod subscriptions;
 mod vanilla_installer;
 
-use about::About;
 use anyhow::Result;
 use download::Download;
 use iced::{
@@ -46,7 +45,6 @@ struct IceLauncher {
     news: Option<Result<NewsResponse, String>>,
     instances: Result<Vec<Instance>>,
     accounts_doc: Result<AccountsDocument>,
-    about: About,
     vanilla_installer: VanillaInstaller,
     settings: Settings,
     download: Download,
@@ -94,13 +92,15 @@ pub enum Message {
     AccountAdded(Result<(), String>),
     AccountSelected(AccountId),
 
+    // Installers
     OpenVanillaInstaller,
+    OpenModrinthModpacks,
+
     VanillaInstallerMessage(vanilla_installer::Message),
     InstanceCreated(Result<(), String>),
     GotUpdates(Result<Option<(String, String)>, String>),
     SettingsMessage(settings::Message),
     DownloadEvent(subscriptions::download::Event),
-    OpenModrinthModpacks,
     ModrinthModpacksMessage(modrinth_modpacks::Message),
     ModrinthInstallerMessage(modrinth_installer::Message),
 }
@@ -124,7 +124,6 @@ impl Application for IceLauncher {
         let app = Self {
             current_view: View::Instances,
             news: None,
-            about: About::new(),
             accounts_doc: mclib::accounts::read(),
             instances: mclib::instances::list(),
             vanilla_installer: VanillaInstaller::new(),
@@ -432,7 +431,7 @@ impl Application for IceLauncher {
                 .map(Message::VanillaInstallerMessage),
             View::Accounts => accounts::view(&self.accounts_doc),
             View::News => news::view(&self.news),
-            View::About => self.about.view(),
+            View::About => about::view(),
             View::Settings => self.settings.view().map(Message::SettingsMessage),
             View::Loading => self.loading.view(),
             View::Download => self.download.view(),
