@@ -124,7 +124,7 @@ impl Application for IceLauncher {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Self::Message>) {
-        let config = mclib::launcher_config::read();
+        let config = LauncherConfig::load();
 
         let check_updates = config.as_ref().unwrap().automatically_check_for_updates
             && cfg!(feature = "check-for-updates");
@@ -397,12 +397,14 @@ impl Application for IceLauncher {
                     .unwrap();
 
                 if yes {
-                    self.config = mclib::launcher_config::reset();
+                    if let Ok(ref mut config) = self.config {
+                        config.reset().unwrap();
+                    }
                 }
             }
             Message::SaveConfig => {
                 if let Ok(ref config) = self.config {
-                    if let Err(e) = mclib::launcher_config::write(config) {
+                    if let Err(e) = config.save() {
                         MessageDialog::new()
                             .set_type(MessageType::Error)
                             .set_title("Error")
