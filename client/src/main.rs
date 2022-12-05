@@ -25,13 +25,13 @@ use iced::{
 use mclib::{
     accounts::AccountsDocument,
     instances::Instance,
+    launcher_config::LauncherConfig,
     minecraft_news::News as NewsResponse,
     msa::{Account, AccountId},
 };
 use modrinth_installer::ModrinthInstaller;
 use modrinth_modpacks::ModrinthModpacks;
 use native_dialog::{MessageDialog, MessageType};
-use settings::Settings;
 use vanilla_installer::VanillaInstaller;
 
 pub fn main() -> iced::Result {
@@ -43,8 +43,8 @@ struct IceLauncher {
     news: Option<Result<NewsResponse, String>>,
     instances: Result<Vec<Instance>>,
     accounts_doc: Result<AccountsDocument>,
+    config: Result<LauncherConfig>,
     vanilla_installer: VanillaInstaller,
-    settings: Settings,
     download: Download,
     modrinth_modpacks: ModrinthModpacks,
     modrinth_installer: ModrinthInstaller,
@@ -92,10 +92,17 @@ pub enum Message {
     OpenVanillaInstaller,
     OpenModrinthModpacks,
 
+    // Settings
+    UpdatesTogglerChanged(bool),
+    UpdateJvmTogglerChanged(bool),
+    OptimizeJvmTogglerChanged(bool),
+    UpdateJvmMemory(String),
+    ResetConfig,
+    SaveConfig,
+
     VanillaInstallerMessage(vanilla_installer::Message),
     InstanceCreated(Result<(), String>),
     GotUpdates(Result<Option<(String, String)>, String>),
-    SettingsMessage(settings::Message),
     DownloadEvent(subscriptions::download::Event),
     ModrinthModpacksMessage(modrinth_modpacks::Message),
     ModrinthInstallerMessage(modrinth_installer::Message),
@@ -108,13 +115,9 @@ impl Application for IceLauncher {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Self::Message>) {
-        let settings = Settings::new();
+        let config = mclib::launcher_config::read();
 
-        let check_updates = settings
-            .config
-            .as_ref()
-            .unwrap()
-            .automatically_check_for_updates
+        let check_updates = config.as_ref().unwrap().automatically_check_for_updates
             && cfg!(feature = "check-for-updates");
 
         let app = Self {
@@ -122,8 +125,8 @@ impl Application for IceLauncher {
             news: None,
             accounts_doc: mclib::accounts::read(),
             instances: mclib::instances::list(),
+            config,
             vanilla_installer: VanillaInstaller::new(),
-            settings,
             download: Download::new(),
             modrinth_modpacks: ModrinthModpacks::new(),
             modrinth_installer: ModrinthInstaller::new(),
@@ -296,15 +299,17 @@ impl Application for IceLauncher {
                     .unwrap();
 
                 if yes {
-                    self.accounts_doc.as_mut().unwrap().remove(account).unwrap();
+                    if let Ok(ref mut doc) = self.accounts_doc {
+                        doc.remove(account).unwrap();
+                        self.update(Message::RefreshAccounts);
+                    }
                 }
             }
             Message::AccountSelected(account) => {
-                self.accounts_doc
-                    .as_mut()
-                    .unwrap()
-                    .set_active(account)
-                    .unwrap();
+                if let Ok(ref mut doc) = self.accounts_doc {
+                    doc.set_active(account).unwrap();
+                    self.update(Message::RefreshAccounts);
+                }
             }
             Message::AddAccount => {
                 self.current_view = View::Loading("Logging in".to_string());
@@ -341,8 +346,49 @@ impl Application for IceLauncher {
                     }
                 }
             }
-            Message::SettingsMessage(message) => {
-                self.settings.update(message);
+            Message::UpdatesTogglerChanged(enabled) => {
+                if let Ok(ref mut config) = self.config {
+                    config.automatically_check_for_updates = enabled;
+                }
+            }
+            Message::UpdateJvmTogglerChanged(enabled) => {
+                if let Ok(ref mut config) = self.config {
+                    config.automatically_update_jvm = enabled;
+                }
+            }
+            Message::OptimizeJvmTogglerChanged(enabled) => {
+                if let Ok(ref mut config) = self.config {
+                    config.automatically_optimize_jvm_arguments = enabled;
+                }
+            }
+            Message::UpdateJvmMemory(memory) => {
+                if let Ok(ref mut config) = self.config {
+                    config.jvm_memory = memory;
+                }
+            }
+            Message::ResetConfig => {
+                let yes = MessageDialog::new()
+                    .set_type(MessageType::Warning)
+                    .set_title("Reset config")
+                    .set_text("Are you sure you want to reset the config?")
+                    .show_confirm()
+                    .unwrap();
+
+                if yes {
+                    self.config = mclib::launcher_config::reset();
+                }
+            }
+            Message::SaveConfig => {
+                if let Ok(ref config) = self.config {
+                    if let Err(e) = mclib::launcher_config::write(config) {
+                        MessageDialog::new()
+                            .set_type(MessageType::Error)
+                            .set_title("Error")
+                            .set_text(&format!("Failed to save config: {e}"))
+                            .show_alert()
+                            .unwrap();
+                    }
+                }
             }
             Message::DownloadEvent(event) => {
                 match event {
@@ -427,7 +473,7 @@ impl Application for IceLauncher {
             View::Accounts => accounts::view(&self.accounts_doc),
             View::News => news::view(&self.news),
             View::About => about::view(),
-            View::Settings => self.settings.view().map(Message::SettingsMessage),
+            View::Settings => settings::view(&self.config),
             View::Loading(ref message) => loading::view(message),
             View::Download => self.download.view(),
             View::Installers => installers::view(),
