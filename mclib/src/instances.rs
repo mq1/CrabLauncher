@@ -9,9 +9,9 @@ use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
 use super::{
-    accounts, launcher_config::LauncherConfig, minecraft_assets::ASSETS_DIR,
-    minecraft_version_manifest::Version, minecraft_version_meta, runtime_manager, DownloadItem,
-    BASE_DIR,
+    launcher_config::LauncherConfig, minecraft_assets::ASSETS_DIR,
+    minecraft_version_manifest::Version, minecraft_version_meta, msa, runtime_manager,
+    DownloadItem, BASE_DIR,
 };
 
 // https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks
@@ -48,12 +48,8 @@ impl Instance {
         fs::remove_dir_all(self.get_path())
     }
 
-    pub fn launch(&self) -> Result<()> {
-        let account = accounts::get_active()?.unwrap();
-        let account = accounts::refresh(account)?;
-
+    pub fn launch(&self, account: msa::Account) -> Result<()> {
         let config = LauncherConfig::load()?;
-
         let version = minecraft_version_meta::get(&self.info.minecraft_version)?;
 
         if config.automatically_update_jvm {

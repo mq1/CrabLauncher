@@ -33,8 +33,8 @@ impl Default for LauncherConfig {
 impl LauncherConfig {
     pub fn load() -> Result<Self> {
         if LAUNCHER_CONFIG_PATH.exists() {
-            let config = fs::read_to_string(&*LAUNCHER_CONFIG_PATH)?;
-            let config = toml::from_str(&config)?;
+            let content = fs::read_to_string(&*LAUNCHER_CONFIG_PATH)?;
+            let config = toml::from_str(&content)?;
             Ok(config)
         } else {
             let config = Self::default();
