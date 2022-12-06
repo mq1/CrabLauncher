@@ -48,6 +48,11 @@ impl AccountsDocument {
         self.save()
     }
 
+    pub fn set_active_account(&mut self, id: AccountId) -> Result<()> {
+        self.active_account = Some(id);
+        self.save()
+    }
+
     // Refresh and return the account
     pub fn get_account(&mut self, id: &AccountId) -> Result<msa::Account> {
         let account = self
