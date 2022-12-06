@@ -1,13 +1,15 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::collections::VecDeque;
+
 use iced::{subscription, Subscription};
 use mclib::DownloadItem;
 
 enum State {
-    Ready(Vec<DownloadItem>),
+    Ready(VecDeque<DownloadItem>),
     Downloading {
-        items: Vec<DownloadItem>,
+        items: VecDeque<DownloadItem>,
         total: usize,
         downloaded: usize,
     },
@@ -23,6 +25,8 @@ pub enum Event {
 
 pub fn files(items: Vec<DownloadItem>) -> Subscription<Event> {
     struct DownloadFiles;
+
+    let items = VecDeque::from(items);
 
     subscription::unfold(
         std::any::TypeId::of::<DownloadFiles>(),
@@ -50,7 +54,7 @@ pub fn files(items: Vec<DownloadItem>) -> Subscription<Event> {
                     total,
                     downloaded,
                 } => {
-                    let item = items.pop();
+                    let item = items.pop_front();
 
                     match item {
                         Some(item) => {
