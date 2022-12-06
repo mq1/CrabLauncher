@@ -321,7 +321,7 @@ impl Application for IceLauncher {
 
                 if yes {
                     if let Ok(ref mut doc) = self.accounts_doc {
-                        doc.remove(account.mc_id).unwrap();
+                        doc.remove_account(account.mc_id).unwrap();
                     }
                 }
             }
