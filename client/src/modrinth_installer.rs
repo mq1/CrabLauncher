@@ -3,103 +3,63 @@
 
 use iced::{
     widget::{column, container, horizontal_rule, scrollable, text, Column},
-    Command, Element,
+    Element,
 };
-use mclib::modrinth::{Hit, Version};
 
-use crate::style;
+use crate::{style, InstallerInfo, Message};
 
-#[derive(Debug, Clone)]
-pub enum Message {
-    Fetch,
-    Fetched(Result<Vec<Version>, String>),
-}
+pub fn view(info: &InstallerInfo) -> Element<Message> {
+    let content: Element<_> = match info.selected_modpack {
+        Some(ref hit) => {
+            let heading = text(&hit.title).size(50);
 
-pub struct ModrinthInstaller {
-    pub hit: Option<Hit>,
-    pub versions: Option<Result<Vec<Version>, String>>,
-}
+            let content: Element<_> = match &info.available_modpack_versions {
+                Some(Ok(versions)) => {
+                    let mut featured_list = Column::new().spacing(10);
+                    let mut all_list = Column::new().spacing(10);
 
-impl ModrinthInstaller {
-    pub fn new() -> Self {
-        Self {
-            hit: None,
-            versions: None,
-        }
-    }
+                    let featured_count = versions.iter().filter(|version| version.featured).count();
 
-    pub fn update(&mut self, message: Message) -> Command<Message> {
-        match message {
-            Message::Fetch => {
-                if let Some(hit) = self.hit.to_owned() {
-                    return Command::perform(
-                        async move { hit.fetch_versions().map_err(|e| e.to_string()) },
-                        Message::Fetched,
-                    );
-                }
-            }
-            Message::Fetched(versions) => {
-                self.versions = Some(versions);
-            }
-        }
+                    for (i, v) in versions.iter().enumerate() {
+                        all_list = all_list.push(text(&v.name));
 
-        Command::none()
-    }
-
-    pub fn view(&self) -> Element<Message> {
-        let content: Element<_> = match self.hit {
-            Some(ref hit) => {
-                let heading = text(&hit.title).size(50);
-
-                let content: Element<_> = match &self.versions {
-                    Some(Ok(versions)) => {
-                        let mut featured_list = Column::new().spacing(10);
-                        let mut all_list = Column::new().spacing(10);
-
-                        let featured_count =
-                            versions.iter().filter(|version| version.featured).count();
-
-                        for (i, v) in versions.iter().enumerate() {
-                            all_list = all_list.push(text(&v.name));
-
-                            if i != versions.len() - 1 {
-                                all_list = all_list.push(horizontal_rule(1));
-                            }
-
-                            if v.featured {
-                                featured_list = featured_list.push(text(&v.name));
-
-                                if i != featured_count - 1 {
-                                    featured_list = featured_list.push(horizontal_rule(1));
-                                }
-                            }
+                        if i != versions.len() - 1 {
+                            all_list = all_list.push(horizontal_rule(1));
                         }
 
-                        let featured_versions = container(
-                            column![text("Featured").size(30), featured_list]
-                                .spacing(10)
-                                .padding(10),
-                        )
-                        .style(style::card());
+                        if v.featured {
+                            featured_list = featured_list.push(text(&v.name));
 
-                        let all_versions = container(
-                            column![text("All").size(30), all_list]
-                                .spacing(10)
-                                .padding(10),
-                        )
-                        .style(style::card());
-
-                        scrollable(column![featured_versions, all_versions].spacing(20)).into()
+                            if i != featured_count - 1 {
+                                featured_list = featured_list.push(horizontal_rule(1));
+                            }
+                        }
                     }
-                    Some(Err(error)) => text(error).into(),
-                    None => text("Loading...").into(),
-                };
 
-                column![heading, content].spacing(20).into()
-            }
-            None => text("Loading...").into(),
-        };
+                    let featured_versions = container(
+                        column![text("Featured").size(30), featured_list]
+                            .spacing(10)
+                            .padding(10),
+                    )
+                    .style(style::card());
 
-        container(content).padding(20).into()
-    }
+                    let all_versions = container(
+                        column![text("All").size(30), all_list]
+                            .spacing(10)
+                            .padding(10),
+                    )
+                    .style(style::card());
+
+                    scrollable(column![featured_versions, all_versions].spacing(20)).into()
+                }
+                Some(Err(error)) => text(error).into(),
+                None => text("Loading...").into(),
+            };
+
+            column![heading, content].spacing(20).into()
+        }
+        None => text("Loading...").into(),
+    };
+
+    container(content).padding(20).into()
 }
