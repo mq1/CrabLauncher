@@ -23,7 +23,7 @@ pub enum Event {
 
 pub fn files(mut items: Vec<DownloadItem>) -> Subscription<Event> {
     items.reverse();
-    
+
     struct DownloadFiles;
 
     subscription::unfold(
