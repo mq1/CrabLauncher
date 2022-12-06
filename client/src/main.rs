@@ -201,24 +201,26 @@ impl Application for IceLauncher {
                 self.current_view = View::Loading(format!("Running {}", instance.name));
 
                 if let Ok(ref mut doc) = self.accounts_doc {
-                    if doc.active_account.is_none() {
-                        MessageDialog::new()
-                            .set_type(MessageType::Warning)
-                            .set_title("No account selected")
-                            .set_text("Please select an account to launch the game")
-                            .show_alert()
-                            .unwrap();
+                    match doc.active_account {
+                        Some(id) => {
+                            let account = doc.get_account(&id).unwrap();
 
-                        return Command::none();
+                            return Command::perform(
+                                async move { instance.launch(account).map_err(|e| e.to_string()) },
+                                Message::InstanceClosed,
+                            );
+                        }
+                        None => {
+                            MessageDialog::new()
+                                .set_type(MessageType::Warning)
+                                .set_title("No account selected")
+                                .set_text("Please select an account to launch the game")
+                                .show_alert()
+                                .unwrap();
+
+                            return Command::none();
+                        }
                     }
-
-                    let account_id = doc.active_account.unwrap();
-                    let account = doc.get_account(&account_id).unwrap();
-
-                    return Command::perform(
-                        async move { instance.launch(account).map_err(|e| e.to_string()) },
-                        Message::InstanceClosed,
-                    );
                 }
             }
             Message::NewInstance => {
