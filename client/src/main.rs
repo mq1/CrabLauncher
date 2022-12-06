@@ -90,10 +90,9 @@ pub enum Message {
     InstanceClosed(Result<(), String>),
 
     // Accounts
-    RefreshAccounts,
     RemoveAccount(Account),
     AddAccount,
-    AccountAdded(Result<(), String>),
+    AccountAdded(Result<Account, String>),
     AccountSelected(AccountId),
 
     // Installers
@@ -132,7 +131,7 @@ impl Application for IceLauncher {
         let app = Self {
             current_view: View::Instances,
             news: None,
-            accounts_doc: mclib::accounts::read(),
+            accounts_doc: AccountsDocument::load(),
             instances: mclib::instances::list(),
             config,
             installer_info: InstallerInfo {
@@ -201,8 +200,8 @@ impl Application for IceLauncher {
             Message::LaunchInstance(instance) => {
                 self.current_view = View::Loading(format!("Running {}", instance.name));
 
-                if let Ok(doc) = &self.accounts_doc {
-                    if !doc.has_account_selected() {
+                if let Ok(ref mut doc) = self.accounts_doc {
+                    if doc.active_account.is_none() {
                         MessageDialog::new()
                             .set_type(MessageType::Warning)
                             .set_title("No account selected")
@@ -213,8 +212,11 @@ impl Application for IceLauncher {
                         return Command::none();
                     }
 
+                    let account_id = doc.active_account.unwrap();
+                    let account = doc.get_account(&account_id).unwrap();
+
                     return Command::perform(
-                        async move { instance.launch().map_err(|e| e.to_string()) },
+                        async move { instance.launch(account).map_err(|e| e.to_string()) },
                         Message::InstanceClosed,
                     );
                 }
@@ -306,9 +308,6 @@ impl Application for IceLauncher {
                 self.current_view = View::Instances;
                 self.update(Message::RefreshInstances);
             }
-            Message::RefreshAccounts => {
-                self.accounts_doc = mclib::accounts::read();
-            }
             Message::RemoveAccount(account) => {
                 let yes = MessageDialog::new()
                     .set_type(MessageType::Warning)
@@ -322,37 +321,41 @@ impl Application for IceLauncher {
 
                 if yes {
                     if let Ok(ref mut doc) = self.accounts_doc {
-                        doc.remove(account).unwrap();
-                        self.update(Message::RefreshAccounts);
+                        doc.remove(account.mc_id).unwrap();
                     }
                 }
             }
-            Message::AccountSelected(account) => {
+            Message::AccountSelected(id) => {
                 if let Ok(ref mut doc) = self.accounts_doc {
-                    doc.set_active(account).unwrap();
-                    self.update(Message::RefreshAccounts);
+                    doc.active_account = Some(id);
                 }
             }
             Message::AddAccount => {
                 self.current_view = View::Loading("Logging in".to_string());
 
                 return Command::perform(
-                    async { mclib::accounts::add().map_err(|e| e.to_string()) },
+                    async { mclib::accounts::login().map_err(|e| e.to_string()) },
                     Message::AccountAdded,
                 );
             }
             Message::AccountAdded(res) => {
-                if let Some(err) = res.err() {
-                    MessageDialog::new()
-                        .set_type(MessageType::Error)
-                        .set_title("Error adding account")
-                        .set_text(&err)
-                        .show_alert()
-                        .unwrap();
+                match res {
+                    Ok(account) => {
+                        if let Ok(ref mut doc) = self.accounts_doc {
+                            doc.add_account(account).unwrap();
+                        }
+                    }
+                    Err(e) => {
+                        MessageDialog::new()
+                            .set_type(MessageType::Error)
+                            .set_title("Error adding account")
+                            .set_text(&e)
+                            .show_alert()
+                            .unwrap();
+                    }
                 }
 
                 self.current_view = View::Accounts;
-                self.update(Message::RefreshAccounts);
             }
             Message::GotUpdates(updates) => {
                 if let Ok(Some((version, url))) = updates {

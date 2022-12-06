@@ -20,91 +20,62 @@ pub struct AccountsDocument {
 }
 
 impl AccountsDocument {
-    pub fn has_account_selected(&self) -> bool {
-        self.active_account.is_some()
+    pub fn load() -> Result<Self> {
+        if ACCOUNTS_PATH.exists() {
+            let content = fs::read_to_string(&*ACCOUNTS_PATH)?;
+            let doc = toml::from_str(&content)?;
+            Ok(doc)
+        } else {
+            let doc = Self::default();
+            doc.save()?;
+            Ok(doc)
+        }
     }
 
-    pub fn write(&self) -> Result<()> {
+    pub fn save(&self) -> Result<()> {
         let content = toml::to_string_pretty(self)?;
         fs::write(&*ACCOUNTS_PATH, content)?;
         Ok(())
     }
 
-    pub fn remove(&mut self, account: msa::Account) -> Result<()> {
-        self.accounts.retain(|a| a.mc_id != account.mc_id);
-        self.write()
+    pub fn remove(&mut self, id: AccountId) -> Result<()> {
+        self.accounts.retain(|a| a.mc_id != id);
+        self.save()
     }
 
-    pub fn set_active(&mut self, account: AccountId) -> Result<()> {
-        self.active_account = Some(account);
-        self.write()
-    }
-}
-
-fn write(accounts: &AccountsDocument) -> Result<()> {
-    let content = toml::to_string_pretty(accounts)?;
-    fs::write(ACCOUNTS_PATH.as_path(), content)?;
-
-    Ok(())
-}
-
-pub fn read() -> Result<AccountsDocument> {
-    if !ACCOUNTS_PATH.exists() {
-        let default = AccountsDocument::default();
-        write(&default)?;
-
-        return Ok(default);
+    pub fn add_account(&mut self, account: msa::Account) -> Result<()> {
+        self.accounts.push(account);
+        self.save()
     }
 
-    let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
-    let accounts = toml::from_str(&content)?;
-
-    Ok(accounts)
-}
-
-pub fn get_active() -> Result<Option<msa::Account>> {
-    let document = read()?;
-
-    if let Some(active_account) = document.active_account {
-        let account = document
+    // Refresh and return the account
+    pub fn get_account(&mut self, id: &AccountId) -> Result<msa::Account> {
+        let account = self
             .accounts
-            .into_iter()
-            .find(|account| account.mc_id == active_account);
+            .iter()
+            .find(|a| &a.mc_id == id)
+            .cloned()
+            .unwrap();
 
-        if let Some(account) = account {
-            return Ok(Some(account));
+        let refreshed_account = msa::refresh(account)?;
+
+        for account in self.accounts.iter_mut() {
+            if account.mc_id == refreshed_account.mc_id {
+                *account = refreshed_account.clone();
+                break;
+            }
         }
-    }
 
-    Ok(None)
+        self.save()?;
+
+        Ok(refreshed_account)
+    }
 }
 
-pub fn add() -> Result<()> {
+pub fn login() -> Result<msa::Account> {
     let (auth_url, csrf_token, pkce_verifier) = msa::get_auth_url();
     open::that(auth_url.to_string())?;
-
-    let mut document = read()?;
-    let account = msa::listen_login_callback(csrf_token, pkce_verifier)?;
-    document.accounts.push(account.unwrap());
-    write(&document)?;
-
-    Ok(())
-}
-
-pub fn refresh(account: msa::Account) -> Result<msa::Account> {
-    let account = msa::refresh(account)?;
-
-    let content = fs::read_to_string(ACCOUNTS_PATH.as_path())?;
-    let mut document: AccountsDocument = toml::from_str(&content)?;
-
-    for account in document.accounts.iter_mut() {
-        if account.mc_id == account.mc_id {
-            *account = account.clone();
-            break;
-        }
-    }
-
-    write(&document)?;
+    let account = msa::listen_login_callback(csrf_token, pkce_verifier)?.unwrap();
 
     Ok(account)
 }
