@@ -38,7 +38,7 @@ impl AccountsDocument {
         Ok(())
     }
 
-    pub fn remove(&mut self, id: AccountId) -> Result<()> {
+    pub fn remove_account(&mut self, id: AccountId) -> Result<()> {
         self.accounts.retain(|a| a.mc_id != id);
         self.save()
     }
