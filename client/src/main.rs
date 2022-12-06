@@ -28,10 +28,9 @@ use mclib::{
     launcher_config::LauncherConfig,
     minecraft_news::News as NewsResponse,
     minecraft_version_manifest::Version as VanillaVersion,
+    modrinth,
     msa::{Account, AccountId},
 };
-use modrinth_installer::ModrinthInstaller;
-use modrinth_modpacks::ModrinthModpacks;
 use native_dialog::{MessageDialog, MessageType};
 
 pub fn main() -> iced::Result {
@@ -42,6 +41,9 @@ pub struct InstallerInfo {
     name: String,
     vanilla_versions: Option<Result<Vec<VanillaVersion>, String>>,
     selected_vanilla_version: Option<VanillaVersion>,
+    available_modpacks: Option<Result<modrinth::SearchResults, String>>,
+    selected_modpack: Option<modrinth::Hit>,
+    available_modpack_versions: Option<Result<Vec<modrinth::Version>, String>>,
 }
 
 struct IceLauncher {
@@ -52,8 +54,6 @@ struct IceLauncher {
     config: Result<LauncherConfig>,
     installer_info: InstallerInfo,
     download: Download,
-    modrinth_modpacks: ModrinthModpacks,
-    modrinth_installer: ModrinthInstaller,
 }
 
 #[derive(Debug, Clone)]
@@ -103,6 +103,9 @@ pub enum Message {
     VanillaVersionSelected(VanillaVersion),
     CreateVanillaInstance,
     InstanceCreated(Result<(), String>),
+    ModpacksFetched(Result<modrinth::SearchResults, String>),
+    ModpackSelected(modrinth::Hit),
+    ModpackVersionsFetched(Result<Vec<modrinth::Version>, String>),
 
     // Settings
     UpdatesTogglerChanged(bool),
@@ -111,9 +114,6 @@ pub enum Message {
     UpdateJvmMemory(String),
     ResetConfig,
     SaveConfig,
-
-    ModrinthModpacksMessage(modrinth_modpacks::Message),
-    ModrinthInstallerMessage(modrinth_installer::Message),
 }
 
 impl Application for IceLauncher {
@@ -138,10 +138,11 @@ impl Application for IceLauncher {
                 name: String::new(),
                 vanilla_versions: None,
                 selected_vanilla_version: None,
+                available_modpacks: None,
+                selected_modpack: None,
+                available_modpack_versions: None,
             },
             download: Download::new(),
-            modrinth_modpacks: ModrinthModpacks::new(),
-            modrinth_installer: ModrinthInstaller::new(),
         };
 
         let command = if check_updates {
@@ -433,32 +434,25 @@ impl Application for IceLauncher {
             Message::OpenModrinthModpacks => {
                 self.current_view = View::ModrinthModpacks;
 
-                return self
-                    .modrinth_modpacks
-                    .update(modrinth_modpacks::Message::Fetch)
-                    .map(Message::ModrinthModpacksMessage);
+                return Command::perform(
+                    async { modrinth::fetch_modpacks().map_err(|e| e.to_string()) },
+                    Message::ModpacksFetched,
+                );
             }
-            Message::ModrinthModpacksMessage(message) => {
-                if let modrinth_modpacks::Message::Selected(hit) = message {
-                    self.modrinth_installer.hit = Some(hit.clone());
-                    self.current_view = View::ModrinthInstaller;
-
-                    return self
-                        .modrinth_installer
-                        .update(modrinth_installer::Message::Fetch)
-                        .map(Message::ModrinthInstallerMessage);
-                }
-
-                return self
-                    .modrinth_modpacks
-                    .update(message)
-                    .map(Message::ModrinthModpacksMessage);
+            Message::ModpacksFetched(res) => {
+                self.installer_info.available_modpacks = Some(res);
             }
-            Message::ModrinthInstallerMessage(message) => {
-                return self
-                    .modrinth_installer
-                    .update(message)
-                    .map(Message::ModrinthInstallerMessage);
+            Message::ModpackSelected(hit) => {
+                self.current_view = View::ModrinthInstaller;
+                self.installer_info.selected_modpack = Some(hit.clone());
+
+                return Command::perform(
+                    async move { hit.fetch_versions().map_err(|e| e.to_string()) },
+                    Message::ModpackVersionsFetched,
+                );
+            }
+            Message::ModpackVersionsFetched(res) => {
+                self.installer_info.available_modpack_versions = Some(res);
             }
         }
         Command::none()
@@ -503,14 +497,8 @@ impl Application for IceLauncher {
             View::Loading(ref message) => loading::view(message),
             View::Download => self.download.view(),
             View::Installers => installers::view(),
-            View::ModrinthModpacks => self
-                .modrinth_modpacks
-                .view()
-                .map(Message::ModrinthModpacksMessage),
-            View::ModrinthInstaller => self
-                .modrinth_installer
-                .view()
-                .map(Message::ModrinthInstallerMessage),
+            View::ModrinthModpacks => modrinth_modpacks::view(&self.installer_info),
+            View::ModrinthInstaller => modrinth_installer::view(&self.installer_info),
         };
 
         row![navbar, current_view].into()
