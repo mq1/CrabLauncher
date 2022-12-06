@@ -42,7 +42,7 @@ cargo build --release
 ## Thanks
 
 - Aru for the awesome logo!
-- Raph Levien and Colin Rofls for [druid](https://github.com/linebender/druid)
+- Héctor Ramón for [iced](https://github.com/iced-rs/iced)
 
 ## License
 
