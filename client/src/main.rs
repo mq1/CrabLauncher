@@ -327,7 +327,7 @@ impl Application for IceLauncher {
             }
             Message::AccountSelected(id) => {
                 if let Ok(ref mut doc) = self.accounts_doc {
-                    doc.active_account = Some(id);
+                    doc.set_active_account(id).unwrap();
                 }
             }
             Message::AddAccount => {
