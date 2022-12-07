@@ -4,7 +4,7 @@
 use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use arrayvec::ArrayString;
 use base64ct::{Base64UrlUnpadded, Encoding};
 use rand::distributions::Alphanumeric;
@@ -12,9 +12,8 @@ use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use url::Url;
 
-use super::HTTP_CLIENT;
+use super::{regex, HTTP_CLIENT};
 
 const MSA_AUTHORIZATION_ENDPOINT: &str =
     "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
@@ -55,22 +54,13 @@ fn get_state() -> String {
         .collect()
 }
 
-pub fn get_auth_url() -> (Url, String, String) {
+pub fn get_auth_url() -> (String, String, String) {
     let state = get_state();
     let (code_verifier, code_challenge) = get_code_challenge();
 
-    let params = [
-        ("client_id", CLIENT_ID),
-        ("response_type", "code"),
-        ("redirect_uri", REDIRECT_URI),
-        ("response_mode", "query"),
-        ("scope", SCOPE),
-        ("state", &state),
-        ("code_challenge", &code_challenge),
-        ("code_challenge_method", "S256"),
-    ];
-
-    let url = Url::parse_with_params(MSA_AUTHORIZATION_ENDPOINT, &params).unwrap();
+    let url = format!(
+        "{MSA_AUTHORIZATION_ENDPOINT}?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&response_mode=query&scope={SCOPE}&state={state}&code_challenge={code_challenge}&code_challenge_method=S256",
+    );
 
     (url, state, code_verifier)
 }
@@ -262,30 +252,12 @@ pub fn listen_login_callback(csrf_token: String, pkce_verifier: String) -> Resul
                 let mut request_line = String::new();
                 reader.read_line(&mut request_line)?;
 
-                let redirect_url = request_line.split_whitespace().nth(1).unwrap();
-                let url = Url::parse(&("http://localhost".to_string() + redirect_url))?;
+                let caps = regex!(r"/login\?code=(?P<code>.*)&state=(?P<state>.*) ")
+                    .captures(&request_line)
+                    .unwrap();
 
-                let code_pair = url
-                    .query_pairs()
-                    .find(|pair| {
-                        let &(ref key, _) = pair;
-                        key == "code"
-                    })
-                    .ok_or(anyhow!("Code not found"))?;
-
-                let (_, value) = code_pair;
-                code = value.into_owned();
-
-                let state_pair = url
-                    .query_pairs()
-                    .find(|pair| {
-                        let &(ref key, _) = pair;
-                        key == "state"
-                    })
-                    .ok_or(anyhow!("State not found"))?;
-
-                let (_, value) = state_pair;
-                state = value.into_owned();
+                code = caps["code"].to_string();
+                state = caps["state"].to_string();
             }
 
             if state != csrf_token {
