@@ -1234,7 +1234,7 @@ checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
 name = "ice-launcher"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "iced",
@@ -1551,7 +1551,7 @@ dependencies = [
 
 [[package]]
 name = "mclib"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "arrayvec 0.7.2",
