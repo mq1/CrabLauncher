@@ -1,6 +1,6 @@
 [package]
 name = "mclib"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 authors = ["Manuel Quarneti <hi@mq1.eu>"]
 repository = "https://github.com/mq1/ice-launcher"
