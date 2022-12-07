@@ -102,10 +102,10 @@ pub enum TileSize {
 }
 
 /// Get the news from minecraft.net
-pub fn fetch(page_size: Option<i32>) -> Result<News, attohttpc::Error> {
+pub fn fetch(page_size: Option<i32>) -> Result<News, ureq::Error> {
     let page_size = page_size.unwrap_or(20);
     let url = format!("{MINECRAFT_NEWS_URL}?pageSize={page_size}");
-    let resp = HTTP_CLIENT.get(url).send()?.json()?;
+    let resp = HTTP_CLIENT.get(&url).call()?.into_json()?;
 
     Ok(resp)
 }

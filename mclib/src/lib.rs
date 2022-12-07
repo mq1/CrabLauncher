@@ -8,13 +8,12 @@ use std::{
 };
 
 use anyhow::{bail, Result};
-use attohttpc::Session;
 use directories::ProjectDirs;
 use flate2::read::GzDecoder;
 use once_cell::sync::Lazy;
 use tar::Archive;
 use tempfile::tempfile;
-use url::Url;
+use ureq::{Agent, AgentBuilder};
 use zip::ZipArchive;
 
 pub mod accounts;
@@ -31,6 +30,8 @@ pub mod modrinth;
 pub mod msa;
 pub mod runtime_manager;
 
+const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     ProjectDirs::from("eu", "mq1", "ice-launcher")
         .expect("Could not get project directories")
@@ -38,15 +39,8 @@ pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
         .to_path_buf()
 });
 
-pub static HTTP_CLIENT: Lazy<Session> = Lazy::new(|| {
-    let mut sess = Session::new();
-    sess.header(
-        "User-Agent",
-        concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION")),
-    );
-
-    sess
-});
+pub static HTTP_CLIENT: Lazy<Agent> =
+    Lazy::new(|| AgentBuilder::new().user_agent(USER_AGENT).build());
 
 #[derive(Debug, Clone)]
 pub enum HashAlgorithm {
@@ -56,7 +50,7 @@ pub enum HashAlgorithm {
 
 #[derive(Debug, Clone)]
 pub struct DownloadItem {
-    pub url: Url,
+    pub url: String,
     pub path: PathBuf,
     pub hash: (String, HashAlgorithm),
 }
@@ -68,7 +62,9 @@ impl DownloadItem {
         }
 
         let mut tmp = tempfile()?;
-        HTTP_CLIENT.get(self.url.clone()).send()?.write_to(&tmp)?;
+        let resp = HTTP_CLIENT.get(&self.url).call()?;
+        io::copy(&mut resp.into_reader(), &mut tmp)?;
+
         tmp.seek(io::SeekFrom::Start(0))?;
 
         // Verify checksum

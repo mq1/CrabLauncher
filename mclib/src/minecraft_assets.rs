@@ -6,7 +6,6 @@ use std::{collections::HashMap, fs::File, path::PathBuf};
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use url::Url;
 
 use super::{DownloadItem, HashAlgorithm, BASE_DIR};
 
@@ -23,7 +22,7 @@ pub struct AssetIndexInfo {
     pub size: usize,
     #[serde(rename = "totalSize")]
     pub total_size: Option<usize>,
-    pub url: Url,
+    pub url: String,
 }
 
 impl AssetIndexInfo {
@@ -75,12 +74,9 @@ impl Object {
     }
 
     pub fn get_download_item(&self) -> DownloadItem {
-        let url = self.get_url();
-        let path = self.get_path();
-
         DownloadItem {
-            url: Url::parse(&url).unwrap(),
-            path,
+            url: self.get_url(),
+            path: self.get_path(),
             hash: (self.hash.clone(), HashAlgorithm::Sha1),
         }
     }

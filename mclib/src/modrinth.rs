@@ -23,7 +23,12 @@ pub struct Version {
 
 impl Hit {
     pub fn fetch_versions(&self) -> Result<Vec<Version>> {
-        let resp = HTTP_CLIENT.get(format!("https://api.modrinth.com/v2/project/{}/version", self.project_id)).send()?.json()?;
+        let url = format!(
+            "https://api.modrinth.com/v2/project/{}/version",
+            self.project_id
+        );
+
+        let resp = HTTP_CLIENT.get(&url).call()?.into_json()?;
 
         Ok(resp)
     }
@@ -37,8 +42,8 @@ pub struct SearchResults {
 pub fn fetch_modpacks() -> Result<SearchResults> {
     let resp = HTTP_CLIENT
         .get("https://api.modrinth.com/v2/search?facets=[[\"project_type:modpack\"]]&limit=20")
-        .send()?
-        .json()?;
+        .call()?
+        .into_json()?;
 
     Ok(resp)
 }

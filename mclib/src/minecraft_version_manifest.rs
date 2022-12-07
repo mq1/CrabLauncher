@@ -6,7 +6,6 @@ use std::{fs::File, path::PathBuf};
 
 use anyhow::Result;
 use serde::Deserialize;
-use url::Url;
 
 use super::{
     minecraft_version_meta::{MinecraftVersionMeta, META_DIR},
@@ -55,19 +54,16 @@ impl Version {
             .join(format!("{}.json", self.id))
     }
 
-    fn get_meta_download_item(&self) -> Result<DownloadItem> {
-        let url = Url::parse(&self.url)?;
-        let path = self.get_meta_path();
-
-        Ok(super::DownloadItem {
-            url,
-            path,
+    fn get_meta_download_item(&self) -> DownloadItem {
+        DownloadItem {
+            url: self.url.clone(),
+            path: self.get_meta_path(),
             hash: (self.sha1.clone(), HashAlgorithm::Sha1),
-        })
+        }
     }
 
     pub fn get_meta(&self) -> Result<MinecraftVersionMeta> {
-        self.get_meta_download_item()?.download()?;
+        self.get_meta_download_item().download()?;
 
         let path = self.get_meta_path();
         let file = File::open(&path)?;
@@ -90,7 +86,7 @@ pub enum VersionType {
 }
 
 fn fetch_manifest() -> Result<MinecraftVersionManifest> {
-    let manifest = HTTP_CLIENT.get(VERSION_MANIFEST_URL).send()?.json()?;
+    let manifest = HTTP_CLIENT.get(VERSION_MANIFEST_URL).call()?.into_json()?;
 
     Ok(manifest)
 }
