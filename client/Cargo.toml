@@ -10,7 +10,7 @@ description = "An unofficial launcher for Minecraft: Java Edition"
 [dependencies]
 mclib = { path = "../mclib" }
 iced = { version = "0.5", features = ["image"] }
-native-dialog = "0.6"
+rfd = "0.10"
 anyhow = "1"
 open = "3"
 

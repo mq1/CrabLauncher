@@ -31,7 +31,7 @@ use mclib::{
     modrinth,
     msa::{Account, AccountId},
 };
-use native_dialog::{MessageDialog, MessageType};
+use rfd::{MessageButtons, MessageDialog, MessageLevel};
 
 pub fn main() -> iced::Result {
     IceLauncher::run(IcedSettings::default())
@@ -184,14 +184,14 @@ impl Application for IceLauncher {
             }
             Message::RemoveInstance(instance) => {
                 let yes = MessageDialog::new()
-                    .set_type(MessageType::Warning)
+                    .set_level(MessageLevel::Warning)
                     .set_title("Remove instance")
-                    .set_text(&format!(
+                    .set_description(&format!(
                         "Are you sure you want to remove {}?",
                         &instance.name
                     ))
-                    .show_confirm()
-                    .unwrap();
+                    .set_buttons(MessageButtons::YesNo)
+                    .show();
 
                 if yes {
                     instance.remove().unwrap();
@@ -212,12 +212,12 @@ impl Application for IceLauncher {
                             );
                         }
                         None => {
-                            MessageDialog::new()
-                                .set_type(MessageType::Warning)
+                            let _ = MessageDialog::new()
+                                .set_level(MessageLevel::Error)
                                 .set_title("No account selected")
-                                .set_text("Please select an account to launch the game")
-                                .show_alert()
-                                .unwrap();
+                                .set_description("Please select an account to launch the game")
+                                .set_buttons(MessageButtons::Ok)
+                                .show();
 
                             return Command::none();
                         }
@@ -232,12 +232,12 @@ impl Application for IceLauncher {
             }
             Message::InstanceClosed(res) => {
                 if let Err(e) = res {
-                    MessageDialog::new()
-                        .set_type(MessageType::Error)
+                    let _ = MessageDialog::new()
+                        .set_level(MessageLevel::Error)
                         .set_title("Error")
-                        .set_text(&e)
-                        .show_alert()
-                        .unwrap();
+                        .set_description(&e)
+                        .set_buttons(MessageButtons::Ok)
+                        .show();
                 }
 
                 self.current_view = View::Instances;
@@ -264,23 +264,23 @@ impl Application for IceLauncher {
             }
             Message::CreateVanillaInstance => {
                 if self.installer_info.name.is_empty() {
-                    MessageDialog::new()
-                        .set_type(MessageType::Error)
+                    let _ = MessageDialog::new()
+                        .set_level(MessageLevel::Error)
                         .set_title("Error")
-                        .set_text("Please enter a name for the instance")
-                        .show_alert()
-                        .unwrap();
+                        .set_description("Please enter a name for the instance")
+                        .set_buttons(MessageButtons::Ok)
+                        .show();
 
                     return Command::none();
                 }
 
                 if self.installer_info.selected_vanilla_version.is_none() {
-                    MessageDialog::new()
-                        .set_type(MessageType::Error)
+                    let _ = MessageDialog::new()
+                        .set_level(MessageLevel::Error)
                         .set_title("Error")
-                        .set_text("Please select a version")
-                        .show_alert()
-                        .unwrap();
+                        .set_description("Please select a version")
+                        .set_buttons(MessageButtons::Ok)
+                        .show();
 
                     return Command::none();
                 }
@@ -300,12 +300,12 @@ impl Application for IceLauncher {
             }
             Message::InstanceCreated(res) => {
                 if let Err(e) = res {
-                    MessageDialog::new()
-                        .set_type(MessageType::Error)
+                    let _ = MessageDialog::new()
+                        .set_level(MessageLevel::Error)
                         .set_title("Error")
-                        .set_text(&e)
-                        .show_alert()
-                        .unwrap();
+                        .set_description(&e)
+                        .set_buttons(MessageButtons::Ok)
+                        .show();
                 }
 
                 self.current_view = View::Instances;
@@ -313,14 +313,14 @@ impl Application for IceLauncher {
             }
             Message::RemoveAccount(account) => {
                 let yes = MessageDialog::new()
-                    .set_type(MessageType::Warning)
+                    .set_level(MessageLevel::Warning)
                     .set_title("Remove account")
-                    .set_text(&format!(
+                    .set_description(&format!(
                         "Are you sure you want to remove {}?",
                         &account.mc_username
                     ))
-                    .show_confirm()
-                    .unwrap();
+                    .set_buttons(MessageButtons::YesNo)
+                    .show();
 
                 if yes {
                     if let Ok(ref mut doc) = self.accounts_doc {
@@ -349,12 +349,12 @@ impl Application for IceLauncher {
                         }
                     }
                     Err(e) => {
-                        MessageDialog::new()
-                            .set_type(MessageType::Error)
+                        let _ = MessageDialog::new()
+                            .set_level(MessageLevel::Error)
                             .set_title("Error adding account")
-                            .set_text(&e)
-                            .show_alert()
-                            .unwrap();
+                            .set_description(&e)
+                            .set_buttons(MessageButtons::Ok)
+                            .show();
                     }
                 }
 
@@ -363,11 +363,11 @@ impl Application for IceLauncher {
             Message::GotUpdates(updates) => {
                 if let Ok(Some((version, url))) = updates {
                     let yes = MessageDialog::new()
-                        .set_type(MessageType::Info)
+                        .set_level(MessageLevel::Info)
                         .set_title("Update available")
-                        .set_text(&format!("A new version of Ice Launcher is available: {version}, would you like to download it?"))
-                        .show_confirm()
-                        .unwrap();
+                        .set_description(&format!("A new version of Ice Launcher is available: {version}, would you like to download it?"))
+                        .set_buttons(MessageButtons::YesNo)
+                        .show();
 
                     if yes {
                         open::that(url).unwrap();
@@ -396,11 +396,11 @@ impl Application for IceLauncher {
             }
             Message::ResetConfig => {
                 let yes = MessageDialog::new()
-                    .set_type(MessageType::Warning)
+                    .set_level(MessageLevel::Warning)
                     .set_title("Reset config")
-                    .set_text("Are you sure you want to reset the config?")
-                    .show_confirm()
-                    .unwrap();
+                    .set_description("Are you sure you want to reset the config?")
+                    .set_buttons(MessageButtons::YesNo)
+                    .show();
 
                 if yes {
                     if let Ok(ref mut config) = self.config {
@@ -411,12 +411,12 @@ impl Application for IceLauncher {
             Message::SaveConfig => {
                 if let Ok(ref config) = self.config {
                     if let Err(e) = config.save() {
-                        MessageDialog::new()
-                            .set_type(MessageType::Error)
+                        let _ = MessageDialog::new()
+                            .set_level(MessageLevel::Error)
                             .set_title("Error")
-                            .set_text(&format!("Failed to save config: {e}"))
-                            .show_alert()
-                            .unwrap();
+                            .set_description(&format!("Failed to save config: {e}"))
+                            .set_buttons(MessageButtons::Ok)
+                            .show();
                     }
                 }
             }
