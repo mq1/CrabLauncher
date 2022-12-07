@@ -6,7 +6,6 @@ use std::{fs, path::PathBuf};
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use url::Url;
 
 use super::{DownloadItem, HashAlgorithm, BASE_DIR, HTTP_CLIENT};
 
@@ -25,7 +24,7 @@ const OS_STRING: &str = "mac";
 #[derive(Deserialize, Debug)]
 struct Package {
     checksum: String,
-    link: Url,
+    link: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -61,9 +60,7 @@ impl Assets {
 
 pub fn get_assets_info(java_version: &str) -> Result<Assets> {
     let url = format!("{ADOPTIUM_API_ENDPOINT}/v3/assets/latest/{java_version}/hotspot?architecture={ARCH_STRING}&image_type=jre&os={OS_STRING}&vendor=eclipse");
-
-    let mut response = HTTP_CLIENT.get(url).send()?.json::<Vec<Assets>>()?;
-
+    let mut response = HTTP_CLIENT.get(&url).call()?.into_json::<Vec<Assets>>()?;
     let assets = response.pop().unwrap();
 
     Ok(assets)

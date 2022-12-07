@@ -6,7 +6,6 @@ use std::{fs::File, path::PathBuf};
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use url::Url;
 
 use super::{
     minecraft_assets::AssetIndexInfo,
@@ -40,7 +39,7 @@ pub struct Arguments {
 pub struct Download {
     pub sha1: String,
     pub size: usize,
-    pub url: Url,
+    pub url: String,
 }
 
 #[derive(Deserialize)]

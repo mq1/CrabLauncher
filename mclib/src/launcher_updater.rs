@@ -16,7 +16,7 @@ struct Release {
 }
 
 fn get_latest_release() -> Result<Release> {
-    let resp = HTTP_CLIENT.get(LATEST_RELEASE_URL).send()?.json()?;
+    let resp = HTTP_CLIENT.get(LATEST_RELEASE_URL).call()?.into_json()?;
 
     Ok(resp)
 }

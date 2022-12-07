@@ -5,7 +5,6 @@ use std::path::PathBuf;
 
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use url::Url;
 
 use super::{
     minecraft_rules::{is_rule_list_valid, Rule},
@@ -31,7 +30,7 @@ pub struct Artifact {
     pub path: String,
     pub sha1: String,
     pub size: usize,
-    pub url: Url,
+    pub url: String,
 }
 
 impl Artifact {
