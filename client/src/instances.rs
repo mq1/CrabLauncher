@@ -11,7 +11,7 @@ use mclib::instances::Instance;
 use crate::{icons, style, Message};
 
 pub fn view(instances: &Result<Vec<Instance>>) -> Element<Message> {
-    let heading = text("Instances").size(50);
+    let heading = row![icons::blocks().size(50), text("Instances").size(50)].spacing(5);
 
     let instances_list: Element<_> = match instances {
         Ok(instances) => column(
