@@ -1,7 +1,7 @@
 <br>
 
 <p align="center">
-<img src="ice-launcher.png" alt="Ice Launcher Logo" height="150">
+<img src="assets/ice-launcher.png" alt="Ice Launcher Logo" height="150">
 </p>
 
 <h1 align="center">Ice Launcher</h1>
@@ -47,3 +47,7 @@ cargo build --release
 ## License
 
 `ice-launcher` is distributed under the terms of the [GPL-3.0-only](https://spdx.org/licenses/GPL-3.0-only.html) license.
+
+### Licenses
+
+- [Inter](https://github.com/rsms/inter) | [OFL-1.1](https://github.com/rsms/inter/blob/master/LICENSE.txt)
