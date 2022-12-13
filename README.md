@@ -51,3 +51,4 @@ cargo build --release
 ### Licenses
 
 - [Inter](https://github.com/rsms/inter) | [OFL-1.1](https://github.com/rsms/inter/blob/master/LICENSE.txt)
+- [Material Icons](https://github.com/google/material-design-icons) | [Apache-2.0](https://github.com/google/material-design-icons/blob/master/LICENSE)
