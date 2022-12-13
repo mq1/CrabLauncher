@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::{Font, widget::{Text, text}, Length, alignment};
+use iced::{
+    widget::{text, Text},
+    Font,
+};
 
 // Fonts
 const ICONS: Font = Font::External {
@@ -10,11 +13,7 @@ const ICONS: Font = Font::External {
 };
 
 fn icon(unicode: char) -> Text<'static> {
-    text(unicode.to_string())
-        .font(ICONS)
-        .width(Length::Units(20))
-        .horizontal_alignment(alignment::Horizontal::Center)
-        .size(20)
+    text(unicode.to_string()).font(ICONS)
 }
 
 pub fn delete() -> Text<'static> {
@@ -23,4 +22,8 @@ pub fn delete() -> Text<'static> {
 
 pub fn rocket() -> Text<'static> {
     icon('\u{eb9b}')
+}
+
+pub fn blocks() -> Text<'static> {
+    icon('\u{e9b0}')
 }
