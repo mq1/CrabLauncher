@@ -14,6 +14,7 @@ mod settings;
 mod style;
 mod subscriptions;
 mod vanilla_installer;
+mod icons;
 
 use anyhow::Result;
 use download::Download;

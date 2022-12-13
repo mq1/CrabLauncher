@@ -8,7 +8,7 @@ use iced::{
 };
 use mclib::instances::Instance;
 
-use crate::{style, Message};
+use crate::{icons, style, Message};
 
 pub fn view(instances: &Result<Vec<Instance>>) -> Element<Message> {
     let heading = text("Instances").size(50);
@@ -27,8 +27,10 @@ pub fn view(instances: &Result<Vec<Instance>>) -> Element<Message> {
                                 instance.info.minecraft_version
                             )),
                             horizontal_space(Length::Fill),
-                            button("Remove").on_press(Message::RemoveInstance(instance.clone())),
-                            button("Launch").on_press(Message::LaunchInstance(instance.clone())),
+                            button(row![text("Delete"), icons::delete()].spacing(5))
+                                .on_press(Message::RemoveInstance(instance.clone())),
+                            button(row![text("Launch"), icons::rocket()].spacing(5))
+                                .on_press(Message::LaunchInstance(instance.clone())),
                         ]
                         .spacing(10)
                         .padding(10),
