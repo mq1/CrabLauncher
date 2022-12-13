@@ -472,7 +472,7 @@ impl Application for IceLauncher {
                     button(row![icons::manage_accounts(), text("Accounts")].spacing(5))
                         .on_press(Message::ViewChanged(View::Accounts))
                         .width(Length::Fill),
-                    button("News")
+                    button(row![icons::newspaper(), text("News")].spacing(5))
                         .on_press(Message::OpenNews)
                         .width(Length::Fill),
                     vertical_space(Length::Fill),

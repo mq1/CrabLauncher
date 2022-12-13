@@ -6,12 +6,12 @@ use iced::{
     widget::{button, column, container, horizontal_space, row, scrollable, text},
     Element, Length,
 };
-use mclib::minecraft_news::News as NewsResponse;
+use mclib::minecraft_news::News;
 
-use crate::{style, Message};
+use crate::{icons, style, Message};
 
-pub fn view(news: &Option<Result<NewsResponse, String>>) -> Element<Message> {
-    let heading = text("News").size(50);
+pub fn view(news: &Option<Result<News, String>>) -> Element<Message> {
+    let heading = row![icons::newspaper().size(50), text("News").size(50)].spacing(5);
 
     let news: Element<_> = match news {
         Some(Ok(news)) => scrollable(
@@ -23,7 +23,8 @@ pub fn view(news: &Option<Result<NewsResponse, String>>) -> Element<Message> {
                             row![
                                 text(&article.default_tile.title),
                                 horizontal_space(Length::Fill),
-                                button("Open").on_press(Message::OpenURL(article.get_url())),
+                                button(row![text("Open"), icons::open_in_new()].spacing(5))
+                                    .on_press(Message::OpenURL(article.get_url())),
                             ]
                             .padding(10),
                         )
