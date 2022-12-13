@@ -11,7 +11,7 @@ use mclib::instances::Instance;
 use crate::{icons, style, Message};
 
 pub fn view(instances: &Result<Vec<Instance>>) -> Element<Message> {
-    let heading = row![icons::blocks().size(50), text("Instances").size(50)].spacing(5);
+    let heading = row![icons::grid_view().size(50), text("Instances").size(50)].spacing(5);
 
     let instances_list: Element<_> = match instances {
         Ok(instances) => column(
@@ -29,7 +29,7 @@ pub fn view(instances: &Result<Vec<Instance>>) -> Element<Message> {
                             horizontal_space(Length::Fill),
                             button(row![text("Delete"), icons::delete()].spacing(5))
                                 .on_press(Message::RemoveInstance(instance.clone())),
-                            button(row![text("Launch"), icons::rocket()].spacing(5))
+                            button(row![text("Launch"), icons::rocket_launch()].spacing(5))
                                 .on_press(Message::LaunchInstance(instance.clone())),
                         ]
                         .spacing(10)

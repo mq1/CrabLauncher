@@ -20,11 +20,11 @@ pub fn delete() -> Text<'static> {
     icon('\u{e872}')
 }
 
-pub fn rocket() -> Text<'static> {
+pub fn rocket_launch() -> Text<'static> {
     icon('\u{eb9b}')
 }
 
-pub fn blocks() -> Text<'static> {
+pub fn grid_view() -> Text<'static> {
     icon('\u{e9b0}')
 }
 
