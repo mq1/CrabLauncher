@@ -20,7 +20,7 @@ use download::Download;
 use iced::{
     executor,
     widget::{button, column, container, row, vertical_space},
-    Application, Command, Element, Length, Settings as IcedSettings, Subscription, Theme,
+    Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 use mclib::{
     accounts::AccountsDocument,
@@ -34,7 +34,10 @@ use mclib::{
 use rfd::{MessageButtons, MessageDialog, MessageLevel};
 
 pub fn main() -> iced::Result {
-    IceLauncher::run(IcedSettings::default())
+    IceLauncher::run(Settings {
+        default_font: Some(include_bytes!("../../assets/Inter-roman.ttf")),
+        ..Default::default()
+    })
 }
 
 pub struct InstallerInfo {
