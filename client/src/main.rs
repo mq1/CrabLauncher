@@ -469,7 +469,7 @@ impl Application for IceLauncher {
                     button(row![icons::blocks(), text("Instances")].spacing(5))
                         .on_press(Message::ViewChanged(View::Instances))
                         .width(Length::Fill),
-                    button("Accounts")
+                    button(row![icons::manage_accounts(), text("Accounts")].spacing(5))
                         .on_press(Message::ViewChanged(View::Accounts))
                         .width(Length::Fill),
                     button("News")
