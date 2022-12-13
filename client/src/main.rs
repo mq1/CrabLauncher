@@ -466,7 +466,7 @@ impl Application for IceLauncher {
         let navbar = container(
             container(
                 column![
-                    button(row![icons::blocks(), text("Instances")].spacing(5))
+                    button(row![icons::grid_view(), text("Instances")].spacing(5))
                         .on_press(Message::ViewChanged(View::Instances))
                         .width(Length::Fill),
                     button(row![icons::manage_accounts(), text("Accounts")].spacing(5))
