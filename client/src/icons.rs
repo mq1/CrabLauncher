@@ -31,3 +31,11 @@ pub fn grid_view() -> Text<'static> {
 pub fn manage_accounts() -> Text<'static> {
     icon('\u{f02e}')
 }
+
+pub fn newspaper() -> Text<'static> {
+    icon('\u{eb81}')
+}
+
+pub fn open_in_new() -> Text<'static> {
+    icon('\u{e89e}')
+}
