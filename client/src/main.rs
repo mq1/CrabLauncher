@@ -4,6 +4,7 @@
 mod about;
 mod accounts;
 mod download;
+mod icons;
 mod installers;
 mod instances;
 mod loading;
@@ -14,13 +15,12 @@ mod settings;
 mod style;
 mod subscriptions;
 mod vanilla_installer;
-mod icons;
 
 use anyhow::Result;
 use download::Download;
 use iced::{
     executor,
-    widget::{button, column, container, row, vertical_space},
+    widget::{button, column, container, row, text, vertical_space},
     Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 use mclib::{
@@ -466,7 +466,7 @@ impl Application for IceLauncher {
         let navbar = container(
             container(
                 column![
-                    button("Instances")
+                    button(row![icons::blocks(), text("Instances")].spacing(5))
                         .on_press(Message::ViewChanged(View::Instances))
                         .width(Length::Fill),
                     button("Accounts")
