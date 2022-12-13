@@ -27,3 +27,7 @@ pub fn rocket() -> Text<'static> {
 pub fn blocks() -> Text<'static> {
     icon('\u{e9b0}')
 }
+
+pub fn manage_accounts() -> Text<'static> {
+    icon('\u{f02e}')
+}

@@ -8,10 +8,10 @@ use iced::{
 };
 use mclib::accounts::AccountsDocument;
 
-use crate::{style, Message};
+use crate::{icons, style, Message};
 
 pub fn view(accounts_doc: &Result<AccountsDocument>) -> Element<Message> {
-    let heading = text("Accounts").size(50);
+    let heading = row![icons::manage_accounts().size(50), text("Accounts").size(50)].spacing(5);
 
     let accounts: Element<_> = match accounts_doc {
         Ok(document) => column(
