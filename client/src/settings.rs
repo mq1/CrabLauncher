@@ -70,10 +70,10 @@ pub fn view(config: &Result<LauncherConfig>) -> Element<Message> {
 
     let footer = row![
         horizontal_space(Length::Fill),
-        button("Reset to default settings")
+        button(row![text("Reset to default settings"), icons::rotate_left()].spacing(5))
             .on_press(Message::ResetConfig)
             .style(theme::Button::Secondary),
-        button("Save settings")
+        button(row![text("Save settings"), icons::save()].spacing(5))
             .on_press(Message::SaveConfig)
             .style(theme::Button::Positive),
     ]

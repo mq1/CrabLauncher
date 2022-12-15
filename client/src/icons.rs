@@ -63,3 +63,11 @@ pub fn code() -> Text<'static> {
 pub fn description() -> Text<'static> {
     icon('\u{e873}')
 }
+
+pub fn save() -> Text<'static> {
+    icon('\u{e161}')
+}
+
+pub fn rotate_left() -> Text<'static> {
+    icon('\u{e419}')
+}
