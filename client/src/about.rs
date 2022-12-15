@@ -6,7 +6,7 @@ use iced::{
     Alignment, Element, Length,
 };
 
-use crate::Message;
+use crate::{icons, Message};
 
 const APP_NAME: &str = "Ice Launcher";
 const APP_VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
@@ -27,8 +27,10 @@ pub fn view() -> Element<'static, Message> {
         text("Made with <3 in Rust by Manuel Quarneti"),
         vertical_space(Length::Fill),
         row![
-            button("Repository").on_press(Message::OpenURL(REPOSITORY.to_string())),
-            button("License").on_press(Message::OpenURL(LICENSE.to_string())),
+            button(row![icons::code(), text("Repository")].spacing(5))
+                .on_press(Message::OpenURL(REPOSITORY.to_string())),
+            button(row![icons::description(), text("License")].spacing(5))
+                .on_press(Message::OpenURL(LICENSE.to_string())),
             horizontal_space(Length::Fill),
             text(COPYRIGHT),
         ]

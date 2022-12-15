@@ -3,6 +3,7 @@
 
 use anyhow::Result;
 use iced::{
+    theme,
     widget::{
         button, column, container, horizontal_space, row, text, text_input, toggler,
         vertical_space, Column,
@@ -11,10 +12,10 @@ use iced::{
 };
 use mclib::launcher_config::LauncherConfig;
 
-use crate::{style, Message};
+use crate::{icons, style, Message};
 
 pub fn view(config: &Result<LauncherConfig>) -> Element<Message> {
-    let heading = text("Settings").size(50);
+    let heading = row![icons::settings().size(50), text("Settings").size(50)].spacing(5);
 
     let settings: Element<_> = match config {
         Ok(config) => {
@@ -69,8 +70,12 @@ pub fn view(config: &Result<LauncherConfig>) -> Element<Message> {
 
     let footer = row![
         horizontal_space(Length::Fill),
-        button("Reset to default settings").on_press(Message::ResetConfig),
-        button("Save settings").on_press(Message::SaveConfig),
+        button("Reset to default settings")
+            .on_press(Message::ResetConfig)
+            .style(theme::Button::Secondary),
+        button("Save settings")
+            .on_press(Message::SaveConfig)
+            .style(theme::Button::Positive),
     ]
     .spacing(10);
 
