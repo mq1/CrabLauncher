@@ -476,10 +476,10 @@ impl Application for IceLauncher {
                         .on_press(Message::OpenNews)
                         .width(Length::Fill),
                     vertical_space(Length::Fill),
-                    button("Settings")
+                    button(row![icons::settings(), text("Settings")].spacing(5))
                         .on_press(Message::ViewChanged(View::Settings))
                         .width(Length::Fill),
-                    button("About")
+                    button(row![icons::info(), text("About")].spacing(5))
                         .on_press(Message::ViewChanged(View::About))
                         .width(Length::Fill),
                 ]

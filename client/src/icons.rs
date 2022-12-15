@@ -39,3 +39,27 @@ pub fn newspaper() -> Text<'static> {
 pub fn open_in_new() -> Text<'static> {
     icon('\u{e89e}')
 }
+
+pub fn person_add() -> Text<'static> {
+    icon('\u{e7fe}')
+}
+
+pub fn library_add() -> Text<'static> {
+    icon('\u{e02e}')
+}
+
+pub fn info() -> Text<'static> {
+    icon('\u{e88e}')
+}
+
+pub fn settings() -> Text<'static> {
+    icon('\u{e8b8}')
+}
+
+pub fn code() -> Text<'static> {
+    icon('\u{e86f}')
+}
+
+pub fn description() -> Text<'static> {
+    icon('\u{e873}')
+}

@@ -3,6 +3,7 @@
 
 use anyhow::Result;
 use iced::{
+    theme,
     widget::{button, column, container, horizontal_space, row, text},
     Element, Length,
 };
@@ -28,7 +29,8 @@ pub fn view(instances: &Result<Vec<Instance>>) -> Element<Message> {
                             )),
                             horizontal_space(Length::Fill),
                             button(row![text("Delete"), icons::delete()].spacing(5))
-                                .on_press(Message::RemoveInstance(instance.clone())),
+                                .on_press(Message::RemoveInstance(instance.clone()))
+                                .style(theme::Button::Destructive),
                             button(row![text("Launch"), icons::rocket_launch()].spacing(5))
                                 .on_press(Message::LaunchInstance(instance.clone())),
                         ]
@@ -45,7 +47,8 @@ pub fn view(instances: &Result<Vec<Instance>>) -> Element<Message> {
         Err(_) => text("Failed to load instances").into(),
     };
 
-    let new_instance_button = button("New instance").on_press(Message::NewInstance);
+    let new_instance_button = button(row![icons::library_add(), text("New Instance")].spacing(5))
+        .on_press(Message::NewInstance);
 
     column![heading, instances_list, new_instance_button]
         .spacing(20)

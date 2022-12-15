@@ -3,6 +3,7 @@
 
 use anyhow::Result;
 use iced::{
+    theme,
     widget::{button, column, container, horizontal_space, radio, row, text},
     Element, Length,
 };
@@ -28,7 +29,9 @@ pub fn view(accounts_doc: &Result<AccountsDocument>) -> Element<Message> {
                                 Message::AccountSelected
                             ),
                             horizontal_space(Length::Fill),
-                            button("Remove").on_press(Message::RemoveAccount(account.clone())),
+                            button(row![text("Remove"), icons::delete()].spacing(5))
+                                .on_press(Message::RemoveAccount(account.clone()))
+                                .style(theme::Button::Destructive),
                         ]
                         .spacing(10)
                         .padding(10),
@@ -46,7 +49,8 @@ pub fn view(accounts_doc: &Result<AccountsDocument>) -> Element<Message> {
     column![
         heading,
         accounts,
-        button("Add account").on_press(Message::AddAccount),
+        button(row![icons::person_add(), text("Add Account")].spacing(5))
+            .on_press(Message::AddAccount),
     ]
     .spacing(20)
     .padding(20)
