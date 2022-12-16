@@ -6,17 +6,16 @@ use iced::{
     Alignment, Element, Length,
 };
 
-use crate::{icons, Message};
+use crate::{assets, icons, Message};
 
 const APP_NAME: &str = "Ice Launcher";
 const APP_VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 const COPYRIGHT: &str = "GPL-3.0-only Licensed | Copyright © 2022 Manuel Quarneti";
-const LOGO_BYTES: &[u8] = include_bytes!("../../assets/ice-launcher.png");
 const REPOSITORY: &str = "https://github.com/mq1/ice-launcher";
 const LICENSE: &str = "https://github.com/mq1/ice-launcher/blob/main/COPYING";
 
 pub fn view() -> Element<'static, Message> {
-    let logo_handle = image::Handle::from_memory(LOGO_BYTES.to_vec());
+    let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
     let logo = image::viewer(logo_handle).height(Length::Units(200));
 
     column![
