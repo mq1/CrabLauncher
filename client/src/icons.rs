@@ -1,19 +1,12 @@
 // SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::{
-    widget::{text, Text},
-    Font,
-};
+use iced::widget::{text, Text};
 
-// Fonts
-const ICONS: Font = Font::External {
-    name: "Icons",
-    bytes: include_bytes!("../../assets/MaterialIcons-Regular.ttf"),
-};
+use crate::assets;
 
 fn icon(unicode: char) -> Text<'static> {
-    text(unicode.to_string()).font(ICONS)
+    text(unicode.to_string()).font(assets::ICONS)
 }
 
 pub fn delete() -> Text<'static> {

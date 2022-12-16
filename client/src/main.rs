@@ -3,6 +3,7 @@
 
 mod about;
 mod accounts;
+mod assets;
 mod download;
 mod icons;
 mod installers;
