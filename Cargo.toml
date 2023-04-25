@@ -1,6 +1,17 @@
-[workspace]
-members = ["client", "mclib"]
-resolver = "2"
+[package]
+name = "icy-launcher"
+version = "0.3.0"
+edition = "2021"
+authors = ["Manuel Quarneti <hi@mq1.eu>"]
+repository = "https://github.com/mq1/ice-launcher"
+license = "GPL-3.0-only"
+description = "An unofficial launcher for Minecraft: Java Edition"
+
+[dependencies]
+iced = { version = "0.9", default-features = false, features = ["glow", "image"] }
+iced_aw = { version = "0.5", default-features = false, features = ["glow", "wrap", "floating_element"] }
+serde = "1.0"
+toml = "0.7"
 
 [profile.release]
 opt-level = "z"
