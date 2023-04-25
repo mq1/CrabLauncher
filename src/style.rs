@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
+// SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{color, theme, widget::container, Background, Theme};
