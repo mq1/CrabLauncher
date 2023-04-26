@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::{color, theme, widget::container, Background, Theme};
+use iced::{
+    color, theme,
+    widget::{button, container},
+    Background, Theme,
+};
 
 pub struct Card;
 
@@ -21,4 +25,29 @@ impl container::StyleSheet for Card {
 
 pub fn card() -> theme::Container {
     theme::Container::Custom(Box::new(Card))
+}
+
+pub struct CircleButtonStyle {
+    theme: theme::Button,
+}
+
+impl CircleButtonStyle {
+    pub fn new(theme: theme::Button) -> Self {
+        Self { theme }
+    }
+}
+
+impl button::StyleSheet for CircleButtonStyle {
+    type Style = Theme;
+
+    fn active(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.active(&self.theme);
+        appearance.border_radius = 200.0;
+
+        appearance
+    }
+}
+
+pub fn circle_button() -> theme::Button {
+    theme::Button::Custom(Box::new(CircleButtonStyle::new(theme::Button::Primary)))
 }
