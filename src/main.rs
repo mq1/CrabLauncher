@@ -44,6 +44,7 @@ struct App {
 pub enum Message {
     ChangeView(View),
     CheckForUpdates(bool),
+    SaveSettings,
 }
 
 impl Application for App {
@@ -82,6 +83,10 @@ impl Application for App {
             }
             Message::CheckForUpdates(value) => {
                 self.settings.check_for_updates = value;
+                Command::none()
+            }
+            Message::SaveSettings => {
+                self.settings.save().unwrap();
                 Command::none()
             }
         }
