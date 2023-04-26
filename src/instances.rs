@@ -42,9 +42,19 @@ impl Instances {
         }
 
         let content = FloatingElement::new(scrollable(instances).width(Length::Fill), || {
-            container(button("New Instance"))
-                .padding([0, 20, 10, 0])
-                .into()
+            container(
+                button(
+                    text("+")
+                        .width(40)
+                        .height(40)
+                        .size(40)
+                        .vertical_alignment(iced::alignment::Vertical::Center)
+                        .horizontal_alignment(iced::alignment::Horizontal::Center),
+                )
+                .style(style::circle_button()),
+            )
+            .padding([0, 20, 10, 0])
+            .into()
         });
 
         column![
