@@ -8,7 +8,7 @@ license = "GPL-3.0-only"
 description = "An unofficial launcher for Minecraft: Java Edition"
 
 [dependencies]
-iced = { version = "0.9", default-features = false, features = ["glow", "image"] }
+iced = { version = "0.9", default-features = false, features = ["glow", "image", "svg"] }
 iced_aw = { version = "0.5", default-features = false, features = ["glow", "wrap", "floating_element"] }
 open = "4.0"
 anyhow = "1.0"

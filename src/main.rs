@@ -6,6 +6,7 @@ mod assets;
 mod instances;
 mod settings;
 mod style;
+mod icons;
 
 use std::{fs, path::PathBuf};
 

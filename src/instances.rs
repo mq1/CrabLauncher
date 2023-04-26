@@ -7,7 +7,7 @@ use iced::{
 };
 use iced_aw::{FloatingElement, Wrap};
 
-use crate::{style, Message, View};
+use crate::{icons, style, Message, View};
 
 pub struct Instances {
     list: Vec<String>,
@@ -62,7 +62,8 @@ impl Instances {
                 text("Instances").size(30),
                 horizontal_space(Length::Fill),
                 button("Accounts"),
-                button("Settings").on_press(Message::ChangeView(View::Settings)),
+                button(row![text("Settings"), icons::cog()].spacing(5))
+                    .on_press(Message::ChangeView(View::Settings)),
                 button("About").on_press(Message::ChangeView(View::About)),
             ]
             .spacing(10),

@@ -2,3 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 pub const LOGO_PNG: &[u8] = include_bytes!("../assets/icy-launcher.png");
+
+// Icons
+pub const COG_SVG: &[u8] = include_bytes!("../assets/icons/MdiCog.svg");
