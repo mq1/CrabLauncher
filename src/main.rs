@@ -5,12 +5,27 @@ mod instances;
 mod settings;
 mod style;
 
+use std::{fs, path::PathBuf};
+
+use anyhow::Result;
+use directories::ProjectDirs;
 use iced::{executor, Application, Command, Element, Settings as IcedSettings, Theme};
 use instances::Instances;
+use once_cell::sync::Lazy;
 use settings::Settings;
 
-pub fn main() -> iced::Result {
-    App::run(IcedSettings::default())
+pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
+    let proj_dirs = ProjectDirs::from("eu", "mq1", "icy-launcher").unwrap();
+    proj_dirs.data_dir().to_path_buf()
+});
+
+pub fn main() -> Result<()> {
+    if !BASE_DIR.exists() {
+        fs::create_dir_all(BASE_DIR.as_path())?;
+    }
+
+    App::run(IcedSettings::default())?;
+    Ok(())
 }
 
 #[derive(Debug, Clone)]
@@ -39,7 +54,7 @@ impl Application for App {
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
         let instances = Instances::load();
-        let settings = Settings::load();
+        let settings = Settings::load().unwrap();
 
         (
             Self {
