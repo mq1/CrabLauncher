@@ -53,6 +53,7 @@ impl Instances {
                 horizontal_space(Length::Fill),
                 button("Accounts"),
                 button("Settings").on_press(Message::ChangeView(View::Settings)),
+                button("About").on_press(Message::ChangeView(View::About)),
             ]
             .spacing(10),
             content
