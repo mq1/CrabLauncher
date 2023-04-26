@@ -5,20 +5,31 @@ mod instances;
 mod settings;
 mod style;
 
-use iced::widget::{button, column, container, horizontal_space, row, scrollable, text};
-use iced::{executor, Alignment, Application, Command, Element, Length, Settings, Theme};
-use iced_aw::{floating_element::FloatingElement, Wrap};
+use iced::{executor, Application, Command, Element, Settings as IcedSettings, Theme};
+use instances::Instances;
+use settings::Settings;
 
 pub fn main() -> iced::Result {
-    App::run(Settings::default())
-}
-
-struct App {
-    instances: Vec<String>,
+    App::run(IcedSettings::default())
 }
 
 #[derive(Debug, Clone)]
-enum Message {}
+pub enum View {
+    Instances,
+    Settings,
+}
+
+struct App {
+    view: View,
+    instances: Instances,
+    settings: Settings,
+}
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    ChangeView(View),
+    CheckForUpdates(bool),
+}
 
 impl Application for App {
     type Message = Message;
@@ -27,9 +38,17 @@ impl Application for App {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        let instances = instances::get_instances();
+        let instances = Instances::load();
+        let settings = Settings::load();
 
-        (Self { instances }, Command::none())
+        (
+            Self {
+                view: View::Instances,
+                instances,
+                settings,
+            },
+            Command::none(),
+        )
     }
 
     fn title(&self) -> String {
@@ -41,44 +60,22 @@ impl Application for App {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        Command::none()
+        match message {
+            Message::ChangeView(view) => {
+                self.view = view;
+                Command::none()
+            }
+            Message::CheckForUpdates(value) => {
+                self.settings.check_for_updates = value;
+                Command::none()
+            }
+        }
     }
 
     fn view(&self) -> Element<Message> {
-        let mut instances = Wrap::new();
-        for instance in &self.instances {
-            let c = container(
-                column![
-                    text(instance.to_owned()).size(20),
-                    button("Edit"),
-                    button("Launch"),
-                ]
-                .align_items(Alignment::Center)
-                .spacing(10)
-                .padding(10),
-            )
-            .style(style::card());
-            instances = instances.push(container(c).padding(5));
+        match self.view {
+            View::Instances => self.instances.view(),
+            View::Settings => self.settings.view(),
         }
-
-        let content = FloatingElement::new(scrollable(instances).width(Length::Fill), || {
-            container(button("New Instance"))
-                .padding([0, 20, 10, 0])
-                .into()
-        });
-
-        column![
-            row![
-                text("Instances").size(30),
-                horizontal_space(Length::Fill),
-                button("Accounts"),
-                button("Settings"),
-            ]
-            .spacing(10),
-            content
-        ]
-        .spacing(10)
-        .padding(10)
-        .into()
     }
 }
