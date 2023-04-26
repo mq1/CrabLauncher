@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+mod about;
+mod assets;
 mod instances;
 mod settings;
 mod style;
@@ -15,8 +17,10 @@ use once_cell::sync::Lazy;
 use settings::Settings;
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    let proj_dirs = ProjectDirs::from("eu", "mq1", "icy-launcher").unwrap();
-    proj_dirs.data_dir().to_path_buf()
+    ProjectDirs::from("eu", "mq1", "icy-launcher")
+        .unwrap()
+        .data_dir()
+        .to_path_buf()
 });
 
 pub fn main() -> Result<()> {
@@ -32,6 +36,7 @@ pub fn main() -> Result<()> {
 pub enum View {
     Instances,
     Settings,
+    About,
 }
 
 struct App {
@@ -45,6 +50,7 @@ pub enum Message {
     ChangeView(View),
     CheckForUpdates(bool),
     SaveSettings,
+    OpenURL(String),
 }
 
 impl Application for App {
@@ -89,6 +95,10 @@ impl Application for App {
                 self.settings.save().unwrap();
                 Command::none()
             }
+            Message::OpenURL(url) => {
+                open::that(url).unwrap();
+                Command::none()
+            }
         }
     }
 
@@ -96,6 +106,7 @@ impl Application for App {
         match self.view {
             View::Instances => self.instances.view(),
             View::Settings => self.settings.view(),
+            View::About => about::view(),
         }
     }
 }
