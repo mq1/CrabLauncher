@@ -42,29 +42,22 @@ impl Instances {
         }
 
         let content = FloatingElement::new(scrollable(instances).width(Length::Fill), || {
-            container(
-                button(
-                    text("+")
-                        .width(40)
-                        .height(40)
-                        .size(40)
-                        .vertical_alignment(iced::alignment::Vertical::Center)
-                        .horizontal_alignment(iced::alignment::Horizontal::Center),
-                )
-                .style(style::circle_button()),
-            )
-            .padding([0, 20, 10, 0])
-            .into()
+            container(button(icons::plus()).style(style::circle_button()))
+                .padding([0, 20, 10, 0])
+                .into()
         });
 
         column![
             row![
                 text("Instances").size(30),
                 horizontal_space(Length::Fill),
-                button("Accounts"),
-                button(row!["Settings ", icons::cog()])
+                button(icons::account()).style(style::circle_button()),
+                button(icons::cog())
+                    .style(style::circle_button())
                     .on_press(Message::ChangeView(View::Settings)),
-                button(row!["About ", icons::info()]).on_press(Message::ChangeView(View::About)),
+                button(icons::info())
+                    .style(style::circle_button())
+                    .on_press(Message::ChangeView(View::About)),
             ]
             .spacing(10),
             content

@@ -55,12 +55,14 @@ impl Settings {
         let header = row![
             text("Settings").size(30),
             horizontal_space(Length::Fill),
-            button(row![icons::arrow_left(), " Back"])
+            button(icons::arrow_left())
+                .style(style::circle_button())
                 .on_press(Message::ChangeView(View::Instances))
         ];
 
-        let save_button =
-            button(row!["Save ", icons::content_save()]).on_press(Message::SaveSettings);
+        let save_button = button(icons::content_save())
+            .style(style::circle_button())
+            .on_press(Message::SaveSettings);
 
         column![
             header,
