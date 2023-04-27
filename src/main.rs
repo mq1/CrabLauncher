@@ -3,10 +3,10 @@
 
 mod about;
 mod assets;
+mod icons;
 mod instances;
 mod settings;
 mod style;
-mod icons;
 
 use std::{fs, path::PathBuf};
 
@@ -79,7 +79,7 @@ impl Application for App {
     }
 
     fn theme(&self) -> Self::Theme {
-        Theme::Dark
+        style::my_theme()
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
