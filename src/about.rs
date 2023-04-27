@@ -6,7 +6,7 @@ use iced::{
     Alignment, Element, Length,
 };
 
-use crate::{assets, icons, Message, View};
+use crate::{assets, icons, style, Message, View};
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
@@ -17,7 +17,9 @@ const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 pub fn view() -> Element<'static, Message> {
     let header = row![
         horizontal_space(Length::Fill),
-        button(row![icons::arrow_left(), " Back"]).on_press(Message::ChangeView(View::Instances))
+        button(icons::arrow_left())
+            .style(style::circle_button())
+            .on_press(Message::ChangeView(View::Instances))
     ];
 
     let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
@@ -31,8 +33,13 @@ pub fn view() -> Element<'static, Message> {
         text(APP_VERSION),
         vertical_space(Length::Fill),
         row![
-            button(row!["Repository ", icons::github()])
-                .on_press(Message::OpenURL(REPOSITORY.to_string())),
+            button(
+                row!["Repository ", icons::github()]
+                    .align_items(Alignment::Center)
+                    .padding([0, 0, 0, 5])
+            )
+            .style(style::circle_button())
+            .on_press(Message::OpenURL(REPOSITORY.to_string())),
             horizontal_space(Length::Fill),
             text(LICENSE.to_owned() + " · " + COPYRIGHT),
         ]

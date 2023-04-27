@@ -4,6 +4,7 @@
 pub const LOGO_PNG: &[u8] = include_bytes!("../assets/icy-launcher.png");
 
 // Icons
+pub const MDI_ACCOUNT_OUTLINE_SVG: &[u8] = include_bytes!("../assets/icons/MdiAccountOutline.svg");
 pub const MDI_ARROW_LEFT_SVG: &[u8] = include_bytes!("../assets/icons/MdiArrowLeft.svg");
 pub const MDI_COG_OUTLINE_SVG: &[u8] = include_bytes!("../assets/icons/MdiCogOutline.svg");
 pub const MDI_CONTENT_SAVE_OUTLINE_SVG: &[u8] =
@@ -11,3 +12,4 @@ pub const MDI_CONTENT_SAVE_OUTLINE_SVG: &[u8] =
 pub const MDI_GITHUB_SVG: &[u8] = include_bytes!("../assets/icons/MdiGithub.svg");
 pub const MDI_INFORMATION_OUTLINE_SVG: &[u8] =
     include_bytes!("../assets/icons/MdiInformationOutline.svg");
+pub const MDI_PLUS_SVG: &[u8] = include_bytes!("../assets/icons/MdiPlus.svg");
