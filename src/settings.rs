@@ -11,7 +11,7 @@ use iced::{
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use crate::{style, Message, View, BASE_DIR};
+use crate::{icons, style, Message, View, BASE_DIR};
 
 pub static PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("settings.toml"));
 
@@ -55,10 +55,12 @@ impl Settings {
         let header = row![
             text("Settings").size(30),
             horizontal_space(Length::Fill),
-            button("Back").on_press(Message::ChangeView(View::Instances))
+            button(row![icons::arrow_left(), " Back"])
+                .on_press(Message::ChangeView(View::Instances))
         ];
 
-        let save_button = button("Save").on_press(Message::SaveSettings);
+        let save_button =
+            button(row!["Save ", icons::content_save()]).on_press(Message::SaveSettings);
 
         column![
             header,
