@@ -12,7 +12,7 @@ macro_rules! view {
             .width(25)
             .height(25)
             .style(theme::Svg::custom_fn(|_theme| svg::Appearance {
-                color: Some(color!(0xe2e8f0)),
+                color: Some(color!(0x1e1e2e)),
             }))
     }};
 }

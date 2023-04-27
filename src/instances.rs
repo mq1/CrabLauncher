@@ -30,8 +30,8 @@ impl Instances {
             let c = container(
                 column![
                     text(instance.to_owned()).size(20),
-                    button("Edit"),
-                    button("Launch"),
+                    button("Edit").style(style::circle_button()),
+                    button("Launch").style(style::circle_button()),
                 ]
                 .align_items(Alignment::Center)
                 .spacing(10)
