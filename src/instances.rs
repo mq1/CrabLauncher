@@ -62,9 +62,9 @@ impl Instances {
                 text("Instances").size(30),
                 horizontal_space(Length::Fill),
                 button("Accounts"),
-                button(row![text("Settings"), icons::cog()].spacing(5))
+                button(row!["Settings ", icons::cog()])
                     .on_press(Message::ChangeView(View::Settings)),
-                button("About").on_press(Message::ChangeView(View::About)),
+                button(row!["About ", icons::info()]).on_press(Message::ChangeView(View::About)),
             ]
             .spacing(10),
             content

@@ -18,6 +18,22 @@ macro_rules! view {
     }};
 }
 
+pub fn arrow_left() -> Element<'static, Message> {
+    view!(assets::MDI_ARROW_LEFT_SVG)
+}
+
 pub fn cog() -> Element<'static, Message> {
-    view!(assets::COG_SVG)
+    view!(assets::MDI_COG_OUTLINE_SVG)
+}
+
+pub fn content_save() -> Element<'static, Message> {
+    view!(assets::MDI_CONTENT_SAVE_OUTLINE_SVG)
+}
+
+pub fn github() -> Element<'static, Message> {
+    view!(assets::MDI_GITHUB_SVG)
+}
+
+pub fn info() -> Element<'static, Message> {
+    view!(assets::MDI_INFORMATION_OUTLINE_SVG)
 }
