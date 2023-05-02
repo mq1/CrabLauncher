@@ -2,22 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    theme::{self, Palette},
+    color, theme,
     widget::{button, container},
-    Background, Theme, color,
+    Background, Theme,
 };
-
-// Catppuccin Mocha Sapphire
-pub fn my_theme() -> Theme {
-    Theme::custom(Palette {
-        background: color!(0x1e1e2e),
-        text: color!(0xcdd6f4),
-        primary: color!(0x74c7ec),
-        success: color!(0xa6e3a1),
-        danger: color!(0xf38ba8),
-    })
-}
-
 pub struct Card;
 
 impl container::StyleSheet for Card {
@@ -28,7 +16,7 @@ impl container::StyleSheet for Card {
             border_radius: 5.0,
             border_width: 1.0,
             border_color: color!(0x3f3f46),
-            background: Some(Background::Color(color!(0x313244))),
+            background: Some(Background::Color(color!(0x27272a))),
             ..Default::default()
         }
     }
@@ -53,7 +41,6 @@ impl button::StyleSheet for CircleButtonStyle {
 
     fn active(&self, style: &Self::Style) -> button::Appearance {
         let mut appearance = style.active(&self.theme);
-        appearance.text_color = color!(0x1e1e2e);
         appearance.border_radius = 200.0;
 
         appearance
@@ -61,7 +48,20 @@ impl button::StyleSheet for CircleButtonStyle {
 
     fn disabled(&self, style: &Self::Style) -> button::Appearance {
         let mut appearance = style.disabled(&self.theme);
-        appearance.text_color = color!(0x313244);
+        appearance.border_radius = 200.0;
+
+        appearance
+    }
+
+    fn hovered(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.hovered(&self.theme);
+        appearance.border_radius = 200.0;
+
+        appearance
+    }
+
+    fn pressed(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.pressed(&self.theme);
         appearance.border_radius = 200.0;
 
         appearance

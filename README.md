@@ -44,7 +44,6 @@ cargo build --release
 - Aru for the awesome logo!
 - Héctor Ramón for [iced](https://github.com/iced-rs/iced)
 - The [Material Design Icons](https://github.com/Templarian/MaterialDesign) community
-- The [Cattpuccin](https://github.com/catppuccin/catppuccin) community
 
 ## License
 

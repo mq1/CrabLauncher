@@ -79,7 +79,7 @@ impl Application for App {
     }
 
     fn theme(&self) -> Self::Theme {
-        style::my_theme()
+        Theme::Dark
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
