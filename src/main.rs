@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 mod about;
+mod accounts;
 mod assets;
 mod icons;
 mod instances;
@@ -10,6 +11,7 @@ mod style;
 
 use std::{fs, path::PathBuf};
 
+use accounts::Account;
 use anyhow::Result;
 use directories::ProjectDirs;
 use iced::{executor, Application, Command, Element, Settings as IcedSettings, Theme};
@@ -44,6 +46,8 @@ struct App {
     view: View,
     instances: Instances,
     settings: Settings,
+    accounts: Vec<Account>,
+    selected_account: Option<Account>,
 }
 
 #[derive(Debug, Clone)]
@@ -52,6 +56,7 @@ pub enum Message {
     CheckForUpdates(bool),
     SaveSettings,
     OpenURL(String),
+    SelectAccount(Account),
 }
 
 impl Application for App {
@@ -69,6 +74,8 @@ impl Application for App {
                 view: View::Instances,
                 instances,
                 settings,
+                accounts: Vec::new(),
+                selected_account: None,
             },
             Command::none(),
         )
@@ -100,12 +107,18 @@ impl Application for App {
                 open::that(url).unwrap();
                 Command::none()
             }
+            Message::SelectAccount(account) => {
+                self.selected_account = Some(account);
+                Command::none()
+            }
         }
     }
 
     fn view(&self) -> Element<Message> {
         match self.view {
-            View::Instances => self.instances.view(),
+            View::Instances => self
+                .instances
+                .view(self.accounts.clone(), self.selected_account.clone()),
             View::Settings => self.settings.view(),
             View::About => about::view(),
         }

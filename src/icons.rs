@@ -17,10 +17,6 @@ macro_rules! view {
     }};
 }
 
-pub fn account() -> Element<'static, Message> {
-    view!(assets::MDI_ACCOUNT_OUTLINE_SVG).into()
-}
-
 pub fn arrow_left() -> Element<'static, Message> {
     view!(assets::MDI_ARROW_LEFT_SVG).into()
 }

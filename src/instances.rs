@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{button, column, container, horizontal_space, image, row, scrollable, text},
+    widget::{
+        button, column, container, horizontal_space, image, pick_list, row, scrollable, text,
+    },
     Alignment, Element, Length,
 };
 use iced_aw::{FloatingElement, Wrap};
 
-use crate::{assets, icons, style, Message, View};
+use crate::{accounts::Account, assets, icons, style, Message, View};
 
 pub struct Instances {
     list: Vec<String>,
@@ -24,7 +26,11 @@ impl Instances {
         Self { list: instances }
     }
 
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(
+        &self,
+        accounts: Vec<Account>,
+        selected_account: Option<Account>,
+    ) -> Element<Message> {
         let mut instances = Wrap::new();
         for instance in &self.list {
             let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
@@ -51,11 +57,13 @@ impl Instances {
                 .into()
         });
 
+        let account_picker = pick_list(accounts, selected_account, Message::SelectAccount);
+
         column![
             row![
                 text("Instances").size(30),
                 horizontal_space(Length::Fill),
-                button(icons::account()).style(style::circle_button()),
+                account_picker,
                 button(icons::cog())
                     .style(style::circle_button())
                     .on_press(Message::ChangeView(View::Settings)),
