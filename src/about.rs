@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{button, column, horizontal_space, image, row, text, vertical_space},
+    widget::{button, column, horizontal_space, image, row, text, vertical_space, Image},
     Alignment, Element, Length,
 };
 
@@ -23,7 +23,7 @@ pub fn view() -> Element<'static, Message> {
     ];
 
     let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
-    let logo = image::viewer(logo_handle).height(200).scale_step(0.);
+    let logo = Image::new(logo_handle).height(200);
 
     column![
         header,

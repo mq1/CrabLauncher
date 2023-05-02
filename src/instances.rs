@@ -3,7 +3,7 @@
 
 use iced::{
     widget::{
-        button, column, container, horizontal_space, image, pick_list, row, scrollable, text,
+        button, column, container, horizontal_space, image, pick_list, row, scrollable, text, Image,
     },
     Alignment, Element, Length,
 };
@@ -34,7 +34,7 @@ impl Instances {
         let mut instances = Wrap::new();
         for instance in &self.list {
             let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
-            let logo = image::viewer(logo_handle).height(100).scale_step(0.);
+            let logo = Image::new(logo_handle).height(100);
 
             let c = container(
                 column![
