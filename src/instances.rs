@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{button, column, container, horizontal_space, row, scrollable, text},
+    widget::{button, column, container, horizontal_space, image, row, scrollable, text},
     Alignment, Element, Length,
 };
 use iced_aw::{FloatingElement, Wrap};
 
-use crate::{icons, style, Message, View};
+use crate::{assets, icons, style, Message, View};
 
 pub struct Instances {
     list: Vec<String>,
@@ -27,8 +27,12 @@ impl Instances {
     pub fn view(&self) -> Element<Message> {
         let mut instances = Wrap::new();
         for instance in &self.list {
+            let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
+            let logo = image::viewer(logo_handle).height(100).scale_step(0.);
+
             let c = container(
                 column![
+                    logo,
                     text(instance.to_owned()).size(20),
                     button("Edit").style(style::circle_button()),
                     button("Launch").style(style::circle_button()),
