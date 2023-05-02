@@ -23,7 +23,7 @@ pub fn view() -> Element<'static, Message> {
     ];
 
     let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
-    let logo = image::viewer(logo_handle).height(200);
+    let logo = image::viewer(logo_handle).height(200).scale_step(0.);
 
     column![
         header,
