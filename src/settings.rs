@@ -53,12 +53,12 @@ impl Settings {
         );
 
         let header = row![
-            text("Settings").size(30),
-            horizontal_space(Length::Fill),
             button(icons::arrow_left())
-                .style(style::circle_button())
-                .on_press(Message::ChangeView(View::Instances))
-        ];
+                .style(style::transparent_button())
+                .on_press(Message::ChangeView(View::Instances)),
+            text("Settings").size(30)
+        ]
+        .spacing(5);
 
         let save_button = button(icons::content_save())
             .style(style::circle_button())
