@@ -6,17 +6,17 @@ use iced::{
     widget::{button, container},
     Background, Theme,
 };
-pub struct Card {
+pub struct CardContainerStyle {
     theme: theme::Container,
 }
 
-impl Card {
+impl CardContainerStyle {
     pub fn new(theme: theme::Container) -> Self {
         Self { theme }
     }
 }
 
-impl container::StyleSheet for Card {
+impl container::StyleSheet for CardContainerStyle {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> container::Appearance {
@@ -31,7 +31,9 @@ impl container::StyleSheet for Card {
 }
 
 pub fn card() -> theme::Container {
-    theme::Container::Custom(Box::new(Card::new(theme::Container::default())))
+    theme::Container::Custom(Box::new(CardContainerStyle::new(
+        theme::Container::default(),
+    )))
 }
 
 pub struct CircleButtonStyle {
@@ -78,4 +80,52 @@ impl button::StyleSheet for CircleButtonStyle {
 
 pub fn circle_button() -> theme::Button {
     theme::Button::Custom(Box::new(CircleButtonStyle::new(theme::Button::Primary)))
+}
+
+pub struct TransparentButtonStyle {
+    theme: theme::Button,
+}
+
+impl TransparentButtonStyle {
+    pub fn new(theme: theme::Button) -> Self {
+        Self { theme }
+    }
+}
+
+impl button::StyleSheet for TransparentButtonStyle {
+    type Style = Theme;
+
+    fn active(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.active(&self.theme);
+        appearance.background = None;
+
+        appearance
+    }
+
+    fn disabled(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.disabled(&self.theme);
+        appearance.background = None;
+
+        appearance
+    }
+
+    fn hovered(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.hovered(&self.theme);
+        appearance.background = None;
+
+        appearance
+    }
+
+    fn pressed(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.pressed(&self.theme);
+        appearance.background = None;
+
+        appearance
+    }
+}
+
+pub fn transparent_button() -> theme::Button {
+    theme::Button::Custom(Box::new(TransparentButtonStyle::new(
+        theme::Button::Primary,
+    )))
 }

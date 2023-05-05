@@ -16,10 +16,10 @@ const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 
 pub fn view() -> Element<'static, Message> {
     let header = row![
-        horizontal_space(Length::Fill),
         button(icons::arrow_left())
-            .style(style::circle_button())
-            .on_press(Message::ChangeView(View::Instances))
+            .style(style::transparent_button())
+            .on_press(Message::ChangeView(View::Instances)),
+        horizontal_space(Length::Fill)
     ];
 
     let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
