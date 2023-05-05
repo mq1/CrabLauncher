@@ -65,10 +65,10 @@ impl Instances {
                 horizontal_space(Length::Fill),
                 account_picker,
                 button(icons::cog())
-                    .style(style::circle_button())
+                    .style(style::transparent_button())
                     .on_press(Message::ChangeView(View::Settings)),
                 button(icons::info())
-                    .style(style::circle_button())
+                    .style(style::transparent_button())
                     .on_press(Message::ChangeView(View::About)),
             ]
             .spacing(10),
