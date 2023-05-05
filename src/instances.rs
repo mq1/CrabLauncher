@@ -28,8 +28,8 @@ impl Instances {
 
     pub fn view(
         &self,
-        accounts: Vec<Account>,
-        selected_account: Option<Account>,
+        accounts: &Vec<Account>,
+        selected_account: &Option<Account>,
     ) -> Element<Message> {
         let mut instances = Wrap::new();
         for instance in &self.list {
@@ -57,7 +57,11 @@ impl Instances {
                 .into()
         });
 
-        let account_picker = pick_list(accounts, selected_account, Message::SelectAccount);
+        let account_picker = pick_list(
+            accounts.clone(),
+            selected_account.clone(),
+            Message::SelectAccount,
+        );
 
         column![
             row![
