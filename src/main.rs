@@ -116,7 +116,7 @@ impl Application for App {
 
     fn view(&self) -> Element<Message> {
         match self.view {
-            View::Instances => self.instances.view(&self.accounts, &self.selected_account),
+            View::Instances => self.instances.view(&self.selected_account),
             View::Settings => self.settings.view(),
             View::About => about::view(),
         }
