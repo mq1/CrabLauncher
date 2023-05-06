@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::io;
+
 use iced::{
-    widget::{
-        button, column, container, horizontal_space, image, pick_list, row, scrollable, text, Image,
-    },
+    widget::{button, column, container, horizontal_space, image, row, scrollable, text, Image},
     Alignment, Element, Length,
 };
 use iced_aw::{FloatingElement, Wrap};
@@ -28,7 +28,6 @@ impl Instances {
 
     pub fn view(
         &self,
-        accounts: &Vec<Account>,
         selected_account: &Option<Account>,
     ) -> Element<Message> {
         let mut instances = Wrap::new();
@@ -57,17 +56,25 @@ impl Instances {
                 .into()
         });
 
-        let account_picker = pick_list(
-            accounts.clone(),
-            selected_account.clone(),
-            Message::SelectAccount,
-        );
+        let account_button = if let Some(account) = selected_account {
+            let resp = ureq::get(&format!("https://crafatar.com/avatars/{}", account.mc_id)).call().unwrap();
+            let mut bytes = Vec::with_capacity(resp.header("Content-Length").unwrap().parse::<usize>().unwrap());
+            io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
+            let head_handle = image::Handle::from_memory(bytes);
+            let head = Image::new(head_handle).width(50).height(50);
+
+            button(head)
+                .style(style::transparent_button())
+        } else {
+            button(icons::account_alert())
+                .style(style::transparent_button())
+        };
 
         column![
             row![
                 text("Instances").size(30),
                 horizontal_space(Length::Fill),
-                account_picker,
+                account_button,
                 button(icons::cog())
                     .style(style::transparent_button())
                     .on_press(Message::ChangeView(View::Settings)),
