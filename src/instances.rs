@@ -9,7 +9,7 @@ use iced::{
 };
 use iced_aw::{FloatingElement, Wrap};
 
-use crate::{accounts::Account, assets, icons, style, Message, View};
+use crate::{assets, icons, style, Message, View, util::accounts::Account};
 
 pub struct Instances {
     list: Vec<String>,
@@ -26,10 +26,7 @@ impl Instances {
         Self { list: instances }
     }
 
-    pub fn view(
-        &self,
-        selected_account: &Option<Account>,
-    ) -> Element<Message> {
+    pub fn view(&self, active_account: &Option<Account>) -> Element<Message> {
         let mut instances = Wrap::new();
         for instance in &self.list {
             let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
@@ -56,25 +53,32 @@ impl Instances {
                 .into()
         });
 
-        let account_button = if let Some(account) = selected_account {
-            let resp = ureq::get(&format!("https://crafatar.com/avatars/{}", account.mc_id)).call().unwrap();
-            let mut bytes = Vec::with_capacity(resp.header("Content-Length").unwrap().parse::<usize>().unwrap());
+        let account_button = if let Some(account) = active_account {
+            let resp = ureq::get(&format!("https://crafatar.com/avatars/{}", account.mc_id))
+                .call()
+                .unwrap();
+            let mut bytes = Vec::with_capacity(
+                resp.header("Content-Length")
+                    .unwrap()
+                    .parse::<usize>()
+                    .unwrap(),
+            );
             io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
             let head_handle = image::Handle::from_memory(bytes);
             let head = Image::new(head_handle).width(50).height(50);
 
             button(head)
-                .style(style::transparent_button())
         } else {
             button(icons::account_alert())
-                .style(style::transparent_button())
         };
 
         column![
             row![
                 text("Instances").size(30),
                 horizontal_space(Length::Fill),
-                account_button,
+                account_button
+                    .style(style::transparent_button())
+                    .on_press(Message::ChangeView(View::Accounts)),
                 button(icons::cog())
                     .style(style::transparent_button())
                     .on_press(Message::ChangeView(View::Settings)),
