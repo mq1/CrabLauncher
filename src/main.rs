@@ -8,16 +8,17 @@ mod icons;
 mod instances;
 mod settings;
 mod style;
+mod util;
 
 use std::{fs, path::PathBuf};
 
-use accounts::Account;
 use anyhow::Result;
 use directories::ProjectDirs;
 use iced::{executor, Application, Command, Element, Settings as IcedSettings, Theme};
 use instances::Instances;
 use once_cell::sync::Lazy;
 use settings::Settings;
+use util::accounts::{Account, Accounts};
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     ProjectDirs::from("eu", "mq1", "icy-launcher")
@@ -40,14 +41,14 @@ pub enum View {
     Instances,
     Settings,
     About,
+    Accounts,
 }
 
 struct App {
     view: View,
     instances: Instances,
     settings: Settings,
-    accounts: Vec<Account>,
-    selected_account: Option<Account>,
+    accounts: Accounts,
 }
 
 #[derive(Debug, Clone)]
@@ -74,8 +75,7 @@ impl Application for App {
                 view: View::Instances,
                 instances,
                 settings,
-                accounts: Vec::new(),
-                selected_account: None,
+                accounts: Accounts::load().unwrap(),
             },
             Command::none(),
         )
@@ -108,7 +108,7 @@ impl Application for App {
                 Command::none()
             }
             Message::SelectAccount(account) => {
-                self.selected_account = Some(account);
+                self.accounts.set_active_account(account).unwrap();
                 Command::none()
             }
         }
@@ -116,9 +116,10 @@ impl Application for App {
 
     fn view(&self) -> Element<Message> {
         match self.view {
-            View::Instances => self.instances.view(&self.selected_account),
+            View::Instances => self.instances.view(&self.accounts.active),
             View::Settings => self.settings.view(),
             View::About => about::view(),
+            View::Accounts => accounts::view(&self.accounts),
         }
     }
 }
