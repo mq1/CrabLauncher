@@ -9,7 +9,7 @@ use iced_aw::FloatingElement;
 
 use crate::{icons, style, util, Message, View};
 
-pub fn view(accounts: &util::accounts::Accounts) -> Element<'static, Message> {
+pub fn view(accounts: &util::accounts::Accounts) -> Element<Message> {
     let header = row![
         button(icons::arrow_left())
             .style(style::transparent_button())
