@@ -4,10 +4,12 @@
 use std::{
     fmt::Display,
     fs,
+    io::{BufRead, BufReader, Write},
+    net::TcpListener,
     path::{Path, PathBuf},
 };
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use base64ct::{Base64UrlUnpadded, Encoding};
 use once_cell::sync::Lazy;
 use rand::distributions::Alphanumeric;
@@ -17,7 +19,7 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use ureq::{Agent, AgentBuilder};
 
-use crate::BASE_DIR;
+use crate::{regex, util::USER_AGENT, BASE_DIR};
 
 const MSA_AUTHORIZATION_ENDPOINT: &str =
     "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
@@ -122,9 +124,9 @@ impl Accounts {
     }
 
     // Refresh and return the active account
-    pub fn get_account(&mut self, user_agent: &str) -> Result<Account> {
+    pub fn get_account(&mut self) -> Result<Account> {
         let active_account = self.active.clone().unwrap();
-        let refreshed_account = refresh(user_agent, active_account)?;
+        let refreshed_account = refresh(active_account)?;
 
         self.active = Some(refreshed_account.clone());
 
@@ -294,12 +296,8 @@ struct OAuth2Token {
     refresh_token: String,
 }
 
-pub fn login(
-    user_agent: &str,
-    code: String,
-    pkce_verifier: String,
-) -> Result<Account, ureq::Error> {
-    let agent = AgentBuilder::new().user_agent(user_agent).build();
+fn login(code: String, pkce_verifier: String) -> Result<Account, ureq::Error> {
+    let agent = AgentBuilder::new().user_agent(USER_AGENT).build();
 
     println!("Exchanging code for access token...");
 
@@ -325,8 +323,8 @@ pub fn login(
     Ok(entry)
 }
 
-fn refresh(user_agent: &str, account: Account) -> Result<Account, ureq::Error> {
-    let agent = AgentBuilder::new().user_agent(user_agent).build();
+fn refresh(account: Account) -> Result<Account, ureq::Error> {
+    let agent = AgentBuilder::new().user_agent(USER_AGENT).build();
 
     let params = [
         ("client_id", CLIENT_ID),
@@ -344,4 +342,54 @@ fn refresh(user_agent: &str, account: Account) -> Result<Account, ureq::Error> {
     let entry = get_minecraft_account_data(agent, resp.access_token, resp.refresh_token)?;
 
     Ok(entry)
+}
+
+pub fn listen_login_callback(csrf_token: String, pkce_verifier: String) -> Result<Option<Account>> {
+    let listener = TcpListener::bind("127.0.0.1:3003")?;
+    for stream in listener.incoming() {
+        if let Ok(mut stream) = stream {
+            let code;
+            let state;
+            {
+                let mut reader = BufReader::new(&stream);
+
+                let mut request_line = String::new();
+                reader.read_line(&mut request_line)?;
+
+                let caps = regex!(r"/login\?code=(?P<code>.*)&state=(?P<state>.*) ")
+                    .captures(&request_line)
+                    .unwrap();
+
+                code = caps["code"].to_string();
+                state = caps["state"].to_string();
+            }
+
+            if state != csrf_token {
+                let message = "Invalid state";
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
+                    message.len(),
+                    message
+                );
+                stream.write_all(response.as_bytes())?;
+
+                bail!("Invalid CSRF token");
+            }
+
+            let message = "You can close this tab now";
+            let response = format!(
+                "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
+                message.len(),
+                message
+            );
+            stream.write_all(response.as_bytes())?;
+
+            println!("Logging in...");
+            let account = login(code, pkce_verifier)?;
+            println!("Logged in!");
+            return Ok(Some(account));
+        }
+    }
+
+    Ok(None)
 }

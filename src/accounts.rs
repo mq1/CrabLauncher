@@ -37,9 +37,13 @@ pub fn view(accounts: &util::accounts::Accounts) -> Element<Message> {
     }
 
     let content = FloatingElement::new(scrollable(content).width(Length::Fill), || {
-        container(button(icons::plus()).style(style::circle_button()))
-            .padding([0, 20, 10, 0])
-            .into()
+        container(
+            button(icons::plus())
+                .style(style::circle_button())
+                .on_press(Message::AddAccount),
+        )
+        .padding([0, 20, 10, 0])
+        .into()
     });
 
     column![header, content, vertical_space(Length::Fill),]
