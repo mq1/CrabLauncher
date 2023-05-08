@@ -54,6 +54,7 @@ pub enum Message {
     CheckForUpdates(bool),
     SaveSettings,
     OpenURL(String),
+    AddAccount,
     SelectAccount(util::accounts::Account),
 }
 
@@ -102,6 +103,18 @@ impl Application for App {
             }
             Message::OpenURL(url) => {
                 open::that(url).unwrap();
+                Command::none()
+            }
+            Message::AddAccount => {
+                let (url, csrf_token, pkce_verifier) = util::accounts::get_auth_url();
+                open::that(url).unwrap();
+                let account =
+                    util::accounts::listen_login_callback(csrf_token, pkce_verifier).unwrap();
+
+                if let Some(account) = account {
+                    self.accounts.add_account(account).unwrap();
+                }
+
                 Command::none()
             }
             Message::SelectAccount(account) => {
