@@ -1,77 +1,39 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs, path::PathBuf};
-
-use anyhow::Result;
 use iced::{
     widget::{button, column, container, horizontal_space, row, text, toggler, vertical_space},
     Element, Length,
 };
-use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
 
-use crate::{icons, style, Message, View, BASE_DIR};
+use crate::{icons, style, util, Message, View};
 
-pub static PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("settings.toml"));
+pub fn view(settings: &util::settings::Settings) -> Element<Message> {
+    let check_for_updates = toggler(
+        "Check for updates".to_owned(),
+        settings.check_for_updates,
+        Message::CheckForUpdates,
+    );
 
-#[derive(Serialize, Deserialize)]
-pub struct Settings {
-    pub check_for_updates: bool,
-}
+    let header = row![
+        button(icons::arrow_left())
+            .style(style::transparent_button())
+            .on_press(Message::ChangeView(View::Instances)),
+        text("Settings").size(30)
+    ]
+    .spacing(5);
 
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            check_for_updates: true,
-        }
-    }
-}
+    let save_button = button(icons::content_save())
+        .style(style::circle_button())
+        .on_press(Message::SaveSettings);
 
-impl Settings {
-    pub fn load() -> Result<Self> {
-        if !PATH.exists() {
-            return Ok(Self::default());
-        }
-
-        let settings = fs::read_to_string(&*PATH)?;
-        let settings: Self = toml::from_str(&settings)?;
-        Ok(settings)
-    }
-
-    pub fn save(&self) -> Result<()> {
-        let settings = toml::to_string_pretty(self)?;
-        fs::write(&*PATH, settings)?;
-        Ok(())
-    }
-
-    pub fn view(&self) -> Element<Message> {
-        let check_for_updates = toggler(
-            "Check for updates".to_owned(),
-            self.check_for_updates,
-            Message::CheckForUpdates,
-        );
-
-        let header = row![
-            button(icons::arrow_left())
-                .style(style::transparent_button())
-                .on_press(Message::ChangeView(View::Instances)),
-            text("Settings").size(30)
-        ]
-        .spacing(5);
-
-        let save_button = button(icons::content_save())
-            .style(style::circle_button())
-            .on_press(Message::SaveSettings);
-
-        column![
-            header,
-            container(column![check_for_updates].padding(10)).style(style::card()),
-            vertical_space(Length::Fill),
-            row![horizontal_space(Length::Fill), save_button]
-        ]
-        .spacing(10)
-        .padding(10)
-        .into()
-    }
+    column![
+        header,
+        container(column![check_for_updates].padding(10)).style(style::card()),
+        vertical_space(Length::Fill),
+        row![horizontal_space(Length::Fill), save_button]
+    ]
+    .spacing(10)
+    .padding(10)
+    .into()
 }

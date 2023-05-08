@@ -14,11 +14,8 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Result;
 use directories::ProjectDirs;
-use iced::{executor, Application, Command, Element, Settings as IcedSettings, Theme};
-use instances::Instances;
+use iced::{executor, Application, Command, Element, Settings, Theme};
 use once_cell::sync::Lazy;
-use settings::Settings;
-use util::accounts::{Account, Accounts};
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     ProjectDirs::from("eu", "mq1", "icy-launcher")
@@ -32,7 +29,7 @@ pub fn main() -> Result<()> {
         fs::create_dir_all(BASE_DIR.as_path())?;
     }
 
-    App::run(IcedSettings::default())?;
+    App::run(Settings::default())?;
     Ok(())
 }
 
@@ -46,9 +43,9 @@ pub enum View {
 
 struct App {
     view: View,
-    instances: Instances,
-    settings: Settings,
-    accounts: Accounts,
+    instances: util::instances::Instances,
+    settings: util::settings::Settings,
+    accounts: util::accounts::Accounts,
 }
 
 #[derive(Debug, Clone)]
@@ -57,7 +54,7 @@ pub enum Message {
     CheckForUpdates(bool),
     SaveSettings,
     OpenURL(String),
-    SelectAccount(Account),
+    SelectAccount(util::accounts::Account),
 }
 
 impl Application for App {
@@ -67,15 +64,15 @@ impl Application for App {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        let instances = Instances::load();
-        let settings = Settings::load().unwrap();
+        let instances = <util::instances::Instances as util::instances::InstancesExt>::load();
+        let settings = util::settings::Settings::load().unwrap();
 
         (
             Self {
                 view: View::Instances,
                 instances,
                 settings,
-                accounts: Accounts::load().unwrap(),
+                accounts: util::accounts::Accounts::load().unwrap(),
             },
             Command::none(),
         )
@@ -116,8 +113,8 @@ impl Application for App {
 
     fn view(&self) -> Element<Message> {
         match self.view {
-            View::Instances => self.instances.view(&self.accounts.active),
-            View::Settings => self.settings.view(),
+            View::Instances => instances::view(&self.instances, &self.accounts.active),
+            View::Settings => settings::view(&self.settings),
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),
         }
