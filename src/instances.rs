@@ -15,8 +15,7 @@ pub fn view<'a>(
     instances: &'a util::instances::Instances,
     active_account: &'a Option<util::accounts::Account>,
 ) -> Element<'a, Message> {
-    let mut wrap: iced_aw::native::Wrap<_, _, iced_aw::native::wrap::direction::Horizontal> =
-        Wrap::new();
+    let mut wrap = Wrap::new();
     for instance in instances {
         let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
         let logo = Image::new(logo_handle).height(100);
