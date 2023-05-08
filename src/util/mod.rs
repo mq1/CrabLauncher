@@ -2,3 +2,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 pub mod accounts;
+pub mod instances;
+pub mod settings;
