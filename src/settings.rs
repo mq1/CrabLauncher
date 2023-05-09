@@ -6,7 +6,7 @@ use iced::{
     Element, Length,
 };
 
-use crate::{icons, style, util, Message, View};
+use crate::{components::icons, style, util, Message};
 
 pub fn view(settings: &util::settings::Settings) -> Element<Message> {
     let check_for_updates = toggler(
@@ -15,20 +15,12 @@ pub fn view(settings: &util::settings::Settings) -> Element<Message> {
         Message::CheckForUpdates,
     );
 
-    let header = row![
-        button(icons::arrow_left())
-            .style(style::transparent_button())
-            .on_press(Message::ChangeView(View::Instances)),
-        text("Settings").size(30)
-    ]
-    .spacing(5);
-
     let save_button = button(icons::content_save())
         .style(style::circle_button())
         .on_press(Message::SaveSettings);
 
     column![
-        header,
+        text("Settings").size(30),
         container(column![check_for_updates].padding(10)).style(style::card()),
         vertical_space(Length::Fill),
         row![horizontal_space(Length::Fill), save_button]

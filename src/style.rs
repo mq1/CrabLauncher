@@ -36,6 +36,33 @@ pub fn card() -> theme::Container {
     )))
 }
 
+pub struct DarkContainerStyle {
+    theme: theme::Container,
+}
+
+impl DarkContainerStyle {
+    pub fn new(theme: theme::Container) -> Self {
+        Self { theme }
+    }
+}
+
+impl container::StyleSheet for DarkContainerStyle {
+    type Style = Theme;
+
+    fn appearance(&self, style: &Self::Style) -> container::Appearance {
+        let mut appearance = style.appearance(&self.theme);
+        appearance.background = Some(Background::Color(color!(0x18181b)));
+
+        appearance
+    }
+}
+
+pub fn dark() -> theme::Container {
+    theme::Container::Custom(Box::new(DarkContainerStyle::new(
+        theme::Container::default(),
+    )))
+}
+
 pub struct CircleButtonStyle {
     theme: theme::Button,
 }
@@ -128,4 +155,50 @@ pub fn transparent_button() -> theme::Button {
     theme::Button::Custom(Box::new(TransparentButtonStyle::new(
         theme::Button::Primary,
     )))
+}
+
+pub struct SelectedButtonStyle {
+    theme: theme::Button,
+}
+
+impl SelectedButtonStyle {
+    pub fn new(theme: theme::Button) -> Self {
+        Self { theme }
+    }
+}
+
+impl button::StyleSheet for SelectedButtonStyle {
+    type Style = Theme;
+
+    fn active(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.active(&self.theme);
+        appearance.background = Some(Background::Color(color!(0x3f3f46)));
+
+        appearance
+    }
+
+    fn disabled(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.disabled(&self.theme);
+        appearance.background = Some(Background::Color(color!(0x3f3f46)));
+
+        appearance
+    }
+
+    fn hovered(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.hovered(&self.theme);
+        appearance.background = Some(Background::Color(color!(0x3f3f46)));
+
+        appearance
+    }
+
+    fn pressed(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.pressed(&self.theme);
+        appearance.background = Some(Background::Color(color!(0x3f3f46)));
+
+        appearance
+    }
+}
+
+pub fn selected_button() -> theme::Button {
+    theme::Button::Custom(Box::new(SelectedButtonStyle::new(theme::Button::Primary)))
 }

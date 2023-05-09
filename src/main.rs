@@ -3,8 +3,7 @@
 
 mod about;
 mod accounts;
-mod assets;
-mod icons;
+mod components;
 mod instances;
 mod settings;
 mod style;
@@ -14,7 +13,7 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Result;
 use directories::ProjectDirs;
-use iced::{executor, Application, Command, Element, Settings, Theme};
+use iced::{executor, widget::row, Application, Command, Element, Settings, Theme};
 use once_cell::sync::Lazy;
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
@@ -33,7 +32,7 @@ pub fn main() -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum View {
     Instances,
     Settings,
@@ -125,11 +124,15 @@ impl Application for App {
     }
 
     fn view(&self) -> Element<Message> {
-        match self.view {
-            View::Instances => instances::view(&self.instances, &self.accounts.active),
+        let navbar = components::navbar::view(&self.view, &self.accounts.active);
+
+        let view = match self.view {
+            View::Instances => instances::view(&self.instances),
             View::Settings => settings::view(&self.settings),
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),
-        }
+        };
+
+        row![navbar, view].into()
     }
 }

@@ -6,7 +6,10 @@ use iced::{
     Alignment, Element, Length,
 };
 
-use crate::{assets, icons, style, Message, View};
+use crate::{
+    components::{assets, icons},
+    style, Message,
+};
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
@@ -15,35 +18,26 @@ const COPYRIGHT: &str = concat!("Copyright © 2023 ", env!("CARGO_PKG_AUTHORS"))
 const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 
 pub fn view() -> Element<'static, Message> {
-    let header = row![
-        button(icons::arrow_left())
-            .style(style::transparent_button())
-            .on_press(Message::ChangeView(View::Instances)),
-        horizontal_space(Length::Fill)
-    ];
-
     let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
     let logo = Image::new(logo_handle).height(200);
 
+    let repo_button = button(
+        row!["Repository ", icons::github()]
+            .align_items(Alignment::Center)
+            .padding([0, 0, 0, 5]),
+    )
+    .style(style::circle_button())
+    .on_press(Message::OpenURL(REPOSITORY.to_string()));
+
     column![
-        header,
         vertical_space(Length::Fill),
         logo,
         text(APP_NAME).size(50),
         text(APP_VERSION),
+        text(LICENSE),
+        text(COPYRIGHT),
         vertical_space(Length::Fill),
-        row![
-            button(
-                row!["Repository ", icons::github()]
-                    .align_items(Alignment::Center)
-                    .padding([0, 0, 0, 5])
-            )
-            .style(style::circle_button())
-            .on_press(Message::OpenURL(REPOSITORY.to_string())),
-            horizontal_space(Length::Fill),
-            text(LICENSE.to_owned() + " · " + COPYRIGHT),
-        ]
-        .spacing(10),
+        row![horizontal_space(Length::Fill), repo_button],
     ]
     .spacing(10)
     .padding(10)
