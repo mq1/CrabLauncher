@@ -1,20 +1,18 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::io;
-
 use iced::{
-    widget::{button, column, container, horizontal_space, image, row, scrollable, text, Image},
+    widget::{button, column, container, image, scrollable, text, Image},
     Alignment, Element, Length,
 };
 use iced_aw::{FloatingElement, Wrap};
 
-use crate::{assets, icons, style, util, Message, View};
+use crate::{
+    components::{assets, icons},
+    style, util, Message,
+};
 
-pub fn view<'a>(
-    instances: &'a util::instances::Instances,
-    active_account: &'a Option<util::accounts::Account>,
-) -> Element<'a, Message> {
+pub fn view(instances: &util::instances::Instances) -> Element<Message> {
     let mut wrap = Wrap::new();
     for instance in instances {
         let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
@@ -41,43 +39,8 @@ pub fn view<'a>(
             .into()
     });
 
-    let account_button = if let Some(account) = active_account {
-        let resp = ureq::get(&format!("https://crafatar.com/avatars/{}", account.mc_id))
-            .call()
-            .unwrap();
-        let mut bytes = Vec::with_capacity(
-            resp.header("Content-Length")
-                .unwrap()
-                .parse::<usize>()
-                .unwrap(),
-        );
-        io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
-        let head_handle = image::Handle::from_memory(bytes);
-        let head = Image::new(head_handle).width(50).height(50);
-
-        button(head)
-    } else {
-        button(icons::account_alert())
-    };
-
-    column![
-        row![
-            text("Instances").size(30),
-            horizontal_space(Length::Fill),
-            account_button
-                .style(style::transparent_button())
-                .on_press(Message::ChangeView(View::Accounts)),
-            button(icons::cog())
-                .style(style::transparent_button())
-                .on_press(Message::ChangeView(View::Settings)),
-            button(icons::info())
-                .style(style::transparent_button())
-                .on_press(Message::ChangeView(View::About)),
-        ]
-        .spacing(10),
-        content
-    ]
-    .spacing(10)
-    .padding(10)
-    .into()
+    column![text("Instances").size(30), content]
+        .spacing(10)
+        .padding(10)
+        .into()
 }

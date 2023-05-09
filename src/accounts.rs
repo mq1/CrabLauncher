@@ -7,17 +7,9 @@ use iced::{
 };
 use iced_aw::FloatingElement;
 
-use crate::{icons, style, util, Message, View};
+use crate::{components::icons, style, util, Message};
 
 pub fn view(accounts: &util::accounts::Accounts) -> Element<Message> {
-    let header = row![
-        button(icons::arrow_left())
-            .style(style::transparent_button())
-            .on_press(Message::ChangeView(View::Instances)),
-        text("Accounts").size(30)
-    ]
-    .spacing(5);
-
     let mut content = column![];
 
     if let Some(active_account) = &accounts.active {
@@ -46,8 +38,12 @@ pub fn view(accounts: &util::accounts::Accounts) -> Element<Message> {
         .into()
     });
 
-    column![header, content, vertical_space(Length::Fill),]
-        .spacing(10)
-        .padding(10)
-        .into()
+    column![
+        text("Accounts").size(30),
+        content,
+        vertical_space(Length::Fill),
+    ]
+    .spacing(10)
+    .padding(10)
+    .into()
 }
