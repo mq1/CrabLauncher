@@ -16,7 +16,8 @@ pub fn view<'a>(
 ) -> Element<'a, Message> {
     let change_view_button = |view: &View| -> Element<Message> {
         let icon = match view {
-            View::Instances => icons::cube(),
+            View::LatestInstance => icons::cube(),
+            View::Instances => icons::grid(),
             View::Accounts => {
                 if let Some(account) = active_account {
                     let resp =
@@ -55,6 +56,7 @@ pub fn view<'a>(
     };
 
     let col = column![
+        change_view_button(&View::LatestInstance),
         change_view_button(&View::Instances),
         change_view_button(&View::Accounts),
         vertical_space(Length::Fill),

@@ -41,6 +41,10 @@ pub fn github() -> Element<'static, Message> {
     view!(assets::MDI_GITHUB_SVG).into()
 }
 
+pub fn grid() -> Element<'static, Message> {
+    view!(assets::MDI_GRID_SVG).into()
+}
+
 pub fn info() -> Element<'static, Message> {
     view!(assets::MDI_INFORMATION_OUTLINE_SVG).into()
 }
