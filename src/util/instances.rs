@@ -11,7 +11,7 @@ impl InstancesExt for Instances {
     fn load() -> Self {
         let mut instances = Vec::new();
 
-        for i in 1..=100 {
+        for i in 1..=5 {
             instances.push(format!("Instance {}", i));
         }
 

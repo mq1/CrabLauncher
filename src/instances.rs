@@ -33,9 +33,11 @@ pub fn view(instances: &util::instances::Instances) -> Element<Message> {
         wrap = wrap.push(container(c).padding(5));
     }
 
-    let content = FloatingElement::new(scrollable(wrap).width(Length::Fill), || {
+    let content = scrollable(wrap).width(Length::Fill).height(Length::Fill);
+
+    let content = FloatingElement::new(content, || {
         container(button(icons::plus()).style(style::circle_button()))
-            .padding([0, 20, 10, 0])
+            .padding([0, 20, 20, 0])
             .into()
     });
 

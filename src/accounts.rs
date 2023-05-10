@@ -28,22 +28,20 @@ pub fn view(accounts: &util::accounts::Accounts) -> Element<Message> {
         content = content.push(row);
     }
 
-    let content = FloatingElement::new(scrollable(content).width(Length::Fill), || {
+    let content = scrollable(content).width(Length::Fill).height(Length::Fill);
+
+    let content = FloatingElement::new(content, || {
         container(
             button(icons::plus())
                 .style(style::circle_button())
                 .on_press(Message::AddAccount),
         )
-        .padding([0, 20, 10, 0])
+        .padding([0, 20, 20, 0])
         .into()
     });
 
-    column![
-        text("Accounts").size(30),
-        content,
-        vertical_space(Length::Fill),
-    ]
-    .spacing(10)
-    .padding(10)
-    .into()
+    column![text("Accounts").size(30), content]
+        .spacing(10)
+        .padding(10)
+        .into()
 }
