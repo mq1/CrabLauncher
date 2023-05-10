@@ -53,6 +53,7 @@ struct App {
     instances: util::instances::Instances,
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
+    account_head: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Clone)]
@@ -65,6 +66,7 @@ pub enum Message {
     Login(String, String),
     AddingAccount(Result<util::accounts::Account, String>),
     SelectAccount(util::accounts::Account),
+    GotAccountHead(Result<Vec<u8>, String>),
 }
 
 impl Application for App {
@@ -76,15 +78,32 @@ impl Application for App {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         let instances = util::instances::Instances::load().unwrap();
         let settings = util::settings::Settings::load().unwrap();
+        let accounts = util::accounts::Accounts::load().unwrap();
+
+        let (command, account_head) = match accounts.active {
+            Some(ref account) => {
+                let account = account.clone();
+
+                (
+                    Command::perform(
+                        util::accounts::get_head(account).map_err(|e| e.to_string()),
+                        Message::GotAccountHead,
+                    ),
+                    Some(Vec::<u8>::new()),
+                )
+            }
+            None => (Command::none(), None),
+        };
 
         (
             Self {
                 view: View::LatestInstance,
                 instances,
                 settings,
-                accounts: util::accounts::Accounts::load().unwrap(),
+                accounts,
+                account_head,
             },
-            Command::none(),
+            command,
         )
     }
 
@@ -154,6 +173,18 @@ impl Application for App {
                 self.accounts.set_active_account(account).unwrap();
                 Command::none()
             }
+            Message::GotAccountHead(result) => {
+                match result {
+                    Ok(head) => {
+                        self.account_head = Some(head);
+                    }
+                    Err(e) => {
+                        println!("Error getting account head: {}", e)
+                    }
+                }
+
+                Command::none()
+            }
         }
     }
 
@@ -176,7 +207,7 @@ impl Application for App {
             return view;
         }
 
-        let navbar = components::navbar::view(&self.view, &self.accounts.active);
+        let navbar = components::navbar::view(&self.view, &self.account_head);
 
         row![navbar, view].into()
     }

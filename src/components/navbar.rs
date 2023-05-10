@@ -1,40 +1,29 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::io;
-
 use iced::{
     widget::{button, column, container, image, vertical_space, Image},
     Element, Length,
 };
+use iced_aw::Spinner;
 
-use crate::{components::icons, style, util, Message, View};
+use crate::{components::icons, style, Message, View};
 
-pub fn view<'a>(
-    current_view: &'a View,
-    active_account: &'a Option<util::accounts::Account>,
-) -> Element<'a, Message> {
+pub fn view<'a>(current_view: &'a View, account_head: &'a Option<Vec<u8>>) -> Element<'a, Message> {
     let change_view_button = |view: &View| -> Element<Message> {
         let icon = match view {
             View::LatestInstance => icons::cube(),
             View::Instances => icons::grid(),
             View::Accounts => {
-                if let Some(account) = active_account {
-                    let resp =
-                        ureq::get(&format!("https://crafatar.com/avatars/{}", account.mc_id))
-                            .call()
-                            .unwrap();
-                    let mut bytes = Vec::with_capacity(
-                        resp.header("Content-Length")
-                            .unwrap()
-                            .parse::<usize>()
-                            .unwrap(),
-                    );
-                    io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
-                    let head_handle = image::Handle::from_memory(bytes);
-                    let head = Image::new(head_handle).width(32).height(32);
+                if let Some(head) = account_head {
+                    if head.is_empty() {
+                        Spinner::new().into()
+                    } else {
+                        let head_handle = image::Handle::from_memory(head.clone());
+                        let head = Image::new(head_handle).width(32).height(32);
 
-                    head.into()
+                        head.into()
+                    }
                 } else {
                     icons::account_alert().into()
                 }
