@@ -2,5 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 pub mod assets;
+pub mod fullscreen_message;
 pub mod icons;
 pub mod navbar;
