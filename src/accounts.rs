@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{button, column, container, row, scrollable, text, vertical_space},
+    widget::{button, column, container, row, scrollable, text},
     Element, Length,
 };
 use iced_aw::FloatingElement;
