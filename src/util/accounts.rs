@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs, path::PathBuf, thread};
+use std::{fs, io, path::PathBuf, thread};
 
 use anyhow::Result;
 use oauth2::{
@@ -269,4 +269,12 @@ pub fn get_minecraft_account_data(
     };
 
     Ok(account)
+}
+
+pub async fn get_head(account: Account) -> Result<Vec<u8>> {
+    let resp = ureq::get(&format!("https://crafatar.com/avatars/{}", account.mc_id)).call()?;
+    let mut bytes = Vec::with_capacity(resp.header("Content-Length").unwrap().parse::<usize>()?);
+    io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
+
+    Ok(bytes)
 }
