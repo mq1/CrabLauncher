@@ -3,6 +3,7 @@
 
 mod about;
 mod accounts;
+mod adding_account;
 mod components;
 mod instances;
 mod latest_instance;
@@ -13,6 +14,7 @@ mod util;
 use std::{fs, path::PathBuf};
 
 use anyhow::Result;
+use copypasta::{ClipboardContext, ClipboardProvider};
 use directories::ProjectDirs;
 use iced::{
     executor, futures::TryFutureExt, widget::row, Application, Command, Element, Settings, Theme,
@@ -42,6 +44,7 @@ pub enum View {
     Settings,
     About,
     Accounts,
+    AddingAccount(String, String),
     FullscreenMessage(String),
 }
 
@@ -59,6 +62,7 @@ pub enum Message {
     SaveSettings,
     OpenURL(String),
     AddAccount,
+    Login(String, String),
     AddingAccount(Result<util::accounts::Account, String>),
     SelectAccount(util::accounts::Account),
 }
@@ -114,18 +118,24 @@ impl Application for App {
                 let client = util::accounts::get_client().unwrap();
                 let details = util::accounts::get_details(&client).unwrap();
 
-                let text = format!(
-                    "Open this URL in your browser:\n{}\nand enter the code: {}",
+                self.view = View::AddingAccount(
                     details.verification_uri().to_string(),
-                    details.user_code().secret().to_string()
+                    details.user_code().secret().to_string(),
                 );
-
-                self.view = View::FullscreenMessage(text);
 
                 Command::perform(
                     util::accounts::get_account(client, details).map_err(|e| e.to_string()),
                     Message::AddingAccount,
                 )
+            }
+            Message::Login(url, code) => {
+                open::that(url).unwrap();
+
+                // copy code to clipboard
+                let mut ctx = ClipboardContext::new().unwrap();
+                ctx.set_contents(code).unwrap();
+
+                Command::none()
             }
             Message::AddingAccount(account) => {
                 match account {
@@ -154,8 +164,13 @@ impl Application for App {
             View::Settings => settings::view(&self.settings),
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),
+            View::AddingAccount(url, code) => adding_account::view(url, code),
             View::FullscreenMessage(message) => components::fullscreen_message::view(message),
         };
+
+        if let View::AddingAccount(_, _) = self.view {
+            return view;
+        }
 
         if let View::FullscreenMessage(_) = self.view {
             return view;

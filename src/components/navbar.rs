@@ -41,6 +41,7 @@ pub fn view<'a>(
             }
             View::Settings => icons::cog(),
             View::About => icons::info(),
+            View::AddingAccount(_, _) => todo!(),
             View::FullscreenMessage(_) => todo!(),
         };
 
