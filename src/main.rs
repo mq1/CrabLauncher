@@ -5,6 +5,7 @@ mod about;
 mod accounts;
 mod components;
 mod instances;
+mod latest_instance;
 mod settings;
 mod style;
 mod util;
@@ -34,6 +35,7 @@ pub fn main() -> Result<()> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum View {
+    LatestInstance,
     Instances,
     Settings,
     About,
@@ -69,7 +71,7 @@ impl Application for App {
 
         (
             Self {
-                view: View::Instances,
+                view: View::LatestInstance,
                 instances,
                 settings,
                 accounts: util::accounts::Accounts::load().unwrap(),
@@ -127,6 +129,7 @@ impl Application for App {
         let navbar = components::navbar::view(&self.view, &self.accounts.active);
 
         let view = match self.view {
+            View::LatestInstance => latest_instance::view(),
             View::Instances => instances::view(&self.instances),
             View::Settings => settings::view(&self.settings),
             View::About => about::view(),
