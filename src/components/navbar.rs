@@ -12,8 +12,9 @@ use crate::{components::icons, style, Message, View};
 pub fn view<'a>(current_view: &'a View, account_head: &'a Option<Vec<u8>>) -> Element<'a, Message> {
     let change_view_button = |view: &View| -> Element<Message> {
         let icon = match view {
-            View::LatestInstance => icons::cube(),
+            View::LatestInstance => icons::package(),
             View::Instances => icons::grid(),
+            View::NewInstance => icons::package_plus(),
             View::Accounts => {
                 if let Some(head) = account_head {
                     if head.is_empty() {
@@ -49,6 +50,7 @@ pub fn view<'a>(current_view: &'a View, account_head: &'a Option<Vec<u8>>) -> El
     let col = column![
         change_view_button(&View::LatestInstance),
         change_view_button(&View::Instances),
+        change_view_button(&View::NewInstance),
         vertical_space(Length::Fill),
         change_view_button(&View::Accounts),
         change_view_button(&View::Settings),

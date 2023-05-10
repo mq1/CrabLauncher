@@ -10,9 +10,12 @@ pub const MDI_ARROW_LEFT_SVG: &[u8] = include_bytes!("../../assets/icons/MdiArro
 pub const MDI_COG_OUTLINE_SVG: &[u8] = include_bytes!("../../assets/icons/MdiCogOutline.svg");
 pub const MDI_CONTENT_SAVE_OUTLINE_SVG: &[u8] =
     include_bytes!("../../assets/icons/MdiContentSaveOutline.svg");
-pub const MDI_CUBE_OUTLINE_SVG: &[u8] = include_bytes!("../../assets/icons/MdiCubeOutline.svg");
 pub const MDI_GITHUB_SVG: &[u8] = include_bytes!("../../assets/icons/MdiGithub.svg");
 pub const MDI_GRID_SVG: &[u8] = include_bytes!("../../assets/icons/MdiGrid.svg");
 pub const MDI_INFORMATION_OUTLINE_SVG: &[u8] =
     include_bytes!("../../assets/icons/MdiInformationOutline.svg");
+pub const MDI_PACKAGE_VARIANT_CLOSED_SVG: &[u8] =
+    include_bytes!("../../assets/icons/MdiPackageVariantClosed.svg");
+pub const MDI_PACKAGE_VARIANT_CLOSED_PLUS_SVG: &[u8] =
+    include_bytes!("../../assets/icons/MdiPackageVariantClosedPlus.svg");
 pub const MDI_PLUS_SVG: &[u8] = include_bytes!("../../assets/icons/MdiPlus.svg");
