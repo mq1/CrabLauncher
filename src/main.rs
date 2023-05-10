@@ -66,7 +66,7 @@ impl Application for App {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        let instances = <util::instances::Instances as util::instances::InstancesExt>::load();
+        let instances = util::instances::Instances::load().unwrap();
         let settings = util::settings::Settings::load().unwrap();
 
         (

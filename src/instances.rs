@@ -14,7 +14,7 @@ use crate::{
 
 pub fn view(instances: &util::instances::Instances) -> Element<Message> {
     let mut wrap = Wrap::new();
-    for instance in instances {
+    for instance in &instances.list {
         let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
         let logo = Image::new(logo_handle).height(100);
 
