@@ -107,14 +107,17 @@ impl Application for App {
                 Command::none()
             }
             Message::AddAccount => {
-                let (url, csrf_token, pkce_verifier) = util::accounts::get_auth_url();
-                open::that(url).unwrap();
-                let account =
-                    util::accounts::listen_login_callback(csrf_token, pkce_verifier).unwrap();
+                let client = util::accounts::get_client().unwrap();
+                let details = util::accounts::get_details(&client).unwrap();
 
-                if let Some(account) = account {
-                    self.accounts.add_account(account).unwrap();
-                }
+                eprintln!(
+                    "Open this URL in your browser:\n{}\nand enter the code: {}",
+                    details.verification_uri().to_string(),
+                    details.user_code().secret().to_string()
+                );
+
+                let account = util::accounts::get_account(&client, &details).unwrap();
+                self.accounts.add_account(account).unwrap();
 
                 Command::none()
             }

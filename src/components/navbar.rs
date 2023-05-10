@@ -32,7 +32,7 @@ pub fn view<'a>(
                     );
                     io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
                     let head_handle = image::Handle::from_memory(bytes);
-                    let head = Image::new(head_handle).width(50).height(50);
+                    let head = Image::new(head_handle).width(32).height(32);
 
                     head.into()
                 } else {
@@ -58,8 +58,8 @@ pub fn view<'a>(
     let col = column![
         change_view_button(&View::LatestInstance),
         change_view_button(&View::Instances),
-        change_view_button(&View::Accounts),
         vertical_space(Length::Fill),
+        change_view_button(&View::Accounts),
         change_view_button(&View::Settings),
         change_view_button(&View::About),
     ];

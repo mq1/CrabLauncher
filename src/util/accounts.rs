@@ -1,42 +1,33 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{
-    fmt::Display,
-    fs,
-    io::{BufRead, BufReader, Write},
-    net::TcpListener,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::PathBuf, thread};
 
-use anyhow::{bail, Result};
-use base64ct::{Base64UrlUnpadded, Encoding};
+use anyhow::Result;
+use oauth2::{
+    basic::BasicClient, devicecode::StandardDeviceAuthorizationResponse, ureq::http_client,
+    AuthUrl, ClientId, DeviceAuthorizationUrl, Scope, TokenResponse, TokenUrl,
+};
 use once_cell::sync::Lazy;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sha2::{Digest, Sha256};
-use ureq::{Agent, AgentBuilder};
+use ureq::AgentBuilder;
 
-use crate::{regex, util::USER_AGENT, BASE_DIR};
+use crate::{util::USER_AGENT, BASE_DIR};
 
-const MSA_AUTHORIZATION_ENDPOINT: &str =
+pub const MSA_DEVICE_AUTH_ENDPOINT: &str =
+    "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode";
+pub const MSA_AUTHORIZATION_ENDPOINT: &str =
     "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
-const MSA_TOKEN_ENDPOINT: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
+pub const MSA_TOKEN_ENDPOINT: &str =
+    "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
 const XBOXLIVE_AUTH_ENDPOINT: &str = "https://user.auth.xboxlive.com/user/authenticate";
 const XSTS_AUTHORIZATION_ENDPOINT: &str = "https://xsts.auth.xboxlive.com/xsts/authorize";
 const MINECRAFT_AUTH_ENDPOINT: &str =
     "https://api.minecraftservices.com/authentication/login_with_xbox";
 const MINECRAFT_PROFILE_ENDPOINT: &str = "https://api.minecraftservices.com/minecraft/profile";
-const CLIENT_ID: &str = "ae26ac80-2153-4801-94f6-8859ce8e058a";
-const SCOPE: &str = "XboxLive.signin offline_access";
-
-#[cfg(dev)]
-const REDIRECT_URI: &str = "http://localhost:1420/login";
-
-#[cfg(not(dev))]
-const REDIRECT_URI: &str = "tauri://localhost/login";
+pub const CLIENT_ID: &str = "1fd7f6fe-f715-41a3-a8d7-895027071ba2";
+pub const SCOPES: &'static [&str] = &["XboxLive.signin", "offline_access"];
 
 static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"));
 
@@ -46,12 +37,6 @@ pub struct Account {
     pub mc_id: String,
     pub mc_access_token: String,
     pub mc_username: String,
-}
-
-impl Display for Account {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.mc_username)
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -122,61 +107,57 @@ impl Accounts {
 
         Ok(())
     }
-
-    // Refresh and return the active account
-    pub fn get_account(&mut self) -> Result<Account> {
-        let active_account = self.active.clone().unwrap();
-        let refreshed_account = refresh(active_account)?;
-
-        self.active = Some(refreshed_account.clone());
-
-        self.save()?;
-
-        Ok(refreshed_account)
-    }
 }
 
-fn get_code_challenge() -> (String, String) {
-    let code_verifier = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(128)
-        .map(char::from)
-        .collect::<String>();
+pub fn get_client() -> Result<BasicClient> {
+    let client_id = ClientId::new(CLIENT_ID.to_owned());
+    let auth_url = AuthUrl::new(MSA_AUTHORIZATION_ENDPOINT.to_owned())?;
+    let token_url = TokenUrl::new(MSA_TOKEN_ENDPOINT.to_owned())?;
+    let device_auth_url = DeviceAuthorizationUrl::new(MSA_DEVICE_AUTH_ENDPOINT.to_owned())?;
 
-    let code_challenge = {
-        let hash = Sha256::digest(code_verifier.as_bytes());
-        let base64_hash = Base64UrlUnpadded::encode_string(&hash);
+    let client = BasicClient::new(client_id, None, auth_url, Some(token_url))
+        .set_device_authorization_url(device_auth_url);
 
-        base64_hash
-    };
-
-    (code_verifier, code_challenge)
+    Ok(client)
 }
 
-fn get_state() -> String {
-    thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(6)
-        .map(char::from)
-        .collect()
+pub fn get_details(client: &BasicClient) -> Result<StandardDeviceAuthorizationResponse> {
+    let scopes = SCOPES
+        .iter()
+        .map(|s| Scope::new(s.to_string()))
+        .collect::<Vec<_>>();
+
+    let details = client
+        .exchange_device_code()?
+        .add_scopes(scopes)
+        .request(http_client)?;
+
+    Ok(details)
 }
 
-pub fn get_auth_url() -> (String, String, String) {
-    let state = get_state();
-    let (code_verifier, code_challenge) = get_code_challenge();
+pub fn get_account(
+    client: &BasicClient,
+    details: &StandardDeviceAuthorizationResponse,
+) -> Result<Account> {
+    let token_result =
+        client
+            .exchange_device_access_token(details)
+            .request(http_client, thread::sleep, None)?;
 
-    let url = format!(
-        "{MSA_AUTHORIZATION_ENDPOINT}?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&response_mode=query&scope={SCOPE}&state={state}&code_challenge={code_challenge}&code_challenge_method=S256",
-    );
+    let account = get_minecraft_account_data(
+        &token_result.access_token().secret().to_string(),
+        &token_result.refresh_token().unwrap().secret().to_string(),
+    )?;
 
-    (url, state, code_verifier)
+    Ok(account)
 }
 
-fn get_minecraft_account_data(
-    agent: Agent,
-    access_token: String,
-    refresh_token: String,
+pub fn get_minecraft_account_data(
+    access_token: &str,
+    refresh_token: &str,
 ) -> Result<Account, ureq::Error> {
+    let agent = AgentBuilder::new().user_agent(USER_AGENT).build();
+
     // Authenticate with Xbox Live
 
     #[derive(Deserialize)]
@@ -281,115 +262,11 @@ fn get_minecraft_account_data(
         .into_json::<MinecraftProfile>()?;
 
     let account = Account {
-        ms_refresh_token: refresh_token,
+        ms_refresh_token: refresh_token.to_owned(),
         mc_id: minecraft_profile.id,
         mc_access_token: minecraft_response.access_token,
         mc_username: minecraft_profile.name,
     };
 
     Ok(account)
-}
-
-#[derive(Deserialize)]
-struct OAuth2Token {
-    access_token: String,
-    refresh_token: String,
-}
-
-fn login(code: String, pkce_verifier: String) -> Result<Account, ureq::Error> {
-    let agent = AgentBuilder::new().user_agent(USER_AGENT).build();
-
-    println!("Exchanging code for access token...");
-
-    let params = [
-        ("client_id", CLIENT_ID),
-        ("scope", SCOPE),
-        ("code", &code),
-        ("redirect_uri", REDIRECT_URI),
-        ("grant_type", "authorization_code"),
-        ("code_verifier", &pkce_verifier),
-    ];
-
-    let resp = agent
-        .post(MSA_TOKEN_ENDPOINT)
-        .set("Accept", "application/json")
-        .send_form(&params)?
-        .into_json::<OAuth2Token>()?;
-
-    println!("Exchanged code for access token!");
-
-    let entry = get_minecraft_account_data(agent, resp.access_token, resp.refresh_token)?;
-
-    Ok(entry)
-}
-
-fn refresh(account: Account) -> Result<Account, ureq::Error> {
-    let agent = AgentBuilder::new().user_agent(USER_AGENT).build();
-
-    let params = [
-        ("client_id", CLIENT_ID),
-        ("scope", SCOPE),
-        ("refresh_token", &account.ms_refresh_token),
-        ("grant_type", "refresh_token"),
-    ];
-
-    let resp = agent
-        .post(MSA_TOKEN_ENDPOINT)
-        .set("Accept", "application/json")
-        .send_form(&params)?
-        .into_json::<OAuth2Token>()?;
-
-    let entry = get_minecraft_account_data(agent, resp.access_token, resp.refresh_token)?;
-
-    Ok(entry)
-}
-
-pub fn listen_login_callback(csrf_token: String, pkce_verifier: String) -> Result<Option<Account>> {
-    let listener = TcpListener::bind("127.0.0.1:3003")?;
-    for stream in listener.incoming() {
-        if let Ok(mut stream) = stream {
-            let code;
-            let state;
-            {
-                let mut reader = BufReader::new(&stream);
-
-                let mut request_line = String::new();
-                reader.read_line(&mut request_line)?;
-
-                let caps = regex!(r"/login\?code=(?P<code>.*)&state=(?P<state>.*) ")
-                    .captures(&request_line)
-                    .unwrap();
-
-                code = caps["code"].to_string();
-                state = caps["state"].to_string();
-            }
-
-            if state != csrf_token {
-                let message = "Invalid state";
-                let response = format!(
-                    "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
-                    message.len(),
-                    message
-                );
-                stream.write_all(response.as_bytes())?;
-
-                bail!("Invalid CSRF token");
-            }
-
-            let message = "You can close this tab now";
-            let response = format!(
-                "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}",
-                message.len(),
-                message
-            );
-            stream.write_all(response.as_bytes())?;
-
-            println!("Logging in...");
-            let account = login(code, pkce_verifier)?;
-            println!("Logged in!");
-            return Ok(Some(account));
-        }
-    }
-
-    Ok(None)
 }
