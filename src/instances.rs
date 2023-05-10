@@ -35,12 +35,6 @@ pub fn view(instances: &util::instances::Instances) -> Element<Message> {
 
     let content = scrollable(wrap).width(Length::Fill).height(Length::Fill);
 
-    let content = FloatingElement::new(content, || {
-        container(button(icons::plus()).style(style::circle_button()))
-            .padding([0, 20, 20, 0])
-            .into()
-    });
-
     column![text("Instances").size(30), content]
         .spacing(10)
         .padding(10)

@@ -33,10 +33,6 @@ pub fn content_save() -> Element<'static, Message> {
     view!(assets::MDI_CONTENT_SAVE_OUTLINE_SVG).into()
 }
 
-pub fn cube() -> Element<'static, Message> {
-    view!(assets::MDI_CUBE_OUTLINE_SVG).into()
-}
-
 pub fn github() -> Element<'static, Message> {
     view!(assets::MDI_GITHUB_SVG).into()
 }
@@ -47,6 +43,14 @@ pub fn grid() -> Element<'static, Message> {
 
 pub fn info() -> Element<'static, Message> {
     view!(assets::MDI_INFORMATION_OUTLINE_SVG).into()
+}
+
+pub fn package() -> Element<'static, Message> {
+    view!(assets::MDI_PACKAGE_VARIANT_CLOSED_SVG).into()
+}
+
+pub fn package_plus() -> Element<'static, Message> {
+    view!(assets::MDI_PACKAGE_VARIANT_CLOSED_PLUS_SVG).into()
 }
 
 pub fn plus() -> Element<'static, Message> {

@@ -17,7 +17,10 @@ use anyhow::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use directories::ProjectDirs;
 use iced::{
-    executor, futures::TryFutureExt, widget::row, Application, Command, Element, Settings, Theme,
+    executor,
+    futures::TryFutureExt,
+    widget::{row, text},
+    Application, Command, Element, Settings, Theme,
 };
 use once_cell::sync::Lazy;
 
@@ -41,6 +44,7 @@ pub fn main() -> Result<()> {
 pub enum View {
     LatestInstance,
     Instances,
+    NewInstance,
     Settings,
     About,
     Accounts,
@@ -192,6 +196,7 @@ impl Application for App {
         let view = match &self.view {
             View::LatestInstance => latest_instance::view(),
             View::Instances => instances::view(&self.instances),
+            View::NewInstance => text("New Instance").into(),
             View::Settings => settings::view(&self.settings),
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),
