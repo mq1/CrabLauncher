@@ -135,13 +135,13 @@ pub fn get_details(client: &BasicClient) -> Result<StandardDeviceAuthorizationRe
     Ok(details)
 }
 
-pub fn get_account(
-    client: &BasicClient,
-    details: &StandardDeviceAuthorizationResponse,
+pub async fn get_account(
+    client: BasicClient,
+    details: StandardDeviceAuthorizationResponse,
 ) -> Result<Account> {
     let token_result =
         client
-            .exchange_device_access_token(details)
+            .exchange_device_access_token(&details)
             .request(http_client, thread::sleep, None)?;
 
     let account = get_minecraft_account_data(

@@ -41,6 +41,7 @@ pub fn view<'a>(
             }
             View::Settings => icons::cog(),
             View::About => icons::info(),
+            View::FullscreenMessage(_) => todo!(),
         };
 
         let mut btn = button(icon)

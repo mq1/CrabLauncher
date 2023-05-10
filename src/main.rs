@@ -14,7 +14,9 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Result;
 use directories::ProjectDirs;
-use iced::{executor, widget::row, Application, Command, Element, Settings, Theme};
+use iced::{
+    executor, futures::TryFutureExt, widget::row, Application, Command, Element, Settings, Theme,
+};
 use once_cell::sync::Lazy;
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
@@ -40,6 +42,7 @@ pub enum View {
     Settings,
     About,
     Accounts,
+    FullscreenMessage(String),
 }
 
 struct App {
@@ -56,6 +59,7 @@ pub enum Message {
     SaveSettings,
     OpenURL(String),
     AddAccount,
+    AddingAccount(Result<util::accounts::Account, String>),
     SelectAccount(util::accounts::Account),
 }
 
@@ -110,14 +114,29 @@ impl Application for App {
                 let client = util::accounts::get_client().unwrap();
                 let details = util::accounts::get_details(&client).unwrap();
 
-                eprintln!(
+                let text = format!(
                     "Open this URL in your browser:\n{}\nand enter the code: {}",
                     details.verification_uri().to_string(),
                     details.user_code().secret().to_string()
                 );
 
-                let account = util::accounts::get_account(&client, &details).unwrap();
-                self.accounts.add_account(account).unwrap();
+                self.view = View::FullscreenMessage(text);
+
+                Command::perform(
+                    util::accounts::get_account(client, details).map_err(|e| e.to_string()),
+                    Message::AddingAccount,
+                )
+            }
+            Message::AddingAccount(account) => {
+                match account {
+                    Ok(account) => {
+                        self.accounts.add_account(account).unwrap();
+                        self.view = View::Accounts;
+                    }
+                    Err(e) => {
+                        self.view = View::FullscreenMessage(e);
+                    }
+                }
 
                 Command::none()
             }
@@ -129,15 +148,20 @@ impl Application for App {
     }
 
     fn view(&self) -> Element<Message> {
-        let navbar = components::navbar::view(&self.view, &self.accounts.active);
-
-        let view = match self.view {
+        let view = match &self.view {
             View::LatestInstance => latest_instance::view(),
             View::Instances => instances::view(&self.instances),
             View::Settings => settings::view(&self.settings),
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),
+            View::FullscreenMessage(message) => components::fullscreen_message::view(message),
         };
+
+        if let View::FullscreenMessage(_) = self.view {
+            return view;
+        }
+
+        let navbar = components::navbar::view(&self.view, &self.accounts.active);
 
         row![navbar, view].into()
     }
