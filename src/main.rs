@@ -23,6 +23,7 @@ use iced::{
     Application, Command, Element, Settings, Theme,
 };
 use once_cell::sync::Lazy;
+use rfd::{MessageButtons, MessageDialog, MessageLevel};
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     ProjectDirs::from("eu", "mq1", "icy-launcher")
@@ -63,6 +64,7 @@ struct App {
 #[derive(Debug, Clone)]
 pub enum Message {
     ChangeView(View),
+    GotUpdate(Result<Option<(String, String)>, String>),
     CheckForUpdates(bool),
     SaveSettings,
     OpenURL(String),
@@ -84,7 +86,16 @@ impl Application for App {
         let settings = util::settings::Settings::load().unwrap();
         let accounts = util::accounts::Accounts::load().unwrap();
 
-        let (command, account_head) = match accounts.active {
+        let first_command = if settings.check_for_updates {
+            Command::perform(
+                util::updater::check_for_updates().map_err(|e| e.to_string()),
+                Message::GotUpdate,
+            )
+        } else {
+            Command::none()
+        };
+
+        let (second_command, account_head) = match accounts.active {
             Some(ref account) => {
                 let account = account.clone();
 
@@ -98,6 +109,8 @@ impl Application for App {
             }
             None => (Command::none(), None),
         };
+
+        let command = Command::batch(vec![first_command, second_command]);
 
         (
             Self {
@@ -123,6 +136,31 @@ impl Application for App {
         match message {
             Message::ChangeView(view) => {
                 self.view = view;
+                Command::none()
+            }
+            Message::GotUpdate(result) => {
+                match result {
+                    Ok(update) => {
+                        if let Some((version, url)) = update {
+                            let dialog = MessageDialog::new()
+                                .set_level(MessageLevel::Info)
+                                .set_title("Update available")
+                                .set_description(&format!("Version {} is available", version))
+                                .set_buttons(MessageButtons::OkCancelCustom(
+                                    "Update".to_string(),
+                                    "Cancel".to_string(),
+                                ));
+
+                            if dialog.show() {
+                                open::that(url).unwrap();
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!("Error checking for updates: {e}");
+                    }
+                }
+
                 Command::none()
             }
             Message::CheckForUpdates(value) => {
@@ -183,7 +221,7 @@ impl Application for App {
                         self.account_head = Some(head);
                     }
                     Err(e) => {
-                        println!("Error getting account head: {}", e)
+                        println!("Error getting account head: {e}")
                     }
                 }
 

@@ -10,6 +10,7 @@ description = "An unofficial launcher for Minecraft: Java Edition"
 [dependencies]
 iced = { version = "0.9", default-features = false, features = ["glow", "image", "svg"] }
 iced_aw = { version = "0.5", default-features = false, features = ["glow", "wrap", "floating_element", "spinner"] }
+rfd = "0.11"
 ureq = { version = "2.6", features = ["json"] }
 open = "4.0"
 anyhow = "1.0"
@@ -21,6 +22,7 @@ once_cell = "1.17"
 time = { version = "0.3", features = ["serde"] }
 oauth2 = { version = "4.3", default-features = false, features = ["ureq"] }
 copypasta = "0.8"
+version-compare = "0.1"
 
 [profile.release]
 opt-level = "z"
