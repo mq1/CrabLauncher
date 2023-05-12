@@ -5,8 +5,8 @@ mod about;
 mod accounts;
 mod adding_account;
 mod components;
+mod instance;
 mod instances;
-mod latest_instance;
 mod settings;
 mod style;
 mod util;
@@ -232,7 +232,7 @@ impl Application for App {
 
     fn view(&self) -> Element<Message> {
         let view = match &self.view {
-            View::LatestInstance => latest_instance::view(),
+            View::LatestInstance => instance::view("Latest"),
             View::Instances => instances::view(&self.instances),
             View::NewInstance => text("New Instance").into(),
             View::Settings => settings::view(&self.settings),
