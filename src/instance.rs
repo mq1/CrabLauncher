@@ -5,6 +5,6 @@ use iced::{widget::text, Element};
 
 use crate::Message;
 
-pub fn view() -> Element<'static, Message> {
-    text("Latest Instance").into()
+pub fn view(name: &str) -> Element<Message> {
+    text(name).size(30).into()
 }
