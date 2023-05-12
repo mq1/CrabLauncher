@@ -5,12 +5,9 @@ use iced::{
     widget::{button, column, container, image, scrollable, text, Image},
     Alignment, Element, Length,
 };
-use iced_aw::{FloatingElement, Wrap};
+use iced_aw::Wrap;
 
-use crate::{
-    components::{assets, icons},
-    style, util, Message,
-};
+use crate::{components::assets, style, util, Message};
 
 pub fn view(instances: &util::instances::Instances) -> Element<Message> {
     let mut wrap = Wrap::new();
