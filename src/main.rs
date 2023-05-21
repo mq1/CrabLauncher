@@ -7,6 +7,7 @@ mod adding_account;
 mod components;
 mod instance;
 mod instances;
+mod new_instance;
 mod settings;
 mod style;
 mod util;
@@ -17,10 +18,7 @@ use anyhow::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use directories::ProjectDirs;
 use iced::{
-    executor,
-    futures::TryFutureExt,
-    widget::{row, text},
-    Application, Command, Element, Settings, Theme,
+    executor, futures::TryFutureExt, widget::row, Application, Command, Element, Settings, Theme,
 };
 use once_cell::sync::Lazy;
 use rfd::{MessageButtons, MessageDialog, MessageLevel};
@@ -59,6 +57,9 @@ struct App {
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
     account_head: Option<Vec<u8>>,
+    new_instance_name: String,
+    available_versions: Vec<String>,
+    seleted_version: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -73,6 +74,8 @@ pub enum Message {
     AddingAccount(Result<util::accounts::Account, String>),
     SelectAccount(util::accounts::Account),
     GotAccountHead(Result<Vec<u8>, String>),
+    ChangeInstanceName(String),
+    SelectVersion(String),
 }
 
 impl Application for App {
@@ -119,6 +122,9 @@ impl Application for App {
                 settings,
                 accounts,
                 account_head,
+                new_instance_name: String::new(),
+                available_versions: vec!["1".to_string(), "2".to_string(), "3".to_string()],
+                seleted_version: None,
             },
             command,
         )
@@ -227,6 +233,14 @@ impl Application for App {
 
                 Command::none()
             }
+            Message::ChangeInstanceName(new_name) => {
+                self.new_instance_name = new_name;
+                Command::none()
+            }
+            Message::SelectVersion(version) => {
+                self.seleted_version = Some(version);
+                Command::none()
+            }
         }
     }
 
@@ -234,7 +248,11 @@ impl Application for App {
         let view = match &self.view {
             View::LatestInstance => instance::view("Latest"),
             View::Instances => instances::view(&self.instances),
-            View::NewInstance => text("New Instance").into(),
+            View::NewInstance => new_instance::view(
+                &self.available_versions,
+                self.seleted_version.clone(),
+                &self.new_instance_name,
+            ),
             View::Settings => settings::view(&self.settings),
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),
