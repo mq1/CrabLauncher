@@ -14,8 +14,10 @@ pub const MDI_GITHUB_SVG: &[u8] = include_bytes!("../../assets/icons/MdiGithub.s
 pub const MDI_GRID_SVG: &[u8] = include_bytes!("../../assets/icons/MdiGrid.svg");
 pub const MDI_INFORMATION_OUTLINE_SVG: &[u8] =
     include_bytes!("../../assets/icons/MdiInformationOutline.svg");
+pub const MDI_MINECRAFT_SVG: &[u8] = include_bytes!("../../assets/icons/MdiMinecraft.svg");
 pub const MDI_PACKAGE_VARIANT_CLOSED_SVG: &[u8] =
     include_bytes!("../../assets/icons/MdiPackageVariantClosed.svg");
 pub const MDI_PACKAGE_VARIANT_CLOSED_PLUS_SVG: &[u8] =
     include_bytes!("../../assets/icons/MdiPackageVariantClosedPlus.svg");
 pub const MDI_PLUS_SVG: &[u8] = include_bytes!("../../assets/icons/MdiPlus.svg");
+pub const MODRINTH_SVG: &[u8] = include_bytes!("../../assets/icons/Modrinth.svg");

@@ -7,7 +7,8 @@ mod adding_account;
 mod components;
 mod instance;
 mod instances;
-mod new_instance;
+mod new_modrinth_instance;
+mod new_vanilla_instance;
 mod settings;
 mod style;
 mod util;
@@ -43,7 +44,8 @@ pub fn main() -> Result<()> {
 pub enum View {
     LatestInstance,
     Instances,
-    NewInstance,
+    NewVanillaInstance,
+    NewModrinthInstance,
     Settings,
     About,
     Accounts,
@@ -248,11 +250,12 @@ impl Application for App {
         let view = match &self.view {
             View::LatestInstance => instance::view("Latest"),
             View::Instances => instances::view(&self.instances),
-            View::NewInstance => new_instance::view(
+            View::NewVanillaInstance => new_vanilla_instance::view(
                 &self.available_versions,
                 self.seleted_version.clone(),
                 &self.new_instance_name,
             ),
+            View::NewModrinthInstance => new_modrinth_instance::view(),
             View::Settings => settings::view(&self.settings),
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),

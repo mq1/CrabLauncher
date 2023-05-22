@@ -45,6 +45,10 @@ pub fn info() -> Element<'static, Message> {
     view!(assets::MDI_INFORMATION_OUTLINE_SVG).into()
 }
 
+pub fn minecraft() -> Element<'static, Message> {
+    view!(assets::MDI_MINECRAFT_SVG).into()
+}
+
 pub fn package() -> Element<'static, Message> {
     view!(assets::MDI_PACKAGE_VARIANT_CLOSED_SVG).into()
 }
@@ -54,5 +58,9 @@ pub fn package_plus() -> Element<'static, Message> {
 }
 
 pub fn plus() -> Element<'static, Message> {
-    view!(assets::MDI_PLUS_SVG).width(35).height(35).into()
+    view!(assets::MDI_PLUS_SVG).into()
+}
+
+pub fn modrinth() -> Element<'static, Message> {
+    view!(assets::MODRINTH_SVG).width(32).height(32).into()
 }

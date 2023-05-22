@@ -16,7 +16,7 @@ pub fn view<'a>(
     selected_version: Option<String>,
     name: &'a str,
 ) -> Element<'a, Message> {
-    let title = text("New Instance").size(30);
+    let title = text("Vanilla").size(30);
 
     let name_text = text("Instance name");
     let name = text_input("", name).on_input(Message::ChangeInstanceName);

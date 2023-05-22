@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{button, column, container, image, vertical_space, Image},
-    Element, Length,
+    widget::{button, column, container, image, text, vertical_space, Image},
+    Alignment, Element, Length,
 };
 use iced_aw::Spinner;
 
@@ -14,7 +14,8 @@ pub fn view<'a>(current_view: &'a View, account_head: &'a Option<Vec<u8>>) -> El
         let icon = match view {
             View::LatestInstance => icons::package(),
             View::Instances => icons::grid(),
-            View::NewInstance => icons::package_plus(),
+            View::NewVanillaInstance => icons::minecraft(),
+            View::NewModrinthInstance => icons::modrinth(),
             View::Accounts => {
                 if let Some(head) = account_head {
                     if head.is_empty() {
@@ -50,12 +51,17 @@ pub fn view<'a>(current_view: &'a View, account_head: &'a Option<Vec<u8>>) -> El
     let col = column![
         change_view_button(&View::LatestInstance),
         change_view_button(&View::Instances),
-        change_view_button(&View::NewInstance),
+        vertical_space(Length::Fill),
+        text("New"),
+        vertical_space(5),
+        change_view_button(&View::NewVanillaInstance),
+        change_view_button(&View::NewModrinthInstance),
         vertical_space(Length::Fill),
         change_view_button(&View::Accounts),
         change_view_button(&View::Settings),
         change_view_button(&View::About),
-    ];
+    ]
+    .align_items(Alignment::Center);
 
     container(col).style(style::dark()).into()
 }
