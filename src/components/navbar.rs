@@ -11,13 +11,15 @@ use crate::{components::icons, style, Message, View};
 
 pub fn view<'a>(current_view: &'a View, account_head: &'a Option<Vec<u8>>) -> Element<'a, Message> {
     let change_view_button = |view: View, icon: Element<'static, Message>| -> Element<Message> {
-        let mut btn = button(icon).style(style::transparent_button()).padding(10);
-
-        if &view == current_view {
-            btn = btn.style(style::selected_button());
-        }
-
-        btn.on_press(Message::ChangeView(view)).into()
+        button(icon)
+            .padding(10)
+            .style(if &view == current_view {
+                style::selected_button()
+            } else {
+                style::transparent_button()
+            })
+            .on_press(Message::ChangeView(view))
+            .into()
     };
 
     let account_icon = if let Some(head) = account_head {
