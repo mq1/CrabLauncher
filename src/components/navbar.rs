@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{button, column, container, image, text, vertical_space, Image},
+    widget::{button, column, container, image, vertical_space, Image},
     Alignment, Element, Length,
 };
 use iced_aw::Spinner;
@@ -37,12 +37,8 @@ pub fn view<'a>(current_view: &'a View, account_head: &'a Option<Vec<u8>>) -> El
 
     let col = column![
         change_view_button(View::LatestInstance, icons::package()),
+        change_view_button(View::NewInstance, icons::package_plus()),
         change_view_button(View::Instances, icons::grid()),
-        vertical_space(Length::Fill),
-        text("Install"),
-        vertical_space(5),
-        change_view_button(View::NewVanillaInstance, icons::minecraft()),
-        change_view_button(View::NewModrinthInstance, icons::modrinth()),
         vertical_space(Length::Fill),
         change_view_button(View::Accounts, account_icon),
         change_view_button(View::Settings, icons::cog()),
