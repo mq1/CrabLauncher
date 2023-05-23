@@ -39,7 +39,7 @@ pub fn view<'a>(current_view: &'a View, account_head: &'a Option<Vec<u8>>) -> El
         change_view_button(View::LatestInstance, icons::package()),
         change_view_button(View::Instances, icons::grid()),
         vertical_space(Length::Fill),
-        text("New"),
+        text("Install"),
         vertical_space(5),
         change_view_button(View::NewVanillaInstance, icons::minecraft()),
         change_view_button(View::NewModrinthInstance, icons::modrinth()),
