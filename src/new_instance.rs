@@ -1,23 +1,26 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs, path::PathBuf};
-
 use iced::{
     color, theme,
-    widget::{button, column, svg, text, Button},
-    Alignment, Element,
+    widget::{button, column, svg, text, vertical_space, Button},
+    Alignment, Element, Length,
 };
 use iced_aw::Wrap;
 
 use crate::{util, Message};
 
 fn btn<'a>(label: String, icon: Element<'static, Message>) -> Button<Message> {
-    let content = column![icon, text(label)]
-        .align_items(Alignment::Center)
-        .padding(5);
+    let content = column![
+        vertical_space(Length::Fill),
+        icon,
+        text(label),
+        vertical_space(Length::Fill),
+    ]
+    .align_items(Alignment::Center)
+    .spacing(5);
 
-    button(content)
+    button(content).height(100).width(100)
 }
 
 pub fn view(installers: &Vec<util::lua::Installer>) -> Element<'static, Message> {
