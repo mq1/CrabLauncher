@@ -56,6 +56,8 @@ pub enum View {
 }
 
 struct App {
+    lua: mlua::Lua,
+    installers: Vec<PathBuf>,
     view: View,
     instances: util::instances::Instances,
     settings: util::settings::Settings,
@@ -93,7 +95,7 @@ impl Application for App {
         let settings = util::settings::Settings::load().unwrap();
         let accounts = util::accounts::Accounts::load().unwrap();
 
-        let first_command = if settings.check_for_updates {
+        let updates_command = if settings.check_for_updates {
             Command::perform(
                 util::updater::check_for_updates().map_err(|e| e.to_string()),
                 Message::GotUpdate,
@@ -102,7 +104,7 @@ impl Application for App {
             Command::none()
         };
 
-        let (second_command, account_head) = match accounts.active {
+        let (head_command, account_head) = match accounts.active {
             Some(ref account) => {
                 let account = account.clone();
 
@@ -117,10 +119,12 @@ impl Application for App {
             None => (Command::none(), None),
         };
 
-        let command = Command::batch(vec![first_command, second_command]);
+        let command = Command::batch(vec![updates_command, head_command]);
 
         (
             Self {
+                lua: util::lua::get_vm().unwrap(),
+                installers: Vec::new(),
                 view: View::LatestInstance,
                 instances,
                 settings,
@@ -145,6 +149,12 @@ impl Application for App {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ChangeView(view) => {
+                if view == View::NewInstance {
+                    // todo: smooth loading
+                    util::lua::download_modules().unwrap();
+                    self.installers = util::lua::list_installers().unwrap();
+                }
+
                 self.view = view;
                 Command::none()
             }
@@ -252,7 +262,7 @@ impl Application for App {
         let view = match &self.view {
             View::LatestInstance => instance::view("Latest"),
             View::Instances => instances::view(&self.instances),
-            View::NewInstance => new_instance::view(),
+            View::NewInstance => new_instance::view(&self.installers, &self.lua),
             View::NewVanillaInstance => new_vanilla_instance::view(
                 &self.available_versions,
                 self.seleted_version.clone(),

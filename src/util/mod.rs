@@ -3,6 +3,7 @@
 
 pub mod accounts;
 pub mod instances;
+pub mod lua;
 pub mod settings;
 pub mod updater;
 
