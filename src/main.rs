@@ -56,8 +56,7 @@ pub enum View {
 }
 
 struct App {
-    lua: mlua::Lua,
-    installers: Vec<PathBuf>,
+    installers: Vec<util::lua::Installer>,
     view: View,
     instances: util::instances::Instances,
     settings: util::settings::Settings,
@@ -123,7 +122,6 @@ impl Application for App {
 
         (
             Self {
-                lua: util::lua::get_vm().unwrap(),
                 installers: Vec::new(),
                 view: View::LatestInstance,
                 instances,
@@ -262,7 +260,7 @@ impl Application for App {
         let view = match &self.view {
             View::LatestInstance => instance::view("Latest"),
             View::Instances => instances::view(&self.instances),
-            View::NewInstance => new_instance::view(&self.installers, &self.lua),
+            View::NewInstance => new_instance::view(&self.installers),
             View::NewVanillaInstance => new_vanilla_instance::view(
                 &self.available_versions,
                 self.seleted_version.clone(),
