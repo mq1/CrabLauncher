@@ -50,7 +50,12 @@ pub fn download_modules() -> Result<()> {
     Ok(())
 }
 
-pub fn list_installers() -> Result<Vec<PathBuf>> {
+pub struct Installer {
+    pub name: String,
+    pub icon_svg: Vec<u8>,
+}
+
+pub fn list_installers() -> Result<Vec<Installer>> {
     let dir = BASE_DIR.join("modules").join("installers");
 
     let installers = fs::read_dir(dir)?
@@ -64,7 +69,25 @@ pub fn list_installers() -> Result<Vec<PathBuf>> {
 
             Some(path)
         })
-        .collect();
+        .collect::<Vec<_>>();
+
+    let lua = get_vm()?;
+    let mut installers = installers
+        .into_iter()
+        .filter_map(|path| {
+            let str = fs::read_to_string(path).ok()?;
+            lua.load(&str).exec().ok()?;
+
+            let name = lua.globals().get::<_, String>("Name").ok()?;
+            let icon_svg = lua.globals().get::<_, String>("IconSVG").ok()?;
+            let icon_bytes = icon_svg.as_bytes().to_vec();
+
+            Some(Installer {
+                name,
+                icon_svg: icon_bytes,
+            })
+        })
+        .collect::<Vec<_>>();
 
     Ok(installers)
 }

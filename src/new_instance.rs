@@ -6,11 +6,11 @@ use std::{fs, path::PathBuf};
 use iced::{
     color, theme,
     widget::{button, column, svg, text, Button},
-    Alignment, Element, Length,
+    Alignment, Element,
 };
 use iced_aw::Wrap;
 
-use crate::Message;
+use crate::{util, Message};
 
 fn btn<'a>(label: String, icon: Element<'static, Message>) -> Button<Message> {
     let content = column![icon, text(label)]
@@ -20,28 +20,21 @@ fn btn<'a>(label: String, icon: Element<'static, Message>) -> Button<Message> {
     button(content)
 }
 
-pub fn view(installers: &Vec<PathBuf>, lua: &mlua::Lua) -> Element<'static, Message> {
+pub fn view(installers: &Vec<util::lua::Installer>) -> Element<'static, Message> {
     let title = text("New instance").size(30);
 
     let mut wrap = Wrap::new().spacing(10.);
     for installer in installers {
-        let str = fs::read_to_string(installer).unwrap();
-        lua.load(&str).exec().unwrap();
-
-        let name = lua.globals().get::<_, String>("Name").unwrap();
-        let icon_svg = lua.globals().get::<_, String>("IconSVG").unwrap();
-        let icon_bytes = icon_svg.as_bytes().to_vec();
-
-        let handle = svg::Handle::from_memory(icon_bytes);
+        let handle = svg::Handle::from_memory(installer.icon_svg.clone());
         let icon = svg(handle)
             .style(theme::Svg::custom_fn(|_theme| svg::Appearance {
                 color: Some(color!(0xe2e8f0)),
             }))
-            .width(Length::Shrink)
-            .height(Length::Shrink)
+            .width(32)
+            .height(32)
             .into();
 
-        let button = btn(name, icon);
+        let button = btn(installer.name.clone(), icon);
         wrap = wrap.push(button);
     }
 
