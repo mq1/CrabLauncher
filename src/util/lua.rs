@@ -30,22 +30,19 @@ pub fn get_vm() -> Result<Lua> {
 pub fn download_modules() -> Result<()> {
     let dir = BASE_DIR.join("modules");
 
+    // todo: properly update modules
+    if dir.exists() {
+        return Ok(());
+    }
+
     let resp = ureq::get(MODULES_URL).call()?;
     let reader = BufReader::new(resp.into_reader());
     let mut archive = Archive::new(GzDecoder::new(reader));
 
-    // remove old modules
-    if dir.exists() {
-        fs::remove_dir_all(&dir)?;
-    }
-
     archive.unpack(BASE_DIR.as_path())?;
 
     // rename modules dir
-    {
-        let old_dir = BASE_DIR.join("icy-launcher-modules");
-        fs::rename(old_dir, dir)?;
-    }
+    fs::rename(BASE_DIR.join("icy-launcher-modules"), dir)?;
 
     Ok(())
 }
