@@ -1,32 +1,48 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use std::{fs, path::PathBuf};
+
 use iced::{
-    widget::{button, column, text, Button},
-    Alignment, Element,
+    color, theme,
+    widget::{button, column, svg, text, Button},
+    Alignment, Element, Length,
 };
 use iced_aw::Wrap;
 
-use crate::{components::icons, Message, View};
+use crate::Message;
 
-fn btn<'a>(label: &'a str, icon: Element<'static, Message>, view: View) -> Button<'a, Message> {
+fn btn<'a>(label: String, icon: Element<'static, Message>) -> Button<Message> {
     let content = column![icon, text(label)]
         .align_items(Alignment::Center)
         .padding(5);
 
-    button(content).on_press(Message::ChangeView(view))
+    button(content)
 }
 
-pub fn view() -> Element<'static, Message> {
+pub fn view(installers: &Vec<PathBuf>, lua: &mlua::Lua) -> Element<'static, Message> {
     let title = text("New instance").size(30);
 
     let mut wrap = Wrap::new().spacing(10.);
-    {
-        let vanilla_button = btn("Vanilla", icons::minecraft(), View::NewVanillaInstance);
-        let modrinth_button = btn("Modrinth", icons::modrinth(), View::NewModrinthInstance);
+    for installer in installers {
+        let str = fs::read_to_string(installer).unwrap();
+        lua.load(&str).exec().unwrap();
 
-        wrap = wrap.push(vanilla_button);
-        wrap = wrap.push(modrinth_button);
+        let name = lua.globals().get::<_, String>("Name").unwrap();
+        let icon_svg = lua.globals().get::<_, String>("IconSVG").unwrap();
+        let icon_bytes = icon_svg.as_bytes().to_vec();
+
+        let handle = svg::Handle::from_memory(icon_bytes);
+        let icon = svg(handle)
+            .style(theme::Svg::custom_fn(|_theme| svg::Appearance {
+                color: Some(color!(0xe2e8f0)),
+            }))
+            .width(Length::Shrink)
+            .height(Length::Shrink)
+            .into();
+
+        let button = btn(name, icon);
+        wrap = wrap.push(button);
     }
 
     column![title, wrap].spacing(10).padding(10).into()
