@@ -5,7 +5,7 @@ use std::{fs, io::BufReader, path::PathBuf};
 
 use anyhow::Result;
 use flate2::bufread::GzDecoder;
-use mlua::{ExternalResult, Lua, LuaSerdeExt};
+use mlua::{ExternalResult, Function, Lua, LuaSerdeExt};
 use serde_json::Value;
 use tar::Archive;
 
@@ -47,9 +47,24 @@ pub fn download_modules() -> Result<()> {
     Ok(())
 }
 
+#[derive(Debug, Clone)]
 pub struct Installer {
+    pub path: PathBuf,
     pub name: String,
     pub icon_svg: Vec<u8>,
+}
+
+impl Installer {
+    pub fn get_versions(&self) -> Result<Vec<String>> {
+        let lua = get_vm()?;
+        let str = fs::read_to_string(self.path.as_path())?;
+        lua.load(&str).exec()?;
+
+        let get_versions = lua.globals().get::<_, Function>("GetVersions")?;
+        let versions = get_versions.call::<_, Vec<String>>(())?;
+
+        Ok(versions)
+    }
 }
 
 pub fn list_installers() -> Result<Vec<Installer>> {
@@ -72,7 +87,7 @@ pub fn list_installers() -> Result<Vec<Installer>> {
     let installers = installers
         .into_iter()
         .filter_map(|path| {
-            let str = fs::read_to_string(path).ok()?;
+            let str = fs::read_to_string(&path).ok()?;
             lua.load(&str).exec().ok()?;
 
             let name = lua.globals().get::<_, String>("Name").ok()?;
@@ -80,6 +95,7 @@ pub fn list_installers() -> Result<Vec<Installer>> {
             let icon_bytes = icon_svg.as_bytes().to_vec();
 
             Some(Installer {
+                path,
                 name,
                 icon_svg: icon_bytes,
             })

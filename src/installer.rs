@@ -12,11 +12,12 @@ use iced::{
 use crate::{style, Message};
 
 pub fn view<'a>(
+    installer_name: &'a str,
     versions: &'a Vec<String>,
     selected_version: Option<String>,
     name: &'a str,
 ) -> Element<'a, Message> {
-    let title = text("Vanilla").size(30);
+    let title = text(installer_name).size(30);
 
     let name_text = text("Instance name");
     let name = text_input("", name).on_input(Message::ChangeInstanceName);
