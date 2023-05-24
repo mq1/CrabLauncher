@@ -10,17 +10,23 @@ use iced_aw::Wrap;
 
 use crate::{util, Message};
 
-fn btn<'a>(label: String, icon: Element<'static, Message>) -> Button<Message> {
+fn btn<'a>(
+    installer: &util::lua::Installer,
+    icon: Element<'static, Message>,
+) -> Button<'a, Message> {
     let content = column![
         vertical_space(Length::Fill),
         icon,
-        text(label),
+        text(&installer.name),
         vertical_space(Length::Fill),
     ]
     .align_items(Alignment::Center)
     .spacing(5);
 
-    button(content).height(100).width(100)
+    button(content)
+        .height(100)
+        .width(100)
+        .on_press(Message::SelectInstaller(installer.clone()))
 }
 
 pub fn view(installers: &Vec<util::lua::Installer>) -> Element<'static, Message> {
@@ -37,7 +43,7 @@ pub fn view(installers: &Vec<util::lua::Installer>) -> Element<'static, Message>
             .height(32)
             .into();
 
-        let button = btn(installer.name.clone(), icon);
+        let button = btn(installer, icon);
         wrap = wrap.push(button);
     }
 

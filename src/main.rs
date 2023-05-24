@@ -5,11 +5,10 @@ mod about;
 mod accounts;
 mod adding_account;
 mod components;
+mod installer;
 mod instance;
 mod instances;
 mod new_instance;
-mod new_modrinth_instance;
-mod new_vanilla_instance;
 mod settings;
 mod style;
 mod util;
@@ -46,8 +45,7 @@ pub enum View {
     LatestInstance,
     Instances,
     NewInstance,
-    NewVanillaInstance,
-    NewModrinthInstance,
+    Installer,
     Settings,
     About,
     Accounts,
@@ -62,6 +60,7 @@ struct App {
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
     account_head: Option<Vec<u8>>,
+    installer_name: String,
     new_instance_name: String,
     available_versions: Vec<String>,
     seleted_version: Option<String>,
@@ -79,6 +78,7 @@ pub enum Message {
     AddingAccount(Result<util::accounts::Account, String>),
     SelectAccount(util::accounts::Account),
     GotAccountHead(Result<Vec<u8>, String>),
+    SelectInstaller(util::lua::Installer),
     ChangeInstanceName(String),
     SelectVersion(String),
 }
@@ -128,6 +128,7 @@ impl Application for App {
                 settings,
                 accounts,
                 account_head,
+                installer_name: String::new(),
                 new_instance_name: String::new(),
                 available_versions: vec!["1".to_string(), "2".to_string(), "3".to_string()],
                 seleted_version: None,
@@ -245,6 +246,12 @@ impl Application for App {
 
                 Command::none()
             }
+            Message::SelectInstaller(installer) => {
+                self.installer_name = installer.name.clone();
+                self.available_versions = installer.get_versions().unwrap();
+                self.view = View::Installer;
+                Command::none()
+            }
             Message::ChangeInstanceName(new_name) => {
                 self.new_instance_name = new_name;
                 Command::none()
@@ -261,12 +268,12 @@ impl Application for App {
             View::LatestInstance => instance::view("Latest"),
             View::Instances => instances::view(&self.instances),
             View::NewInstance => new_instance::view(&self.installers),
-            View::NewVanillaInstance => new_vanilla_instance::view(
+            View::Installer => installer::view(
+                &self.installer_name,
                 &self.available_versions,
                 self.seleted_version.clone(),
                 &self.new_instance_name,
             ),
-            View::NewModrinthInstance => new_modrinth_instance::view(),
             View::Settings => settings::view(&self.settings),
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),
