@@ -72,7 +72,7 @@ pub fn list_installers() -> Result<Vec<Installer>> {
         .collect::<Vec<_>>();
 
     let lua = get_vm()?;
-    let mut installers = installers
+    let installers = installers
         .into_iter()
         .filter_map(|path| {
             let str = fs::read_to_string(path).ok()?;
