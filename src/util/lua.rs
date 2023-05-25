@@ -36,6 +36,7 @@ pub fn get_vm() -> Result<Lua> {
         let json = serde_json::from_str::<Value>(&str).to_lua_err()?;
 
         // write json to file
+        let path = BASE_DIR.join(path);
         fs::write(path, str).to_lua_err()?;
 
         lua.to_value(&json)
@@ -45,6 +46,8 @@ pub fn get_vm() -> Result<Lua> {
     // download file from uri
     let download_file = lua.create_function(|_, (uri, path): (String, String)| {
         let resp = ureq::get(&uri).call().to_lua_err()?;
+
+        let path = BASE_DIR.join(path);
         let mut writer = BufWriter::new(File::create(path).to_lua_err()?);
         io::copy(&mut resp.into_reader(), &mut writer).to_lua_err()?;
 
