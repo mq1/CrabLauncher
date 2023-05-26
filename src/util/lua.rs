@@ -61,7 +61,7 @@ pub type InstallersIndex = Vec<InstallerInfo>;
 #[derive(Deserialize, Debug, Clone)]
 pub struct InstallerInfo {
     pub name: String,
-    pub icon_svg: Vec<u8>,
+    pub icon_svg: String,
 }
 
 pub fn get_installers() -> Result<InstallersIndex> {
