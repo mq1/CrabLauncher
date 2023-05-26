@@ -62,8 +62,8 @@ struct App {
     account_head: Option<Vec<u8>>,
     selected_installer: Option<util::lua::InstallerInfo>,
     new_instance_name: String,
-    available_versions: Vec<String>,
-    seleted_version: Option<String>,
+    available_versions: Vec<util::lua::Version>,
+    seleted_version: Option<util::lua::Version>,
 }
 
 #[derive(Debug, Clone)]
@@ -80,7 +80,7 @@ pub enum Message {
     GotAccountHead(Result<Vec<u8>, String>),
     SelectInstaller(util::lua::InstallerInfo),
     ChangeInstanceName(String),
-    SelectVersion(String),
+    SelectVersion(util::lua::Version),
 }
 
 impl Application for App {
@@ -130,7 +130,7 @@ impl Application for App {
                 account_head,
                 selected_installer: None,
                 new_instance_name: String::new(),
-                available_versions: vec!["1".to_string(), "2".to_string(), "3".to_string()],
+                available_versions: Vec::new(),
                 seleted_version: None,
             },
             command,
