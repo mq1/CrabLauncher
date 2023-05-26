@@ -74,7 +74,7 @@ impl Display for Version {
     }
 }
 
-pub fn get_installers() -> Result<InstallersIndex> {
+pub async fn get_installers() -> Result<InstallersIndex> {
     let url = format!("{MODULES_URL}/installers/index.json");
     let resp = ureq::get(&url).call()?;
     let json = resp.into_json()?;

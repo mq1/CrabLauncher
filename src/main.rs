@@ -78,6 +78,7 @@ pub enum Message {
     AddingAccount(Result<util::accounts::Account, String>),
     SelectAccount(util::accounts::Account),
     GotAccountHead(Result<Vec<u8>, String>),
+    GotInstallers(Result<util::lua::InstallersIndex, String>),
     SelectInstaller(util::lua::InstallerInfo),
     ChangeInstanceName(String),
     SelectVersion(util::lua::Version),
@@ -148,12 +149,17 @@ impl Application for App {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ChangeView(view) => {
-                if view == View::NewInstance && self.installers.is_empty() {
-                    self.installers = util::lua::get_installers().unwrap();
-                }
+                let command = if view == View::NewInstance && self.installers.is_empty() {
+                    Command::perform(
+                        util::lua::get_installers().map_err(|e| e.to_string()),
+                        Message::GotInstallers,
+                    )
+                } else {
+                    Command::none()
+                };
 
                 self.view = view;
-                Command::none()
+                command
             }
             Message::GotUpdate(result) => {
                 match result {
@@ -239,6 +245,18 @@ impl Application for App {
                     }
                     Err(e) => {
                         println!("Error getting account head: {e}")
+                    }
+                }
+
+                Command::none()
+            }
+            Message::GotInstallers(result) => {
+                match result {
+                    Ok(installers) => {
+                        self.installers = installers;
+                    }
+                    Err(e) => {
+                        println!("Error getting installers: {e}")
                     }
                 }
 
