@@ -24,8 +24,6 @@ oauth2 = { version = "4.3", default-features = false, features = ["ureq"] }
 copypasta = "0.8"
 version-compare = "0.1"
 mlua = { version = "0.8", features = ["lua54", "vendored", "serialize"] }
-tar = "0.4"
-flate2 = "1.0"
 
 [profile.release]
 opt-level = "z"

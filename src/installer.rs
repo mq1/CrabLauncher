@@ -9,15 +9,15 @@ use iced::{
     Element, Length,
 };
 
-use crate::{style, Message};
+use crate::{style, util, Message};
 
 pub fn view<'a>(
-    installer_name: &'a str,
+    installer: &'a util::lua::InstallerInfo,
     versions: &'a Vec<String>,
     selected_version: Option<String>,
     name: &'a str,
 ) -> Element<'a, Message> {
-    let title = text(installer_name).size(30);
+    let title = text(installer.name.to_owned()).size(30);
 
     let name_text = text("Instance name");
     let name = text_input("", name).on_input(Message::ChangeInstanceName);
