@@ -11,7 +11,7 @@ use iced_aw::Wrap;
 use crate::{util, Message};
 
 fn btn<'a>(
-    installer: &util::lua::Installer,
+    installer: &util::lua::InstallerInfo,
     icon: Element<'static, Message>,
 ) -> Button<'a, Message> {
     let content = column![
@@ -26,10 +26,10 @@ fn btn<'a>(
     button(content)
         .height(100)
         .width(100)
-        .on_press(Message::SelectInstaller(installer.clone()))
+        .on_press(Message::SelectInstaller(installer.to_owned()))
 }
 
-pub fn view(installers: &Vec<util::lua::Installer>) -> Element<'static, Message> {
+pub fn view(installers: &util::lua::InstallersIndex) -> Element<'static, Message> {
     let title = text("New instance").size(30);
 
     let mut wrap = Wrap::new().spacing(10.);

@@ -54,13 +54,13 @@ pub enum View {
 }
 
 struct App {
-    installers: Vec<util::lua::Installer>,
+    installers: util::lua::InstallersIndex,
     view: View,
     instances: util::instances::Instances,
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
     account_head: Option<Vec<u8>>,
-    installer_name: String,
+    selected_installer: Option<util::lua::InstallerInfo>,
     new_instance_name: String,
     available_versions: Vec<String>,
     seleted_version: Option<String>,
@@ -78,7 +78,7 @@ pub enum Message {
     AddingAccount(Result<util::accounts::Account, String>),
     SelectAccount(util::accounts::Account),
     GotAccountHead(Result<Vec<u8>, String>),
-    SelectInstaller(util::lua::Installer),
+    SelectInstaller(util::lua::InstallerInfo),
     ChangeInstanceName(String),
     SelectVersion(String),
 }
@@ -128,7 +128,7 @@ impl Application for App {
                 settings,
                 accounts,
                 account_head,
-                installer_name: String::new(),
+                selected_installer: None,
                 new_instance_name: String::new(),
                 available_versions: vec!["1".to_string(), "2".to_string(), "3".to_string()],
                 seleted_version: None,
@@ -148,10 +148,8 @@ impl Application for App {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ChangeView(view) => {
-                if view == View::NewInstance {
-                    // todo: smooth loading
-                    util::lua::download_modules().unwrap();
-                    self.installers = util::lua::list_installers().unwrap();
+                if view == View::NewInstance && self.installers.is_empty() {
+                    self.installers = util::lua::get_installers().unwrap();
                 }
 
                 self.view = view;
@@ -247,8 +245,8 @@ impl Application for App {
                 Command::none()
             }
             Message::SelectInstaller(installer) => {
-                self.installer_name = installer.name.clone();
                 self.available_versions = installer.get_versions().unwrap();
+                self.selected_installer = Some(installer);
                 self.view = View::Installer;
                 Command::none()
             }
@@ -269,7 +267,7 @@ impl Application for App {
             View::Instances => instances::view(&self.instances),
             View::NewInstance => new_instance::view(&self.installers),
             View::Installer => installer::view(
-                &self.installer_name,
+                self.selected_installer.as_ref().unwrap(),
                 &self.available_versions,
                 self.seleted_version.clone(),
                 &self.new_instance_name,
