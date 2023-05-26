@@ -13,8 +13,8 @@ use crate::{style, util, Message};
 
 pub fn view<'a>(
     installer: &'a util::lua::InstallerInfo,
-    versions: &'a Vec<String>,
-    selected_version: Option<String>,
+    versions: &'a Vec<util::lua::Version>,
+    selected_version: Option<util::lua::Version>,
     name: &'a str,
 ) -> Element<'a, Message> {
     let title = text(installer.name.to_owned()).size(30);
