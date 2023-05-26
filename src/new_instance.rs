@@ -34,7 +34,8 @@ pub fn view(installers: &util::lua::InstallersIndex) -> Element<'static, Message
 
     let mut wrap = Wrap::new().spacing(10.);
     for installer in installers {
-        let handle = svg::Handle::from_memory(installer.icon_svg.clone());
+        let icon_bytes = installer.icon_svg.as_bytes().to_vec();
+        let handle = svg::Handle::from_memory(icon_bytes);
         let icon = svg(handle)
             .style(theme::Svg::custom_fn(|_theme| svg::Appearance {
                 color: Some(color!(0xe2e8f0)),
