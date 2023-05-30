@@ -54,13 +54,13 @@ pub enum View {
 }
 
 struct App {
-    installers: util::lua::InstallersIndex,
+    installers: Vec<mlua::Lua>,
     view: View,
     instances: util::instances::Instances,
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
     account_head: Option<Vec<u8>>,
-    selected_installer: Option<util::lua::InstallerInfo>,
+    selected_installer: Option<usize>,
     new_instance_name: String,
     available_versions: Vec<util::lua::Version>,
     seleted_version: Option<util::lua::Version>,
@@ -78,8 +78,7 @@ pub enum Message {
     AddingAccount(Result<util::accounts::Account, String>),
     SelectAccount(util::accounts::Account),
     GotAccountHead(Result<Vec<u8>, String>),
-    GotInstallers(Result<util::lua::InstallersIndex, String>),
-    SelectInstaller(util::lua::InstallerInfo),
+    SelectInstaller(usize),
     ChangeInstanceName(String),
     SelectVersion(util::lua::Version),
 }
@@ -123,7 +122,7 @@ impl Application for App {
 
         (
             Self {
-                installers: Vec::new(),
+                installers: util::lua::get_installers().unwrap(),
                 view: View::LatestInstance,
                 instances,
                 settings,
@@ -149,17 +148,8 @@ impl Application for App {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ChangeView(view) => {
-                let command = if view == View::NewInstance && self.installers.is_empty() {
-                    Command::perform(
-                        util::lua::get_installers().map_err(|e| e.to_string()),
-                        Message::GotInstallers,
-                    )
-                } else {
-                    Command::none()
-                };
-
                 self.view = view;
-                command
+                Command::none()
             }
             Message::GotUpdate(result) => {
                 match result {
@@ -250,20 +240,8 @@ impl Application for App {
 
                 Command::none()
             }
-            Message::GotInstallers(result) => {
-                match result {
-                    Ok(installers) => {
-                        self.installers = installers;
-                    }
-                    Err(e) => {
-                        println!("Error getting installers: {e}")
-                    }
-                }
-
-                Command::none()
-            }
             Message::SelectInstaller(installer) => {
-                self.available_versions = installer.get_versions().unwrap();
+                self.available_versions = util::lua::get_versions(&self.installers[installer]).unwrap();
                 self.selected_installer = Some(installer);
                 self.view = View::Installer;
                 Command::none()
@@ -285,7 +263,7 @@ impl Application for App {
             View::Instances => instances::view(&self.instances),
             View::NewInstance => new_instance::view(&self.installers),
             View::Installer => installer::view(
-                self.selected_installer.as_ref().unwrap(),
+                &self.installers[self.selected_installer.unwrap()],
                 &self.available_versions,
                 self.seleted_version.clone(),
                 &self.new_instance_name,

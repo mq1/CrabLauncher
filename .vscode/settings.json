@@ -1,5 +1,12 @@
 {
     "rust-analyzer.linkedProjects": [
         "./Cargo.toml"
+    ],
+    "Lua.diagnostics.globals": [
+        "fetch_json",
+        "get_os",
+        "get_arch",
+        "download_json",
+        "download_file"
     ]
 }

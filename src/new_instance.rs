@@ -8,16 +8,13 @@ use iced::{
 };
 use iced_aw::Wrap;
 
-use crate::{util, Message};
+use crate::Message;
 
-fn btn<'a>(
-    installer: &util::lua::InstallerInfo,
-    icon: Element<'static, Message>,
-) -> Button<'a, Message> {
+fn btn<'a>(name: &str, index: usize, icon: Element<'static, Message>) -> Button<'a, Message> {
     let content = column![
         vertical_space(Length::Fill),
         icon,
-        text(&installer.name),
+        text(name),
         vertical_space(Length::Fill),
     ]
     .align_items(Alignment::Center)
@@ -26,33 +23,33 @@ fn btn<'a>(
     button(content)
         .height(100)
         .width(100)
-        .on_press(Message::SelectInstaller(installer.to_owned()))
+        .on_press(Message::SelectInstaller(index))
 }
 
-pub fn view(installers: &util::lua::InstallersIndex) -> Element<'static, Message> {
+pub fn view(installers: &Vec<mlua::Lua>) -> Element<'static, Message> {
     let title = text("New instance").size(30);
 
-    let content: Element<Message> = if installers.is_empty() {
-        text("Fetching installers...").into()
-    } else {
-        let mut wrap = Wrap::new().spacing(10.);
-        for installer in installers {
-            let icon_bytes = installer.icon_svg.as_bytes().to_vec();
-            let handle = svg::Handle::from_memory(icon_bytes);
-            let icon = svg(handle)
-                .style(theme::Svg::custom_fn(|_theme| svg::Appearance {
-                    color: Some(color!(0xe2e8f0)),
-                }))
-                .width(32)
-                .height(32)
-                .into();
+    let mut wrap = Wrap::new().spacing(10.);
+    for (index, installer) in installers.iter().enumerate() {
+        let icon_bytes = installer
+            .globals()
+            .get::<_, String>("IconSVG")
+            .unwrap()
+            .as_bytes()
+            .to_vec();
+        let handle = svg::Handle::from_memory(icon_bytes);
+        let icon = svg(handle)
+            .style(theme::Svg::custom_fn(|_theme| svg::Appearance {
+                color: Some(color!(0xe2e8f0)),
+            }))
+            .width(32)
+            .height(32)
+            .into();
 
-            let button = btn(installer, icon);
-            wrap = wrap.push(button);
-        }
+        let name = installer.globals().get::<_, String>("Name").unwrap();
+        let button = btn(&name, index, icon);
+        wrap = wrap.push(button);
+    }
 
-        wrap.into()
-    };
-
-    column![title, content].spacing(10).padding(10).into()
+    column![title, wrap].spacing(10).padding(10).into()
 }
