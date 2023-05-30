@@ -2,17 +2,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use std::{
+    fmt::{self, Display, Formatter},
     fs::{self, File},
-    io::{self, BufWriter}, fmt::{Display, Formatter, self},
+    io::{self, BufWriter},
 };
 
 use anyhow::Result;
 use mlua::{ExternalResult, Function, Lua, LuaSerdeExt, Table};
-use serde::Deserialize;
 
 use crate::BASE_DIR;
 
-const MODULES_URL: &str = "https://raw.githubusercontent.com/mq1/icy-launcher/modules";
+pub static INSTALLERS: &[&str] = &[include_str!("../../modules/installers/vanilla.lua")];
 
 pub fn get_vm() -> Result<Lua> {
     let lua = Lua::new();
@@ -55,12 +55,31 @@ pub fn get_vm() -> Result<Lua> {
     Ok(lua)
 }
 
-pub type InstallersIndex = Vec<InstallerInfo>;
+pub fn get_installers() -> Result<Vec<Lua>> {
+    INSTALLERS
+        .iter()
+        .map(|code| {
+            let lua = get_vm()?;
+            lua.load(code.to_owned()).exec()?;
+            Ok(lua)
+        })
+        .collect()
+}
 
-#[derive(Deserialize, Debug, Clone)]
-pub struct InstallerInfo {
-    pub name: String,
-    pub icon_svg: String,
+#[derive(Debug, Clone)]
+pub struct Installer {
+    pub code: String,
+}
+
+impl Installer {
+    pub fn get_name(&self) -> Result<String> {
+        let lua = get_vm()?;
+        lua.load(&self.code).exec()?;
+
+        let name = lua.globals().get::<_, String>("Name")?;
+
+        Ok(name)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -74,33 +93,17 @@ impl Display for Version {
     }
 }
 
-pub async fn get_installers() -> Result<InstallersIndex> {
-    let url = format!("{MODULES_URL}/installers/index.json");
-    let resp = ureq::get(&url).call()?;
-    let json = resp.into_json()?;
+pub fn get_versions(lua: &Lua) -> Result<Vec<Version>> {
+    let get_versions = lua.globals().get::<_, Function>("GetVersions")?;
+    let versions = get_versions.call::<_, Vec<Table>>(())?;
 
-    Ok(json)
-}
+    let versions = versions
+        .into_iter()
+        .map(|table| {
+            let id = table.get::<_, String>("id")?;
+            Ok(Version { id })
+        })
+        .collect::<Result<Vec<_>>>()?;
 
-impl InstallerInfo {
-    pub fn get_versions(&self) -> Result<Vec<Version>> {
-        let url = format!("{MODULES_URL}/installers/{}.lua", self.name);
-        let script = ureq::get(&url).call()?.into_string()?;
-
-        let lua = get_vm()?;
-        lua.load(&script).exec()?;
-
-        let get_versions = lua.globals().get::<_, Function>("GetVersions")?;
-        let versions = get_versions.call::<_, Vec<Table>>(())?;
-
-        let versions = versions
-            .into_iter()
-            .map(|table| {
-                let id = table.get::<_, String>("id")?;
-                Ok(Version { id })
-            })
-            .collect::<Result<Vec<_>>>()?;
-
-        Ok(versions)
-    }
+    Ok(versions)
 }
