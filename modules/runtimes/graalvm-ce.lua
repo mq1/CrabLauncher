@@ -40,15 +40,16 @@ function Update(java_version)
 
     if asset then
         download_and_unpack(asset.browser_download_url, 'runtimes/graalvm-ce')
-    else
-        -- download dev version if no release is found
-        local dev_release = fetch_json('https://api.github.com/repos/graalvm/graalvm-ce-dev-builds/releases/latest')
-        local dev_asset = GetValidAsset(dev_release.assets, java_version)
+        return
+    end
 
-        if dev_asset then
-            download_and_unpack(dev_asset.browser_download_url, 'runtimes/graalvm-ce')
-        else
-            error('No GraalVM release found for Java ' .. java_version)
-        end
+    -- download dev version if no release is found
+    local dev_release = fetch_json('https://api.github.com/repos/graalvm/graalvm-ce-dev-builds/releases/latest')
+    local dev_asset = GetValidAsset(dev_release.assets, java_version)
+
+    if dev_asset then
+        download_and_unpack(dev_asset.browser_download_url, 'runtimes/graalvm-ce')
+    else
+        error('No GraalVM release found for Java ' .. java_version)
     end
 end
