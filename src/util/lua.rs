@@ -4,11 +4,14 @@
 use std::{
     fmt::{self, Display, Formatter},
     fs::{self, File},
-    io::{self, BufWriter},
+    io::{self, BufReader, BufWriter, Cursor},
+    path::Path,
 };
 
-use anyhow::Result;
-use mlua::{ExternalResult, Function, Lua, LuaSerdeExt, Table};
+use anyhow::{anyhow, Result};
+use flate2::bufread::GzDecoder;
+use mlua::{ExternalError, ExternalResult, Function, Lua, LuaSerdeExt, Table};
+use zip::ZipArchive;
 
 use crate::BASE_DIR;
 
@@ -33,7 +36,7 @@ pub fn get_vm() -> Result<Lua> {
         let json = serde_json::from_str::<serde_json::Value>(&str).to_lua_err()?;
 
         // write json to file
-        let path = BASE_DIR.join(path);
+        let path = BASE_DIR.join(Path::new(&path));
         fs::write(path, str).to_lua_err()?;
 
         lua.to_value(&json)
@@ -44,13 +47,60 @@ pub fn get_vm() -> Result<Lua> {
     let download_file = lua.create_function(|_, (uri, path): (String, String)| {
         let resp = ureq::get(&uri).call().to_lua_err()?;
 
-        let path = BASE_DIR.join(path);
+        let path = BASE_DIR.join(Path::new(&path));
         let mut writer = BufWriter::new(File::create(path).to_lua_err()?);
         io::copy(&mut resp.into_reader(), &mut writer).to_lua_err()?;
 
         Ok(())
     })?;
     lua.globals().set("download_file", download_file)?;
+
+    // download and unpack
+    let download_and_unpack = lua.create_function(|_, (uri, path): (String, String)| {
+        let resp = ureq::get(&uri).call().to_lua_err()?;
+        let path = BASE_DIR.join(Path::new(&path));
+
+        if uri.ends_with(".zip") {
+            let size = resp
+                .header("Content-Length")
+                .unwrap()
+                .parse::<usize>()
+                .to_lua_err()?;
+
+            let mut reader = resp.into_reader();
+            let mut cache = Vec::with_capacity(size);
+            reader.read_to_end(&mut cache)?;
+
+            let reader = Cursor::new(cache);
+            let mut a = ZipArchive::new(reader).to_lua_err()?;
+            a.extract(path).to_lua_err()?;
+        } else if uri.ends_with(".tar.gz") {
+            let reader = BufReader::new(resp.into_reader());
+            let d = GzDecoder::new(reader);
+            let mut a = tar::Archive::new(d);
+            a.unpack(path).to_lua_err()?;
+        } else {
+            return Err(anyhow!("unsupported archive format: {}", uri).to_lua_err());
+        }
+
+        Ok(())
+    })?;
+    lua.globals()
+        .set("download_and_unpack", download_and_unpack)?;
+
+    // get os
+    let get_os = lua.create_function(|_, _: ()| {
+        let os = std::env::consts::OS;
+        Ok(os)
+    })?;
+    lua.globals().set("get_os", get_os)?;
+
+    // get arch
+    let get_arch = lua.create_function(|_, _: ()| {
+        let arch = std::env::consts::ARCH;
+        Ok(arch)
+    })?;
+    lua.globals().set("get_arch", get_arch)?;
 
     Ok(lua)
 }
