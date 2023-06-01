@@ -116,22 +116,6 @@ pub fn get_installers() -> Result<Vec<Lua>> {
         .collect()
 }
 
-#[derive(Debug, Clone)]
-pub struct Installer {
-    pub code: String,
-}
-
-impl Installer {
-    pub fn get_name(&self) -> Result<String> {
-        let lua = get_vm()?;
-        lua.load(&self.code).exec()?;
-
-        let name = lua.globals().get::<_, String>("Name")?;
-
-        Ok(name)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Version {
     id: String,
