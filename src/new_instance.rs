@@ -8,13 +8,27 @@ use iced::{
 };
 use iced_aw::Wrap;
 
-use crate::Message;
+use crate::{
+    util::{self, lua::INSTALLERS},
+    Message,
+};
 
-fn btn<'a>(name: &str, index: usize, icon: Element<'static, Message>) -> Button<'a, Message> {
+fn btn(installer: &str) -> Button<'static, Message> {
+    let info = util::lua::get_installer_info(installer).unwrap();
+
+    let bytes = info.icon_svg.as_bytes().to_vec();
+    let handle = svg::Handle::from_memory(bytes);
+    let icon = svg(handle)
+        .style(theme::Svg::custom_fn(|_theme| svg::Appearance {
+            color: Some(color!(0xe2e8f0)),
+        }))
+        .width(32)
+        .height(32);
+
     let content = column![
         vertical_space(Length::Fill),
         icon,
-        text(name),
+        text(info.name),
         vertical_space(Length::Fill),
     ]
     .align_items(Alignment::Center)
@@ -23,31 +37,15 @@ fn btn<'a>(name: &str, index: usize, icon: Element<'static, Message>) -> Button<
     button(content)
         .height(100)
         .width(100)
-        .on_press(Message::SelectInstaller(index))
+        .on_press(Message::SelectInstaller(installer.to_owned()))
 }
 
-pub fn view(installers: &Vec<mlua::Lua>) -> Element<'static, Message> {
+pub fn view() -> Element<'static, Message> {
     let title = text("New instance").size(30);
 
     let mut wrap = Wrap::new().spacing(10.);
-    for (index, installer) in installers.iter().enumerate() {
-        let icon_bytes = installer
-            .globals()
-            .get::<_, String>("IconSVG")
-            .unwrap()
-            .as_bytes()
-            .to_vec();
-        let handle = svg::Handle::from_memory(icon_bytes);
-        let icon = svg(handle)
-            .style(theme::Svg::custom_fn(|_theme| svg::Appearance {
-                color: Some(color!(0xe2e8f0)),
-            }))
-            .width(32)
-            .height(32)
-            .into();
-
-        let name = installer.globals().get::<_, String>("Name").unwrap();
-        let button = btn(&name, index, icon);
+    for installer in INSTALLERS.keys() {
+        let button = btn(installer);
         wrap = wrap.push(button);
     }
 

@@ -1,7 +1,7 @@
 -- SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 -- SPDX-License-Identifier: GPL-3.0-only
 
-function Update(java_version)
+function UpdateRuntime(java_version)
     local os = get_os() == 'macos' and 'mac' or get_os()
     local arch = get_arch()
 

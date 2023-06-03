@@ -10,14 +10,22 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use flate2::bufread::GzDecoder;
-use mlua::{ExternalError, ExternalResult, Function, Lua, LuaSerdeExt, Table};
+use mlua::{ExternalError, ExternalResult, Function, Lua, LuaSerdeExt, Value};
+use phf::phf_map;
+use serde::{Deserialize, Serialize};
 use zip::ZipArchive;
 
 use crate::BASE_DIR;
 
-pub static INSTALLERS: &[&str] = &[include_str!("../../modules/installers/vanilla.lua")];
+pub static INSTALLERS: phf::Map<&'static str, &'static str> = phf_map! {
+    "vanilla" => include_str!("../../modules/installers/vanilla.lua"),
+};
 
-pub fn get_vm() -> Result<Lua> {
+pub static RUNTIMES: phf::Map<&'static str, &'static str> = phf_map! {
+    "adoptium" => include_str!("../../modules/runtimes/adoptium.lua"),
+};
+
+pub fn get_vm() -> mlua::Result<Lua> {
     let lua = Lua::new();
 
     // fetch and parse json from uri
@@ -32,7 +40,7 @@ pub fn get_vm() -> Result<Lua> {
     // download json from uri and write to file
     let download_json = lua.create_function(|lua, (uri, path): (String, String)| {
         let resp = ureq::get(&uri).call().to_lua_err()?;
-        let str = resp.into_string().to_lua_err()?;
+        let str = resp.into_string()?;
         let json = serde_json::from_str::<serde_json::Value>(&str).to_lua_err()?;
 
         // write json to file
@@ -105,20 +113,28 @@ pub fn get_vm() -> Result<Lua> {
     Ok(lua)
 }
 
-pub fn get_installers() -> Result<Vec<Lua>> {
-    INSTALLERS
-        .iter()
-        .map(|code| {
-            let lua = get_vm()?;
-            lua.load(code.to_owned()).exec()?;
-            Ok(lua)
-        })
-        .collect()
+#[derive(Serialize, Deserialize)]
+pub struct InstallerInfo {
+    #[serde(rename = "Name")]
+    pub name: String,
+    #[serde(rename = "IconSVG")]
+    pub icon_svg: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+pub fn get_installer_info(installer: &str) -> mlua::Result<InstallerInfo> {
+    let lua = get_vm()?;
+    let installer = INSTALLERS.get(installer).unwrap();
+    lua.load(*installer).exec()?;
+
+    let info = lua.globals().get::<_, Value>("Info")?;
+
+    lua.from_value(info)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Version {
     id: String,
+    url: String,
 }
 
 impl Display for Version {
@@ -127,17 +143,32 @@ impl Display for Version {
     }
 }
 
-pub fn get_versions(lua: &Lua) -> Result<Vec<Version>> {
-    let get_versions = lua.globals().get::<_, Function>("GetVersions")?;
-    let versions = get_versions.call::<_, Vec<Table>>(())?;
+pub fn get_versions(installer: &str) -> Result<Vec<Version>> {
+    let lua = get_vm()?;
+    let installer = INSTALLERS.get(installer).unwrap();
+    lua.load(*installer).exec()?;
 
+    let get_versions = lua.globals().get::<_, Function>("GetVersions")?;
+    let versions = get_versions.call::<_, Vec<Value>>(())?;
     let versions = versions
         .into_iter()
-        .map(|table| {
-            let id = table.get::<_, String>("id")?;
-            Ok(Version { id })
-        })
-        .collect::<Result<Vec<_>>>()?;
+        .map(|v| lua.from_value::<Version>(v).unwrap())
+        .collect();
 
     Ok(versions)
+}
+
+pub async fn install_version(installer: String, version: Version) -> Result<()> {
+    let lua = get_vm()?;
+    let installer = INSTALLERS.get(&installer).unwrap();
+    lua.load(*installer).exec()?;
+
+    let runtime = lua.globals().get::<_, String>("DefaultRuntime")?;
+    let runtime = RUNTIMES.get(&runtime).unwrap();
+    lua.load(*runtime).exec()?;
+
+    let install = lua.globals().get::<_, Function>("Install")?;
+    install.call::<_, ()>(lua.to_value(&version))?;
+
+    Ok(())
 }
