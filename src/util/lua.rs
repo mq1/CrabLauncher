@@ -133,7 +133,7 @@ pub fn get_installer_info(installer: &str) -> mlua::Result<InstallerInfo> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Version {
-    id: String,
+    pub id: String,
     url: String,
 }
 
@@ -158,7 +158,7 @@ pub fn get_versions(installer: &str) -> Result<Vec<Version>> {
     Ok(versions)
 }
 
-pub async fn install_version(installer: String, version: Version) -> Result<()> {
+pub fn install_version(installer: &str, version: &Version) -> Result<()> {
     let lua = get_vm()?;
     let installer = INSTALLERS.get(&installer).unwrap();
     lua.load(*installer).exec()?;
@@ -168,7 +168,7 @@ pub async fn install_version(installer: String, version: Version) -> Result<()> 
     lua.load(*runtime).exec()?;
 
     let install = lua.globals().get::<_, Function>("Install")?;
-    install.call::<_, ()>(lua.to_value(&version))?;
+    install.call::<_, ()>(lua.to_value(version))?;
 
     Ok(())
 }
