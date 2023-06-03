@@ -81,7 +81,7 @@ pub enum Message {
     ChangeInstanceName(String),
     SelectVersion(util::lua::Version),
     CreateInstance,
-    CreatedInstance(Result<(), String>),
+    CreatedInstance(Result<util::instances::Instances, String>),
 }
 
 impl Application for App {
@@ -255,19 +255,24 @@ impl Application for App {
                 Command::none()
             }
             Message::CreateInstance => {
+                let instances = self.instances.clone();
+                let name = self.new_instance_name.clone();
                 let installer = self.selected_installer.clone().unwrap();
                 let version = self.seleted_version.clone().unwrap();
-                let name = self.new_instance_name.clone();
 
                 Command::perform(
-                    util::lua::install_version(installer, version).map_err(|e| e.to_string()),
+                    async move {
+                        instances
+                            .new(name, installer, version)
+                            .map_err(|e| e.to_string())
+                    },
                     Message::CreatedInstance,
                 )
             }
             Message::CreatedInstance(result) => {
                 match result {
-                    Ok(_) => {
-                        println!("TODO");
+                    Ok(instances) => {
+                        self.instances = instances;
                     }
                     Err(e) => {
                         self.view = View::FullscreenMessage(e);

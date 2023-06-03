@@ -8,20 +8,24 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use time::PrimitiveDateTime;
 
-use crate::BASE_DIR;
+use crate::{util, BASE_DIR};
 
 pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("instances"));
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstanceInfo {
     last_played: Option<PrimitiveDateTime>,
+    installer: String,
+    version_id: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct Instance {
     pub name: String,
     pub info: InstanceInfo,
 }
 
+#[derive(Debug, Clone)]
 pub struct Instances {
     pub list: Vec<Instance>,
 }
@@ -71,22 +75,30 @@ impl Instances {
         Ok(instances)
     }
 
-    pub fn new(&mut self, name: &str) -> Result<()> {
-        let path = INSTANCES_DIR.join(name);
+    pub fn new(
+        &self,
+        name: String,
+        installer: String,
+        version: util::lua::Version,
+    ) -> Result<Self> {
+        util::lua::install_version(&installer, &version)?;
+
+        let path = INSTANCES_DIR.join(&name);
         fs::create_dir(&path)?;
 
-        let info = InstanceInfo { last_played: None };
+        let info = InstanceInfo {
+            last_played: None,
+            installer: installer.to_owned(),
+            version_id: version.id.to_owned(),
+        };
         let info_str = toml::to_string_pretty(&info)?;
         fs::write(path.join("instance.toml"), info_str)?;
 
-        self.list.push(Instance {
-            name: name.to_string(),
-            info,
-        });
+        let mut list = Vec::new();
+        list.clone_from_slice(&self.list);
+        list.push(Instance { name, info });
 
-        self.sort();
-
-        Ok(())
+        Ok(Instances { list })
     }
 }
 
