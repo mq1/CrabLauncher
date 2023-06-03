@@ -27,6 +27,7 @@ mlua = { version = "0.8", features = ["lua54", "vendored", "serialize"] }
 flate2 = "1.0"
 tar = "0.4"
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
+phf = { version = "0.11", features = ["macros"] }
 
 [profile.release]
 opt-level = "z"

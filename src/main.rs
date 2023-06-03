@@ -54,13 +54,12 @@ pub enum View {
 }
 
 struct App {
-    installers: Vec<mlua::Lua>,
     view: View,
     instances: util::instances::Instances,
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
     account_head: Option<Vec<u8>>,
-    selected_installer: Option<usize>,
+    selected_installer: Option<String>,
     new_instance_name: String,
     available_versions: Vec<util::lua::Version>,
     seleted_version: Option<util::lua::Version>,
@@ -78,9 +77,11 @@ pub enum Message {
     AddingAccount(Result<util::accounts::Account, String>),
     SelectAccount(util::accounts::Account),
     GotAccountHead(Result<Vec<u8>, String>),
-    SelectInstaller(usize),
+    SelectInstaller(String),
     ChangeInstanceName(String),
     SelectVersion(util::lua::Version),
+    CreateInstance,
+    CreatedInstance(Result<(), String>),
 }
 
 impl Application for App {
@@ -122,7 +123,6 @@ impl Application for App {
 
         (
             Self {
-                installers: util::lua::get_installers().unwrap(),
                 view: View::LatestInstance,
                 instances,
                 settings,
@@ -241,7 +241,7 @@ impl Application for App {
                 Command::none()
             }
             Message::SelectInstaller(installer) => {
-                self.available_versions = util::lua::get_versions(&self.installers[installer]).unwrap();
+                self.available_versions = util::lua::get_versions(&installer).unwrap();
                 self.selected_installer = Some(installer);
                 self.view = View::Installer;
                 Command::none()
@@ -254,6 +254,28 @@ impl Application for App {
                 self.seleted_version = Some(version);
                 Command::none()
             }
+            Message::CreateInstance => {
+                let installer = self.selected_installer.clone().unwrap();
+                let version = self.seleted_version.clone().unwrap();
+                let name = self.new_instance_name.clone();
+
+                Command::perform(
+                    util::lua::install_version(installer, version).map_err(|e| e.to_string()),
+                    Message::CreatedInstance,
+                )
+            }
+            Message::CreatedInstance(result) => {
+                match result {
+                    Ok(_) => {
+                        println!("TODO");
+                    }
+                    Err(e) => {
+                        self.view = View::FullscreenMessage(e);
+                    }
+                }
+
+                Command::none()
+            }
         }
     }
 
@@ -261,9 +283,9 @@ impl Application for App {
         let view = match &self.view {
             View::LatestInstance => instance::view("Latest"),
             View::Instances => instances::view(&self.instances),
-            View::NewInstance => new_instance::view(&self.installers),
+            View::NewInstance => new_instance::view(),
             View::Installer => installer::view(
-                &self.installers[self.selected_installer.unwrap()],
+                self.selected_installer.as_ref().unwrap(),
                 &self.available_versions,
                 self.seleted_version.clone(),
                 &self.new_instance_name,

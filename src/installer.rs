@@ -8,18 +8,18 @@ use iced::{
     },
     Element, Length,
 };
-use mlua::Lua;
 
 use crate::{style, util, Message};
 
 pub fn view<'a>(
-    installer: &Lua,
+    installer: &'a str,
     versions: &'a Vec<util::lua::Version>,
     selected_version: Option<util::lua::Version>,
     name: &'a str,
 ) -> Element<'a, Message> {
-    let title = installer.globals().get::<_, String>("Name").unwrap();
-    let title = text(&title).size(30);
+    let info = util::lua::get_installer_info(installer).unwrap();
+
+    let title = text(info.name).size(30);
 
     let name_text = text("Instance name");
     let name = text_input("", name).on_input(Message::ChangeInstanceName);
