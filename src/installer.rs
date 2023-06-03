@@ -37,7 +37,10 @@ pub fn view<'a>(
         .width(Length::Fill)
         .style(style::card());
 
-    let create_button = button("Create").style(style::circle_button());
+    let create_button = button("Create")
+        .style(style::circle_button())
+        .padding(10)
+        .on_press(Message::CreateInstance);
     let footer = row![horizontal_space(Length::Fill), create_button];
 
     column![

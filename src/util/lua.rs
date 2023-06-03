@@ -45,6 +45,7 @@ pub fn get_vm() -> mlua::Result<Lua> {
 
         // write json to file
         let path = BASE_DIR.join(Path::new(&path));
+        fs::create_dir_all(path.parent().unwrap()).to_lua_err()?;
         fs::write(path, str).to_lua_err()?;
 
         lua.to_value(&json)
@@ -56,6 +57,7 @@ pub fn get_vm() -> mlua::Result<Lua> {
         let resp = ureq::get(&uri).call().to_lua_err()?;
 
         let path = BASE_DIR.join(Path::new(&path));
+        fs::create_dir_all(path.parent().unwrap()).to_lua_err()?;
         let mut writer = BufWriter::new(File::create(path).to_lua_err()?);
         io::copy(&mut resp.into_reader(), &mut writer).to_lua_err()?;
 
@@ -67,6 +69,7 @@ pub fn get_vm() -> mlua::Result<Lua> {
     let download_and_unpack = lua.create_function(|_, (uri, path): (String, String)| {
         let resp = ureq::get(&uri).call().to_lua_err()?;
         let path = BASE_DIR.join(Path::new(&path));
+        fs::create_dir_all(path.parent().unwrap()).to_lua_err()?;
 
         if uri.ends_with(".zip") {
             let size = resp
