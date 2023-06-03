@@ -73,7 +73,7 @@ function Install(version)
     local asset_index_path = 'assets/indexes/' .. manifest.assetIndex.id .. '.json'
     local asset_index = download_json(manifest.assetIndex.url, asset_index_path)
 
-    for object in asset_index.objects do
+    for _, object in pairs(asset_index.objects) do
         local path = 'assets/objects/' .. object.hash:sub(1, 2) .. '/' .. object.hash
         local url = 'http://resources.download.minecraft.net/' .. path
         download_file(url, object.path)
