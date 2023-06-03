@@ -2,7 +2,8 @@
 -- SPDX-License-Identifier: GPL-3.0-only
 
 function UpdateRuntime(java_version)
-    local os = get_os() == 'macos' and 'mac' or get_os()
+    local os = get_os()
+    os = os == 'macos' and 'mac' or os
     local arch = get_arch()
 
     local url = 'https://api.adoptium.net/v3/assets/latest/' .. java_version .. '/hotspot'
