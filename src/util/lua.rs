@@ -3,8 +3,8 @@
 
 use std::{
     fmt::{self, Display, Formatter},
-    fs::{self, File},
-    io::{self, BufReader, BufWriter, Cursor},
+    fs,
+    io::{BufReader, Cursor},
     path::Path,
 };
 
@@ -15,7 +15,7 @@ use phf::phf_map;
 use serde::{Deserialize, Serialize};
 use zip::ZipArchive;
 
-use crate::BASE_DIR;
+use crate::{BASE_DIR, util};
 
 pub static INSTALLERS: phf::Map<&'static str, &'static str> = phf_map! {
     "vanilla" => include_str!("../../modules/installers/vanilla.lua"),
@@ -54,12 +54,8 @@ pub fn get_vm() -> mlua::Result<Lua> {
 
     // download file from uri
     let download_file = lua.create_function(|_, (uri, path): (String, String)| {
-        let resp = ureq::get(&uri).call().to_lua_err()?;
-
         let path = BASE_DIR.join(Path::new(&path));
-        fs::create_dir_all(path.parent().unwrap()).to_lua_err()?;
-        let mut writer = BufWriter::new(File::create(path).to_lua_err()?);
-        io::copy(&mut resp.into_reader(), &mut writer).to_lua_err()?;
+        util::download_file::<sha2::Sha256>(&uri, &path, None).to_lua_err()?;
 
         Ok(())
     })?;

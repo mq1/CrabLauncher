@@ -66,7 +66,7 @@ local function GetLibraries(version_manifest)
 end
 
 function Install(version)
-    local manifest_path = 'versions/' .. version.id .. '/' .. version.id .. '.json'
+    local manifest_path = 'versions/' .. version.id .. '.json'
     local manifest = download_json(version.url, manifest_path)
 
     -- Install assets
@@ -88,7 +88,7 @@ function Install(version)
     end
 
     -- Install client
-    local client_path = 'versions/' .. manifest.id .. '/' .. manifest.id .. '.jar'
+    local client_path = 'libraries/com/mojang/minecraft' .. manifest.id .. '/' .. 'minecraft-' .. manifest.id .. '.jar'
     local client_url = manifest.downloads.client.url
     download_file(client_url, client_path)
 

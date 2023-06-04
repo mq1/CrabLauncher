@@ -158,6 +158,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base16ct"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c7f02d4ea65f2c1853089ffd8d2787bdbc63de2f0d29dedbcf8ccdfa0ccd4cf"
+
+[[package]]
 name = "base64"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1719,7 +1725,9 @@ name = "icy-launcher"
 version = "0.3.0"
 dependencies = [
  "anyhow",
+ "base16ct",
  "copypasta",
+ "digest",
  "directories",
  "flate2",
  "iced",
@@ -1732,6 +1740,8 @@ dependencies = [
  "rfd",
  "serde",
  "serde_json",
+ "sha1",
+ "sha2",
  "tar",
  "time 0.3.21",
  "toml 0.7.3",
@@ -3105,6 +3115,17 @@ dependencies = [
  "expat-sys",
  "freetype-sys",
  "pkg-config",
+]
+
+[[package]]
+name = "sha1"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f04293dc80c3993519f2d7f6f511707ee7094fe0c6d3406feb330cdb3540eba3"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest",
 ]
 
 [[package]]
