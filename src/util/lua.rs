@@ -4,18 +4,17 @@
 use std::{
     fmt::{self, Display, Formatter},
     fs,
-    io::{BufReader, Cursor},
     path::Path,
 };
 
-use anyhow::{anyhow, Result};
-use flate2::bufread::GzDecoder;
-use mlua::{ExternalError, ExternalResult, Function, Lua, LuaSerdeExt, Value};
+use anyhow::Result;
+use mlua::{ExternalResult, Function, Lua, LuaSerdeExt, Value};
 use phf::phf_map;
 use serde::{Deserialize, Serialize};
-use zip::ZipArchive;
 
-use crate::{BASE_DIR, util};
+use crate::{util, BASE_DIR};
+
+use super::get_hasher;
 
 pub static INSTALLERS: phf::Map<&'static str, &'static str> = phf_map! {
     "vanilla" => include_str!("../../modules/installers/vanilla.lua"),
@@ -53,45 +52,39 @@ pub fn get_vm() -> mlua::Result<Lua> {
     lua.globals().set("download_json", download_json)?;
 
     // download file from uri
-    let download_file = lua.create_function(|_, (uri, path): (String, String)| {
-        let path = BASE_DIR.join(Path::new(&path));
-        util::download_file::<sha2::Sha256>(&uri, &path, None).to_lua_err()?;
+    let download_file = lua.create_function(
+        |_, (uri, path, hash, hash_function): (String, String, Option<String>, Option<String>)| {
+            let path = BASE_DIR.join(Path::new(&path));
 
-        Ok(())
-    })?;
+            let hasher = get_hasher(hash_function).to_lua_err()?;
+
+            if let Some(mut hasher) = hasher {
+                util::download_file(&uri, &path, hash, Some(&mut *hasher)).to_lua_err()?;
+            } else {
+                util::download_file(&uri, &path, hash, None).to_lua_err()?;
+            };
+
+            Ok(())
+        },
+    )?;
     lua.globals().set("download_file", download_file)?;
 
     // download and unpack
-    let download_and_unpack = lua.create_function(|_, (uri, path): (String, String)| {
-        let resp = ureq::get(&uri).call().to_lua_err()?;
-        let path = BASE_DIR.join(Path::new(&path));
-        fs::create_dir_all(path.parent().unwrap()).to_lua_err()?;
+    let download_and_unpack = lua.create_function(
+        |_, (uri, path, hash, hash_function): (String, String, Option<String>, Option<String>)| {
+            let path = BASE_DIR.join(Path::new(&path));
 
-        if uri.ends_with(".zip") {
-            let size = resp
-                .header("Content-Length")
-                .unwrap()
-                .parse::<usize>()
-                .to_lua_err()?;
+            let hasher = get_hasher(hash_function).to_lua_err()?;
 
-            let mut reader = resp.into_reader();
-            let mut cache = Vec::with_capacity(size);
-            reader.read_to_end(&mut cache)?;
+            if let Some(mut hasher) = hasher {
+                util::download_and_unpack(&uri, &path, hash, Some(&mut *hasher)).to_lua_err()?;
+            } else {
+                util::download_and_unpack(&uri, &path, hash, None).to_lua_err()?;
+            };
 
-            let reader = Cursor::new(cache);
-            let mut a = ZipArchive::new(reader).to_lua_err()?;
-            a.extract(path).to_lua_err()?;
-        } else if uri.ends_with(".tar.gz") {
-            let reader = BufReader::new(resp.into_reader());
-            let d = GzDecoder::new(reader);
-            let mut a = tar::Archive::new(d);
-            a.unpack(path).to_lua_err()?;
-        } else {
-            return Err(anyhow!("unsupported archive format: {}", uri).to_lua_err());
-        }
-
-        Ok(())
-    })?;
+            Ok(())
+        },
+    )?;
     lua.globals()
         .set("download_and_unpack", download_and_unpack)?;
 
