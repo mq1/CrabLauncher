@@ -102,6 +102,7 @@ pub fn get_installer_info(installer: &str) -> mlua::Result<InstallerInfo> {
 pub struct Version {
     pub id: String,
     url: String,
+    sha1: String,
 }
 
 impl Display for Version {

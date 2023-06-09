@@ -57,7 +57,7 @@ local function GetLibraries(version_manifest)
             goto continue
         end
 
-        table.insert(libraries, path)
+        table.insert(libraries, library)
 
         ::continue::
     end
@@ -67,30 +67,30 @@ end
 
 function Install(version)
     local manifest_path = 'versions/' .. version.id .. '.json'
-    local manifest = download_json(version.url, manifest_path)
+    local manifest = download_json(version.url, manifest_path, version.sha1, 'sha1')
 
     -- Install assets
     local asset_index_path = 'assets/indexes/' .. manifest.assetIndex.id .. '.json'
-    local asset_index = download_json(manifest.assetIndex.url, asset_index_path)
+    local asset_index = download_json(manifest.assetIndex.url, asset_index_path, manifest.assetIndex.sha1, 'sha1')
 
     for _, object in pairs(asset_index.objects) do
         local path = 'assets/objects/' .. object.hash:sub(1, 2) .. '/' .. object.hash
         local url = 'http://resources.download.minecraft.net/' .. path
-        download_file(url, object.path)
+        download_file(url, path, object.hash, 'sha1')
     end
 
     -- Install libraries
     local libraries = GetLibraries(manifest)
     for library in libraries do
-        local path = 'libraries/' .. library
-        local url = 'https://libraries.minecraft.net/' .. library
-        download_file(url, path)
+        local url = library.downloads.artifact.url
+        local path = 'libraries/' .. library.downloads.artifact.path
+        download_file(url, path, library.downloads.artifact.sha1, 'sha1')
     end
 
     -- Install client
     local client_path = 'libraries/com/mojang/minecraft' .. manifest.id .. '/' .. 'minecraft-' .. manifest.id .. '.jar'
     local client_url = manifest.downloads.client.url
-    download_file(client_url, client_path)
+    download_file(client_url, client_path, manifest.downloads.client.sha1, 'sha1')
 
     -- Update runtime
     UpdateRuntime(manifest.javaVersion.majorVersion)
