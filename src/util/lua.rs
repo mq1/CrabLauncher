@@ -3,7 +3,6 @@
 
 use std::{
     fmt::{self, Display, Formatter},
-    fs,
     path::Path,
 };
 
@@ -13,8 +12,6 @@ use phf::phf_map;
 use serde::{Deserialize, Serialize};
 
 use crate::{util, BASE_DIR};
-
-use super::get_hasher;
 
 pub static INSTALLERS: phf::Map<&'static str, &'static str> = phf_map! {
     "vanilla" => include_str!("../../modules/installers/vanilla.lua"),
@@ -37,15 +34,9 @@ pub fn get_vm() -> mlua::Result<Lua> {
     lua.globals().set("fetch_json", fetch_json)?;
 
     // download json from uri and write to file
-    let download_json = lua.create_function(|lua, (uri, path): (String, String)| {
-        let resp = ureq::get(&uri).call().to_lua_err()?;
-        let str = resp.into_string()?;
-        let json = serde_json::from_str::<serde_json::Value>(&str).to_lua_err()?;
-
-        // write json to file
+    let download_json = lua.create_function(|lua, (url, path, hash, hash_function): (String, String, Option<String>, Option<String>)| {
         let path = BASE_DIR.join(Path::new(&path));
-        fs::create_dir_all(path.parent().unwrap()).to_lua_err()?;
-        fs::write(path, str).to_lua_err()?;
+        let json = util::download_json(&url, &path, hash, hash_function).to_lua_err()?;
 
         lua.to_value(&json)
     })?;
@@ -53,18 +44,9 @@ pub fn get_vm() -> mlua::Result<Lua> {
 
     // download file from uri
     let download_file = lua.create_function(
-        |_, (uri, path, hash, hash_function): (String, String, Option<String>, Option<String>)| {
+        |_, (url, path, hash, hash_function): (String, String, Option<String>, Option<String>)| {
             let path = BASE_DIR.join(Path::new(&path));
-
-            let hasher = get_hasher(hash_function).to_lua_err()?;
-
-            if let Some(mut hasher) = hasher {
-                util::download_file(&uri, &path, hash, Some(&mut *hasher)).to_lua_err()?;
-            } else {
-                util::download_file(&uri, &path, hash, None).to_lua_err()?;
-            };
-
-            Ok(())
+            util::download_file(&url, &path, hash, hash_function).to_lua_err()
         },
     )?;
     lua.globals().set("download_file", download_file)?;
@@ -73,16 +55,7 @@ pub fn get_vm() -> mlua::Result<Lua> {
     let download_and_unpack = lua.create_function(
         |_, (uri, path, hash, hash_function): (String, String, Option<String>, Option<String>)| {
             let path = BASE_DIR.join(Path::new(&path));
-
-            let hasher = get_hasher(hash_function).to_lua_err()?;
-
-            if let Some(mut hasher) = hasher {
-                util::download_and_unpack(&uri, &path, hash, Some(&mut *hasher)).to_lua_err()?;
-            } else {
-                util::download_and_unpack(&uri, &path, hash, None).to_lua_err()?;
-            };
-
-            Ok(())
+            util::download_and_unpack(&uri, &path, hash, hash_function).to_lua_err()
         },
     )?;
     lua.globals()
