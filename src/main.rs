@@ -255,6 +255,8 @@ impl Application for App {
                 Command::none()
             }
             Message::CreateInstance => {
+                self.view = View::FullscreenMessage("Creating instance...".to_string());
+
                 let instances = self.instances.clone();
                 let name = self.new_instance_name.clone();
                 let installer = self.selected_installer.clone().unwrap();
@@ -273,6 +275,7 @@ impl Application for App {
                 match result {
                     Ok(instances) => {
                         self.instances = instances;
+                        self.view = View::Instances;
                     }
                     Err(e) => {
                         self.view = View::FullscreenMessage(e);
