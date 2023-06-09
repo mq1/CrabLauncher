@@ -3,16 +3,17 @@
 
 use std::{
     fs::{self, File},
-    io::{BufReader, BufWriter, Cursor, Read, Write},
+    io::{self, BufReader, BufWriter, Read, Seek},
     path::Path,
 };
 
-use anyhow::{bail, Result};
-use digest::DynDigest;
-use flate2::read::GzDecoder;
+use anyhow::{anyhow, bail, Result};
+use digest::Digest;
+use flate2::bufread::GzDecoder;
 use sha1::Sha1;
 use sha2::Sha256;
 use tar::Archive;
+use tempfile::{tempfile, NamedTempFile};
 use zip::ZipArchive;
 
 pub mod accounts;
@@ -23,63 +24,71 @@ pub mod updater;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 
-pub fn get_hasher(name: Option<String>) -> Result<Option<Box<dyn DynDigest>>> {
-    if let Some(name) = name {
-        match name.as_str() {
-            "sha1" => Ok(Some(Box::new(Sha1::default()))),
-            "sha256" => Ok(Some(Box::new(Sha256::default()))),
-            _ => bail!("unsupported hash function"),
+fn calc_hash<D: Digest>(mut reader: impl Read + Seek) -> Result<String> {
+    let mut hasher = D::new();
+
+    loop {
+        let mut buffer = [0; 1024];
+        let count = reader.read(&mut buffer)?;
+        if count == 0 {
+            break;
         }
-    } else {
-        Ok(None)
+        hasher.update(&buffer[..count]);
     }
+
+    let digest = hasher.finalize();
+    let digest = base16ct::lower::encode_string(&digest);
+
+    Ok(digest)
 }
 
-pub fn fetch_file(
-    url: &str,
-    hash: Option<String>,
-    hasher: Option<&mut dyn DynDigest>,
-) -> Result<Vec<u8>> {
-    let response = ureq::get(url).set("User-Agent", USER_AGENT).call()?;
+fn check_hash(reader: impl Read + Seek, hash: String, hash_function: String) -> Result<()> {
+    let digest = match hash_function.as_str() {
+        "sha1" => calc_hash::<Sha1>(reader)?,
+        "sha256" => calc_hash::<Sha256>(reader)?,
+        _ => bail!("unsupported hash function"),
+    };
 
-    let content_length = response
-        .header("Content-Length")
-        .and_then(|s| s.parse::<usize>().ok())
-        .unwrap_or(0);
-
-    let mut buffer = Vec::with_capacity(content_length);
-    response.into_reader().read_to_end(&mut buffer)?;
-
-    if let Some(hash) = hash {
-        let mut hasher = hasher.unwrap();
-        hasher.update(&buffer);
-        let digest = hasher.finalize_reset();
-        let digest = base16ct::lower::encode_string(&digest);
-
-        if digest != hash {
-            bail!("hash mismatch");
-        }
+    if digest != hash {
+        bail!("hash mismatch");
     }
 
-    Ok(buffer)
+    Ok(())
 }
 
 pub fn download_file(
     url: &str,
     path: &Path,
     hash: Option<String>,
-    hasher: Option<&mut dyn DynDigest>,
+    hash_function: Option<String>,
 ) -> Result<()> {
     if path.exists() {
         return Ok(());
     }
 
-    fs::create_dir_all(path.parent().unwrap())?;
-    let bytes = fetch_file(url, hash, hasher)?;
+    // create parent directory
+    {
+        let parent = path.parent().ok_or_else(|| anyhow!("invalid path"))?;
+        fs::create_dir_all(parent)?;
+    }
 
-    let file = File::create(path)?;
-    let mut writer = BufWriter::new(file);
-    writer.write_all(&bytes)?;
+    let response = ureq::get(url).set("User-Agent", USER_AGENT).call()?;
+    let mut file = NamedTempFile::new()?;
+
+    // write to file
+    {
+        let mut writer = BufWriter::new(&mut file);
+        io::copy(&mut response.into_reader(), &mut writer)?;
+    }
+
+    // check hash
+    if hash.is_some() {
+        let reader = BufReader::new(&mut file);
+        check_hash(reader, hash.unwrap(), hash_function.unwrap())?;
+    }
+
+    // move file to destination
+    fs::rename(file, path)?;
 
     Ok(())
 }
@@ -88,7 +97,7 @@ pub fn download_json(
     url: &str,
     path: &Path,
     hash: Option<String>,
-    hasher: Option<&mut dyn DynDigest>,
+    hash_function: Option<String>,
 ) -> Result<serde_json::Value> {
     if path.exists() {
         let file = File::open(path)?;
@@ -98,14 +107,33 @@ pub fn download_json(
         return Ok(json);
     }
 
-    fs::create_dir_all(path.parent().unwrap())?;
-    let bytes = fetch_file(url, hash, hasher)?;
+    // create parent directory
+    {
+        let parent = path.parent().ok_or_else(|| anyhow!("invalid path"))?;
+        fs::create_dir_all(parent)?;
+    }
 
-    let file = File::create(path)?;
-    let mut writer = BufWriter::new(file);
-    writer.write_all(&bytes)?;
+    let response = ureq::get(url).set("User-Agent", USER_AGENT).call()?;
+    let file = NamedTempFile::new()?;
 
-    let json = serde_json::from_slice(&bytes)?;
+    // write to file
+    {
+        let mut writer = BufWriter::new(&file);
+        io::copy(&mut response.into_reader(), &mut writer)?;
+    }
+
+    // check hash
+    if hash.is_some() {
+        let reader = BufReader::new(&file);
+        check_hash(reader, hash.unwrap(), hash_function.unwrap())?;
+    }
+
+    let reader = BufReader::new(&file);
+    let json = serde_json::from_reader(reader)?;
+
+    // move file to destination
+    fs::rename(file, path)?;
+
     Ok(json)
 }
 
@@ -113,23 +141,46 @@ pub fn download_and_unpack(
     url: &str,
     path: &Path,
     hash: Option<String>,
-    hasher: Option<&mut dyn DynDigest>,
+    hash_function: Option<String>,
 ) -> Result<()> {
     if path.exists() {
         return Ok(());
     }
 
-    fs::create_dir_all(path.parent().unwrap())?;
-    let bytes = fetch_file(url, hash, hasher)?;
+    // create parent directory
+    {
+        let parent = path.parent().ok_or_else(|| anyhow!("invalid path"))?;
+        fs::create_dir_all(parent)?;
+    }
 
-    if url.ends_with(".zip") {
-        let mut archive = ZipArchive::new(Cursor::new(bytes))?;
-        archive.extract(path.parent().unwrap())?;
-    } else if url.ends_with(".tar.gz") {
-        let mut archive = Archive::new(GzDecoder::new(Cursor::new(bytes)));
-        archive.unpack(path.parent().unwrap())?;
-    } else {
-        bail!("unsupported archive format");
+    let response = ureq::get(url).set("User-Agent", USER_AGENT).call()?;
+    let file = tempfile()?;
+
+    // write to file
+    {
+        let mut writer = BufWriter::new(&file);
+        io::copy(&mut response.into_reader(), &mut writer)?;
+    }
+
+    // check hash
+    if hash.is_some() {
+        let reader = BufReader::new(&file);
+        check_hash(reader, hash.unwrap(), hash_function.unwrap())?;
+    }
+
+    // unpack file
+    {
+        let reader = BufReader::new(&file);
+
+        if url.ends_with(".zip") {
+            let mut archive = ZipArchive::new(reader)?;
+            archive.extract(path.parent().unwrap())?;
+        } else if url.ends_with(".tar.gz") {
+            let mut archive = Archive::new(GzDecoder::new(reader));
+            archive.unpack(path.parent().unwrap())?;
+        } else {
+            bail!("unsupported archive format");
+        }
     }
 
     Ok(())
