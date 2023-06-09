@@ -79,12 +79,14 @@ pub fn download_file(
     {
         let mut writer = BufWriter::new(&mut file);
         io::copy(&mut response.into_reader(), &mut writer)?;
+        writer.seek(io::SeekFrom::Start(0))?;
     }
 
     // check hash
     if hash.is_some() {
-        let reader = BufReader::new(&mut file);
-        check_hash(reader, hash.unwrap(), hash_function.unwrap())?;
+        let mut reader = BufReader::new(&mut file);
+        check_hash(&mut reader, hash.unwrap(), hash_function.unwrap())?;
+        reader.seek(io::SeekFrom::Start(0))?;
     }
 
     // move file to destination
@@ -120,12 +122,14 @@ pub fn download_json(
     {
         let mut writer = BufWriter::new(&file);
         io::copy(&mut response.into_reader(), &mut writer)?;
+        writer.seek(io::SeekFrom::Start(0))?;
     }
 
     // check hash
     if hash.is_some() {
-        let reader = BufReader::new(&file);
-        check_hash(reader, hash.unwrap(), hash_function.unwrap())?;
+        let mut reader = BufReader::new(&file);
+        check_hash(&mut reader, hash.unwrap(), hash_function.unwrap())?;
+        reader.seek(io::SeekFrom::Start(0))?;
     }
 
     let reader = BufReader::new(&file);
@@ -160,12 +164,14 @@ pub fn download_and_unpack(
     {
         let mut writer = BufWriter::new(&file);
         io::copy(&mut response.into_reader(), &mut writer)?;
+        writer.seek(io::SeekFrom::Start(0))?;
     }
 
     // check hash
     if hash.is_some() {
-        let reader = BufReader::new(&file);
-        check_hash(reader, hash.unwrap(), hash_function.unwrap())?;
+        let mut reader = BufReader::new(&file);
+        check_hash(&mut reader, hash.unwrap(), hash_function.unwrap())?;
+        reader.seek(io::SeekFrom::Start(0))?;
     }
 
     // unpack file

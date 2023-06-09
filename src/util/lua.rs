@@ -36,6 +36,8 @@ pub fn get_vm() -> mlua::Result<Lua> {
     // download json from uri and write to file
     let download_json = lua.create_function(|lua, (url, path, hash, hash_function): (String, String, Option<String>, Option<String>)| {
         let path = BASE_DIR.join(Path::new(&path));
+        println!("Downloading {} to {}", url, path.display());
+
         let json = util::download_json(&url, &path, hash, hash_function).to_lua_err()?;
 
         lua.to_value(&json)
