@@ -43,6 +43,8 @@ fn calc_hash<D: Digest>(mut reader: impl Read + Seek) -> Result<String> {
 }
 
 fn check_hash(reader: impl Read + Seek, hash: String, hash_function: String) -> Result<()> {
+    println!("checking hash: {hash_function} {hash}");
+
     let digest = match hash_function.as_str() {
         "sha1" => calc_hash::<Sha1>(reader)?,
         "sha256" => calc_hash::<Sha256>(reader)?,
@@ -62,6 +64,8 @@ pub fn download_file(
     hash: Option<String>,
     hash_function: Option<String>,
 ) -> Result<()> {
+    println!("downloading file: {url} to {}", path.display());
+
     if path.exists() {
         return Ok(());
     }
@@ -101,6 +105,8 @@ pub fn download_json(
     hash: Option<String>,
     hash_function: Option<String>,
 ) -> Result<serde_json::Value> {
+    println!("downloading json: {url} to {}", path.display());
+
     if path.exists() {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
@@ -147,6 +153,8 @@ pub fn download_and_unpack(
     hash: Option<String>,
     hash_function: Option<String>,
 ) -> Result<()> {
+    println!("downloading and unpacking: {url} to {}", path.display());
+
     if path.exists() {
         return Ok(());
     }
