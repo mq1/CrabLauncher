@@ -7,6 +7,7 @@ mod adding_account;
 mod components;
 mod instance;
 mod instances;
+pub mod modrinth_installer;
 mod new_instance;
 mod settings;
 mod style;
@@ -46,6 +47,7 @@ pub enum View {
     Instances,
     NewInstance,
     VanillaInstaller,
+    ModrinthInstaller,
     Settings,
     About,
     Accounts,
@@ -310,6 +312,7 @@ impl Application for App {
                 self.seleted_vanilla_version.clone(),
                 &self.new_instance_name,
             ),
+            View::ModrinthInstaller => modrinth_installer::view(),
             View::Settings => settings::view(&self.settings),
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),
