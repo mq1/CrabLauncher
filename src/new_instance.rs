@@ -2,24 +2,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    color, theme,
-    widget::{button, column, svg, text, vertical_space, Button},
+    widget::{button, column, text, vertical_space, Button},
     Alignment, Element, Length,
 };
 use iced_aw::Wrap;
 
-use crate::{components::assets::MDI_MINECRAFT_SVG, Message, View};
+use crate::{components::icons, Message, View};
 
-fn btn(name: &str, installer_view: View, icon_svg: &[u8]) -> Button<'static, Message> {
-    let bytes = icon_svg.to_vec();
-    let handle = svg::Handle::from_memory(bytes);
-    let icon = svg(handle)
-        .style(theme::Svg::custom_fn(|_theme| svg::Appearance {
-            color: Some(color!(0xe2e8f0)),
-        }))
-        .width(32)
-        .height(32);
-
+fn btn(
+    name: &str,
+    installer_view: View,
+    icon: Element<'static, Message>,
+) -> Button<'static, Message> {
     let content = column![
         vertical_space(Length::Fill),
         icon,
@@ -41,7 +35,7 @@ pub fn view() -> Element<'static, Message> {
     let mut wrap = Wrap::new().spacing(10.);
 
     // Vanilla
-    let vanilla_btn = btn("Vanilla", View::VanillaInstaller, MDI_MINECRAFT_SVG);
+    let vanilla_btn = btn("Vanilla", View::VanillaInstaller, icons::minecraft());
     wrap = wrap.push(vanilla_btn);
 
     column![title, wrap].spacing(10).padding(10).into()
