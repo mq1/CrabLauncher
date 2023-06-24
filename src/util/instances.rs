@@ -79,17 +79,15 @@ impl Instances {
         &self,
         name: String,
         installer: String,
-        version: util::lua::Version,
+        version: util::vanilla_installer::Version,
     ) -> Result<Self> {
-        util::lua::install_version(&installer, &version)?;
-
         let path = INSTANCES_DIR.join(&name);
         fs::create_dir(&path)?;
 
         let info = InstanceInfo {
             last_played: None,
-            installer: installer.to_owned(),
-            version_id: version.id.to_owned(),
+            installer,
+            version_id: version.id,
         };
         let info_str = toml::to_string_pretty(&info)?;
         fs::write(path.join("instance.toml"), info_str)?;

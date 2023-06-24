@@ -5,13 +5,13 @@ mod about;
 mod accounts;
 mod adding_account;
 mod components;
-mod installer;
 mod instance;
 mod instances;
 mod new_instance;
 mod settings;
 mod style;
 mod util;
+mod vanilla_installer;
 
 use std::{fs, path::PathBuf};
 
@@ -45,7 +45,7 @@ pub enum View {
     LatestInstance,
     Instances,
     NewInstance,
-    Installer,
+    VanillaInstaller,
     Settings,
     About,
     Accounts,
@@ -59,10 +59,9 @@ struct App {
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
     account_head: Option<Vec<u8>>,
-    selected_installer: Option<String>,
     new_instance_name: String,
-    available_versions: Vec<util::lua::Version>,
-    seleted_version: Option<util::lua::Version>,
+    available_vanilla_versions: Vec<util::vanilla_installer::Version>,
+    seleted_vanilla_version: Option<util::vanilla_installer::Version>,
 }
 
 #[derive(Debug, Clone)]
@@ -77,10 +76,10 @@ pub enum Message {
     AddingAccount(Result<util::accounts::Account, String>),
     SelectAccount(util::accounts::Account),
     GotAccountHead(Result<Vec<u8>, String>),
-    SelectInstaller(String),
     ChangeInstanceName(String),
-    SelectVersion(util::lua::Version),
-    CreateInstance,
+    GotVanillaVersions(Result<Vec<util::vanilla_installer::Version>, String>),
+    SelectVanillaVersion(util::vanilla_installer::Version),
+    CreateVanillaInstance,
     CreatedInstance(Result<util::instances::Instances, String>),
 }
 
@@ -128,10 +127,9 @@ impl Application for App {
                 settings,
                 accounts,
                 account_head,
-                selected_installer: None,
                 new_instance_name: String::new(),
-                available_versions: Vec::new(),
-                seleted_version: None,
+                available_vanilla_versions: Vec::new(),
+                seleted_vanilla_version: None,
             },
             command,
         )
@@ -148,8 +146,18 @@ impl Application for App {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ChangeView(view) => {
-                self.view = view;
-                Command::none()
+                if view == View::VanillaInstaller {
+                    let command = Command::perform(
+                        util::vanilla_installer::get_versions().map_err(|e| e.to_string()),
+                        Message::GotVanillaVersions,
+                    );
+
+                    self.view = view;
+                    command
+                } else {
+                    self.view = view;
+                    Command::none()
+                }
             }
             Message::GotUpdate(result) => {
                 match result {
@@ -240,32 +248,37 @@ impl Application for App {
 
                 Command::none()
             }
-            Message::SelectInstaller(installer) => {
-                self.available_versions = util::lua::get_versions(&installer).unwrap();
-                self.selected_installer = Some(installer);
-                self.view = View::Installer;
-                Command::none()
-            }
             Message::ChangeInstanceName(new_name) => {
                 self.new_instance_name = new_name;
                 Command::none()
             }
-            Message::SelectVersion(version) => {
-                self.seleted_version = Some(version);
+            Message::GotVanillaVersions(result) => {
+                match result {
+                    Ok(versions) => {
+                        self.available_vanilla_versions = versions;
+                    }
+                    Err(e) => {
+                        println!("Error getting vanilla versions: {e}");
+                    }
+                }
+
                 Command::none()
             }
-            Message::CreateInstance => {
+            Message::SelectVanillaVersion(version) => {
+                self.seleted_vanilla_version = Some(version);
+                Command::none()
+            }
+            Message::CreateVanillaInstance => {
                 self.view = View::FullscreenMessage("Creating instance...".to_string());
 
                 let instances = self.instances.clone();
                 let name = self.new_instance_name.clone();
-                let installer = self.selected_installer.clone().unwrap();
-                let version = self.seleted_version.clone().unwrap();
+                let version = self.seleted_vanilla_version.clone().unwrap();
 
                 Command::perform(
                     async move {
                         instances
-                            .new(name, installer, version)
+                            .new(name, "vanilla".to_string(), version)
                             .map_err(|e| e.to_string())
                     },
                     Message::CreatedInstance,
@@ -292,10 +305,9 @@ impl Application for App {
             View::LatestInstance => instance::view("Latest"),
             View::Instances => instances::view(&self.instances),
             View::NewInstance => new_instance::view(),
-            View::Installer => installer::view(
-                self.selected_installer.as_ref().unwrap(),
-                &self.available_versions,
-                self.seleted_version.clone(),
+            View::VanillaInstaller => vanilla_installer::view(
+                &self.available_vanilla_versions,
+                self.seleted_vanilla_version.clone(),
                 &self.new_instance_name,
             ),
             View::Settings => settings::view(&self.settings),

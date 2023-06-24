@@ -18,9 +18,9 @@ use zip::ZipArchive;
 
 pub mod accounts;
 pub mod instances;
-pub mod lua;
 pub mod settings;
 pub mod updater;
+pub mod vanilla_installer;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 

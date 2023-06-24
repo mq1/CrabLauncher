@@ -12,14 +12,11 @@ use iced::{
 use crate::{style, util, Message};
 
 pub fn view<'a>(
-    installer: &'a str,
-    versions: &'a Vec<util::lua::Version>,
-    selected_version: Option<util::lua::Version>,
+    versions: &'a Vec<util::vanilla_installer::Version>,
+    selected_version: Option<util::vanilla_installer::Version>,
     name: &'a str,
 ) -> Element<'a, Message> {
-    let info = util::lua::get_installer_info(installer).unwrap();
-
-    let title = text(info.name).size(30);
+    let title = text("Vanilla Installer").size(30);
 
     let name_text = text("Instance name");
     let name = text_input("", name).on_input(Message::ChangeInstanceName);
@@ -29,7 +26,7 @@ pub fn view<'a>(
         .style(style::card());
 
     let version_text = text("Select version");
-    let version_picker = pick_list(versions, selected_version, Message::SelectVersion);
+    let version_picker = pick_list(versions, selected_version, Message::SelectVanillaVersion);
     let select_version = column![version_text, version_picker]
         .spacing(10)
         .padding(10);
@@ -40,7 +37,7 @@ pub fn view<'a>(
     let create_button = button("Create")
         .style(style::circle_button())
         .padding(10)
-        .on_press(Message::CreateInstance);
+        .on_press(Message::CreateVanillaInstance);
     let footer = row![horizontal_space(Length::Fill), create_button];
 
     column![
