@@ -8,15 +8,10 @@ use iced::{
 };
 use iced_aw::Wrap;
 
-use crate::{
-    util::{self, lua::INSTALLERS},
-    Message,
-};
+use crate::{components::assets::MDI_MINECRAFT_SVG, Message, View};
 
-fn btn(installer: &str) -> Button<'static, Message> {
-    let info = util::lua::get_installer_info(installer).unwrap();
-
-    let bytes = info.icon_svg.as_bytes().to_vec();
+fn btn(name: &str, installer_view: View, icon_svg: &[u8]) -> Button<'static, Message> {
+    let bytes = icon_svg.to_vec();
     let handle = svg::Handle::from_memory(bytes);
     let icon = svg(handle)
         .style(theme::Svg::custom_fn(|_theme| svg::Appearance {
@@ -28,7 +23,7 @@ fn btn(installer: &str) -> Button<'static, Message> {
     let content = column![
         vertical_space(Length::Fill),
         icon,
-        text(info.name),
+        text(name),
         vertical_space(Length::Fill),
     ]
     .align_items(Alignment::Center)
@@ -37,17 +32,17 @@ fn btn(installer: &str) -> Button<'static, Message> {
     button(content)
         .height(100)
         .width(100)
-        .on_press(Message::SelectInstaller(installer.to_owned()))
+        .on_press(Message::ChangeView(installer_view))
 }
 
 pub fn view() -> Element<'static, Message> {
     let title = text("New instance").size(30);
 
     let mut wrap = Wrap::new().spacing(10.);
-    for installer in INSTALLERS.keys() {
-        let button = btn(installer);
-        wrap = wrap.push(button);
-    }
+
+    // Vanilla
+    let vanilla_btn = btn("Vanilla", View::VanillaInstaller, MDI_MINECRAFT_SVG);
+    wrap = wrap.push(vanilla_btn);
 
     column![title, wrap].spacing(10).padding(10).into()
 }
