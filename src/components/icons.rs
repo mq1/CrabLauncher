@@ -29,7 +29,7 @@ pub fn cog() -> Element<'static, Message> {
     view!(assets::MDI_COG_OUTLINE_SVG).into()
 }
 
-pub fn content_save() -> Element<'static, Message> {
+pub fn content_save<M>() -> Element<'static, M> {
     view!(assets::MDI_CONTENT_SAVE_OUTLINE_SVG).into()
 }
 
