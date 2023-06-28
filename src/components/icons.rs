@@ -3,7 +3,7 @@
 
 use iced::{color, theme, widget::svg, Element, Length};
 
-use crate::{components::assets, Message};
+use crate::components::assets;
 
 macro_rules! view {
     ($bytes:expr) => {{
@@ -17,15 +17,15 @@ macro_rules! view {
     }};
 }
 
-pub fn account_alert() -> Element<'static, Message> {
+pub fn account_alert<M>() -> Element<'static, M> {
     view!(assets::MDI_ACCOUNT_ALERT_OUTLINE_SVG).into()
 }
 
-pub fn arrow_left() -> Element<'static, Message> {
+pub fn arrow_left<M>() -> Element<'static, M> {
     view!(assets::MDI_ARROW_LEFT_SVG).into()
 }
 
-pub fn cog() -> Element<'static, Message> {
+pub fn cog<M>() -> Element<'static, M> {
     view!(assets::MDI_COG_OUTLINE_SVG).into()
 }
 
@@ -33,34 +33,34 @@ pub fn content_save<M>() -> Element<'static, M> {
     view!(assets::MDI_CONTENT_SAVE_OUTLINE_SVG).into()
 }
 
-pub fn github() -> Element<'static, Message> {
+pub fn github<M>() -> Element<'static, M> {
     view!(assets::MDI_GITHUB_SVG).into()
 }
 
-pub fn grid() -> Element<'static, Message> {
+pub fn grid<M>() -> Element<'static, M> {
     view!(assets::MDI_GRID_SVG).into()
 }
 
-pub fn info() -> Element<'static, Message> {
+pub fn info<M>() -> Element<'static, M> {
     view!(assets::MDI_INFORMATION_OUTLINE_SVG).into()
 }
 
-pub fn minecraft() -> Element<'static, Message> {
+pub fn minecraft<M>() -> Element<'static, M> {
     view!(assets::MDI_MINECRAFT_SVG).into()
 }
 
-pub fn package() -> Element<'static, Message> {
+pub fn package<M>() -> Element<'static, M> {
     view!(assets::MDI_PACKAGE_VARIANT_CLOSED_SVG).into()
 }
 
-pub fn package_plus() -> Element<'static, Message> {
+pub fn package_plus<M>() -> Element<'static, M> {
     view!(assets::MDI_PACKAGE_VARIANT_CLOSED_PLUS_SVG).into()
 }
 
-pub fn plus() -> Element<'static, Message> {
+pub fn plus<M>() -> Element<'static, M> {
     view!(assets::MDI_PLUS_SVG).into()
 }
 
-pub fn modrinth() -> Element<'static, Message> {
+pub fn modrinth<M>() -> Element<'static, M> {
     view!(assets::MODRINTH_SVG).width(32).height(32).into()
 }
