@@ -12,20 +12,20 @@ use crate::{util, BASE_DIR};
 
 pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("instances"));
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct InstanceInfo {
     last_played: Option<PrimitiveDateTime>,
     installer: String,
     version_id: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Instance {
     pub name: String,
     pub info: InstanceInfo,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Instances {
     pub list: Vec<Instance>,
 }

@@ -61,9 +61,7 @@ struct App {
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
     account_head: Option<Vec<u8>>,
-    new_instance_name: String,
-    available_vanilla_versions: Vec<util::vanilla_installer::Version>,
-    seleted_vanilla_version: Option<util::vanilla_installer::Version>,
+    vanilla_installer: vanilla_installer::VanillaInstaller,
 }
 
 #[derive(Debug, Clone)]
@@ -78,10 +76,7 @@ pub enum Message {
     AddingAccount(Result<util::accounts::Account, String>),
     SelectAccount(util::accounts::Account),
     GotAccountHead(Result<Vec<u8>, String>),
-    ChangeInstanceName(String),
-    GotVanillaVersions(Result<Vec<util::vanilla_installer::Version>, String>),
-    SelectVanillaVersion(util::vanilla_installer::Version),
-    CreateVanillaInstance,
+    VanillaInstallerMessage(vanilla_installer::Message),
     CreatedInstance(Result<util::instances::Instances, String>),
 }
 
@@ -129,9 +124,7 @@ impl Application for App {
                 settings,
                 accounts,
                 account_head,
-                new_instance_name: String::new(),
-                available_vanilla_versions: Vec::new(),
-                seleted_vanilla_version: None,
+                vanilla_installer: vanilla_installer::VanillaInstaller::new(),
             },
             command,
         )
@@ -146,57 +139,53 @@ impl Application for App {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
+        let mut ret = Command::none();
+
         match message {
             Message::ChangeView(view) => {
                 if view == View::VanillaInstaller {
-                    let command = Command::perform(
-                        util::vanilla_installer::get_versions().map_err(|e| e.to_string()),
-                        Message::GotVanillaVersions,
-                    );
+                    ret = self
+                        .vanilla_installer
+                        .update(
+                            vanilla_installer::Message::GetVersions,
+                            self.instances.clone(),
+                        )
+                        .map(Message::VanillaInstallerMessage);
 
                     self.view = view;
-                    command
                 } else {
                     self.view = view;
-                    Command::none()
                 }
             }
-            Message::GotUpdate(result) => {
-                match result {
-                    Ok(update) => {
-                        if let Some((version, url)) = update {
-                            let dialog = MessageDialog::new()
-                                .set_level(MessageLevel::Info)
-                                .set_title("Update available")
-                                .set_description(&format!("Version {} is available", version))
-                                .set_buttons(MessageButtons::OkCancelCustom(
-                                    "Update".to_string(),
-                                    "Cancel".to_string(),
-                                ));
+            Message::GotUpdate(result) => match result {
+                Ok(update) => {
+                    if let Some((version, url)) = update {
+                        let dialog = MessageDialog::new()
+                            .set_level(MessageLevel::Info)
+                            .set_title("Update available")
+                            .set_description(&format!("Version {} is available", version))
+                            .set_buttons(MessageButtons::OkCancelCustom(
+                                "Update".to_string(),
+                                "Cancel".to_string(),
+                            ));
 
-                            if dialog.show() {
-                                open::that(url).unwrap();
-                            }
+                        if dialog.show() {
+                            open::that(url).unwrap();
                         }
                     }
-                    Err(e) => {
-                        println!("Error checking for updates: {e}");
-                    }
                 }
-
-                Command::none()
-            }
+                Err(e) => {
+                    println!("Error checking for updates: {e}");
+                }
+            },
             Message::CheckForUpdates(value) => {
                 self.settings.check_for_updates = value;
-                Command::none()
             }
             Message::SaveSettings => {
                 self.settings.save().unwrap();
-                Command::none()
             }
             Message::OpenURL(url) => {
                 open::that(url).unwrap();
-                Command::none()
             }
             Message::AddAccount => {
                 let client = util::accounts::get_client().unwrap();
@@ -207,7 +196,7 @@ impl Application for App {
                     details.user_code().secret().to_string(),
                 );
 
-                Command::perform(
+                ret = Command::perform(
                     util::accounts::get_account(client, details).map_err(|e| e.to_string()),
                     Message::AddingAccount,
                 )
@@ -218,88 +207,49 @@ impl Application for App {
                 // copy code to clipboard
                 let mut ctx = ClipboardContext::new().unwrap();
                 ctx.set_contents(code).unwrap();
-
-                Command::none()
             }
-            Message::AddingAccount(account) => {
-                match account {
-                    Ok(account) => {
-                        self.accounts.add_account(account).unwrap();
-                        self.view = View::Accounts;
-                    }
-                    Err(e) => {
-                        self.view = View::FullscreenMessage(e);
-                    }
+            Message::AddingAccount(account) => match account {
+                Ok(account) => {
+                    self.accounts.add_account(account).unwrap();
+                    self.view = View::Accounts;
                 }
-
-                Command::none()
-            }
+                Err(e) => {
+                    self.view = View::FullscreenMessage(e);
+                }
+            },
             Message::SelectAccount(account) => {
                 self.accounts.set_active_account(account).unwrap();
-                Command::none()
             }
-            Message::GotAccountHead(result) => {
-                match result {
-                    Ok(head) => {
-                        self.account_head = Some(head);
-                    }
-                    Err(e) => {
-                        println!("Error getting account head: {e}")
-                    }
+            Message::GotAccountHead(result) => match result {
+                Ok(head) => {
+                    self.account_head = Some(head);
+                }
+                Err(e) => {
+                    println!("Error getting account head: {e}")
+                }
+            },
+            Message::VanillaInstallerMessage(message) => {
+                if message == vanilla_installer::Message::Create {
+                    self.view = View::FullscreenMessage("Creating instance...".to_string());
                 }
 
-                Command::none()
+                ret = self
+                    .vanilla_installer
+                    .update(message, self.instances.clone())
+                    .map(Message::VanillaInstallerMessage);
             }
-            Message::ChangeInstanceName(new_name) => {
-                self.new_instance_name = new_name;
-                Command::none()
-            }
-            Message::GotVanillaVersions(result) => {
-                match result {
-                    Ok(versions) => {
-                        self.available_vanilla_versions = versions;
-                    }
-                    Err(e) => {
-                        println!("Error getting vanilla versions: {e}");
-                    }
+            Message::CreatedInstance(result) => match result {
+                Ok(instances) => {
+                    self.instances = instances;
+                    self.view = View::Instances;
                 }
-
-                Command::none()
-            }
-            Message::SelectVanillaVersion(version) => {
-                self.seleted_vanilla_version = Some(version);
-                Command::none()
-            }
-            Message::CreateVanillaInstance => {
-                self.view = View::FullscreenMessage("Creating instance...".to_string());
-
-                let instances = self.instances.clone();
-                let name = self.new_instance_name.clone();
-                let version = self.seleted_vanilla_version.clone().unwrap();
-
-                Command::perform(
-                    async move {
-                        instances
-                            .new(name, "vanilla".to_string(), version)
-                            .map_err(|e| e.to_string())
-                    },
-                    Message::CreatedInstance,
-                )
-            }
-            Message::CreatedInstance(result) => {
-                match result {
-                    Ok(instances) => {
-                        self.instances = instances;
-                        self.view = View::Instances;
-                    }
-                    Err(e) => {
-                        self.view = View::FullscreenMessage(e);
-                    }
+                Err(e) => {
+                    self.view = View::FullscreenMessage(e);
                 }
-
-                Command::none()
-            }
+            },
         }
+
+        ret
     }
 
     fn view(&self) -> Element<Message> {
@@ -307,11 +257,10 @@ impl Application for App {
             View::LatestInstance => instance::view("Latest"),
             View::Instances => instances::view(&self.instances),
             View::NewInstance => new_instance::view(),
-            View::VanillaInstaller => vanilla_installer::view(
-                &self.available_vanilla_versions,
-                self.seleted_vanilla_version.clone(),
-                &self.new_instance_name,
-            ),
+            View::VanillaInstaller => self
+                .vanilla_installer
+                .view()
+                .map(Message::VanillaInstallerMessage),
             View::ModrinthInstaller => modrinth_installer::view(),
             View::Settings => settings::view(&self.settings),
             View::About => about::view(),
