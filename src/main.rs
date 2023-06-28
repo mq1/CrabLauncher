@@ -58,7 +58,7 @@ pub enum View {
 struct App {
     view: View,
     instances: util::instances::Instances,
-    settings: util::settings::Settings,
+    settings_page: settings::SettingsPage,
     accounts: util::accounts::Accounts,
     account_head: Option<Vec<u8>>,
     vanilla_installer: vanilla_installer::VanillaInstaller,
@@ -68,8 +68,7 @@ struct App {
 pub enum Message {
     ChangeView(View),
     GotUpdate(Result<Option<(String, String)>, String>),
-    CheckForUpdates(bool),
-    SaveSettings,
+    SettingsMessage(settings::Message),
     OpenURL(String),
     AddAccount,
     Login(String, String),
@@ -88,10 +87,10 @@ impl Application for App {
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
         let instances = util::instances::Instances::load().unwrap();
-        let settings = util::settings::Settings::load().unwrap();
         let accounts = util::accounts::Accounts::load().unwrap();
+        let settings_page = settings::SettingsPage::new();
 
-        let updates_command = if settings.check_for_updates {
+        let updates_command = if settings_page.settings.check_for_updates {
             Command::perform(
                 util::updater::check_for_updates().map_err(|e| e.to_string()),
                 Message::GotUpdate,
@@ -121,7 +120,7 @@ impl Application for App {
             Self {
                 view: View::LatestInstance,
                 instances,
-                settings,
+                settings_page,
                 accounts,
                 account_head,
                 vanilla_installer: vanilla_installer::VanillaInstaller::new(),
@@ -178,11 +177,11 @@ impl Application for App {
                     println!("Error checking for updates: {e}");
                 }
             },
-            Message::CheckForUpdates(value) => {
-                self.settings.check_for_updates = value;
-            }
-            Message::SaveSettings => {
-                self.settings.save().unwrap();
+            Message::SettingsMessage(message) => {
+                ret = self
+                    .settings_page
+                    .update(message)
+                    .map(Message::SettingsMessage);
             }
             Message::OpenURL(url) => {
                 open::that(url).unwrap();
@@ -262,7 +261,7 @@ impl Application for App {
                 .view()
                 .map(Message::VanillaInstallerMessage),
             View::ModrinthInstaller => modrinth_installer::view(),
-            View::Settings => settings::view(&self.settings),
+            View::Settings => self.settings_page.view().map(Message::SettingsMessage),
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),
             View::AddingAccount(url, code) => adding_account::view(url, code),
