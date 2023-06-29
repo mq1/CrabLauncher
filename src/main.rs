@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-mod about;
-mod accounts;
 mod adding_account;
 mod components;
 mod instance;
@@ -64,6 +62,7 @@ struct App {
     new_instance: pages::new_instance::NewInstance,
     vanilla_installer: pages::vanilla_installer::VanillaInstaller,
     modrinth_installer: pages::modrinth_installer::ModrinthInstaller,
+    about: pages::about::About,
 }
 
 #[derive(Debug, Clone)]
@@ -73,10 +72,8 @@ pub enum Message {
     GotUpdate(Result<Option<(String, String)>, String>),
     SettingsMessage(pages::settings::Message),
     OpenURL(String),
-    AddAccount,
+    AccountsMessage(pages::accounts::Message),
     Login(String, String),
-    AddingAccount(Result<util::accounts::Account, String>),
-    SelectAccount(util::accounts::Account),
     GotAccountHead(Result<Vec<u8>, String>),
     VanillaInstallerMessage(pages::vanilla_installer::Message),
     CreatedInstance(Result<util::instances::Instances, String>),
@@ -131,6 +128,7 @@ impl Application for App {
                 new_instance: pages::new_instance::NewInstance,
                 vanilla_installer: pages::vanilla_installer::VanillaInstaller::new(),
                 modrinth_installer: pages::modrinth_installer::ModrinthInstaller,
+                about: pages::about::About,
             },
             command,
         )
@@ -190,20 +188,21 @@ impl Application for App {
             Message::OpenURL(url) => {
                 open::that(url).unwrap();
             }
-            Message::AddAccount => {
-                let client = util::accounts::get_client().unwrap();
-                let details = util::accounts::get_details(&client).unwrap();
+            Message::AccountsMessage(message) => {
+                if let pages::accounts::Message::AddAccount((_, details)) = &message {
+                    self.view = View::AddingAccount(
+                        details.verification_uri().to_string(),
+                        details.user_code().secret().to_string(),
+                    );
+                    self.show_navbar = false;
+                }
 
-                self.view = View::AddingAccount(
-                    details.verification_uri().to_string(),
-                    details.user_code().secret().to_string(),
-                );
-                self.show_navbar = false;
+                if let pages::accounts::Message::AddingAccount(_) = &message {
+                    self.view = View::Accounts;
+                    self.show_navbar = true;
+                }
 
-                ret = Command::perform(
-                    util::accounts::get_account(client, details).map_err(|e| e.to_string()),
-                    Message::AddingAccount,
-                )
+                ret = self.accounts.update(message).map(Message::AccountsMessage);
             }
             Message::Login(url, code) => {
                 open::that(url).unwrap();
@@ -211,22 +210,6 @@ impl Application for App {
                 // copy code to clipboard
                 let mut ctx = ClipboardContext::new().unwrap();
                 ctx.set_contents(code).unwrap();
-            }
-            Message::AddingAccount(account) => {
-                self.show_navbar = true;
-
-                match account {
-                    Ok(account) => {
-                        self.accounts.add_account(account).unwrap();
-                        self.view = View::Accounts;
-                    }
-                    Err(e) => {
-                        eprintln!("Error adding account: {e}");
-                    }
-                }
-            }
-            Message::SelectAccount(account) => {
-                self.accounts.set_active_account(account).unwrap();
             }
             Message::GotAccountHead(result) => match result {
                 Ok(head) => {
@@ -281,8 +264,8 @@ impl Application for App {
                 .map(Message::VanillaInstallerMessage),
             View::ModrinthInstaller => self.modrinth_installer.view(),
             View::Settings => self.settings.view().map(Message::SettingsMessage),
-            View::About => about::view(),
-            View::Accounts => accounts::view(&self.accounts),
+            View::About => self.about.view(),
+            View::Accounts => self.accounts.view().map(Message::AccountsMessage),
             View::AddingAccount(url, code) => adding_account::view(url, code),
         };
 
