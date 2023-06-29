@@ -7,9 +7,9 @@ use iced::{
 };
 use iced_aw::Wrap;
 
-use crate::{components::assets, pages::Page, style, util, Message};
+use crate::{components::assets, pages::Page, style, util::instances::Instances, Message};
 
-impl Page for util::instances::Instances {
+impl Page for Instances {
     type Message = Message;
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
