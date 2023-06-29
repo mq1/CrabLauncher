@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-mod adding_account;
 mod components;
 mod instance;
 mod instances;
@@ -12,7 +11,6 @@ mod util;
 use std::{fs, path::PathBuf};
 
 use anyhow::Result;
-use copypasta::{ClipboardContext, ClipboardProvider};
 use directories::ProjectDirs;
 use iced::{
     executor, futures::TryFutureExt, widget::row, Application, Command, Element, Settings, Theme,
@@ -48,7 +46,7 @@ pub enum View {
     Settings,
     About,
     Accounts,
-    AddingAccount(String, String),
+    AddingAccount,
 }
 
 struct App {
@@ -58,6 +56,7 @@ struct App {
     instances: util::instances::Instances,
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
+    adding_account: pages::adding_account::AddingAccount,
     account_head: Option<Vec<u8>>,
     new_instance: pages::new_instance::NewInstance,
     vanilla_installer: pages::vanilla_installer::VanillaInstaller,
@@ -73,7 +72,7 @@ pub enum Message {
     SettingsMessage(pages::settings::Message),
     OpenURL(String),
     AccountsMessage(pages::accounts::Message),
-    Login(String, String),
+    AddingAccountMessage(pages::adding_account::Message),
     GotAccountHead(Result<Vec<u8>, String>),
     VanillaInstallerMessage(pages::vanilla_installer::Message),
     CreatedInstance(Result<util::instances::Instances, String>),
@@ -124,6 +123,7 @@ impl Application for App {
                 instances,
                 settings,
                 accounts,
+                adding_account: pages::adding_account::AddingAccount::new(),
                 account_head,
                 new_instance: pages::new_instance::NewInstance,
                 vanilla_installer: pages::vanilla_installer::VanillaInstaller::new(),
@@ -190,10 +190,10 @@ impl Application for App {
             }
             Message::AccountsMessage(message) => {
                 if let pages::accounts::Message::AddAccount((_, details)) = &message {
-                    self.view = View::AddingAccount(
-                        details.verification_uri().to_string(),
-                        details.user_code().secret().to_string(),
-                    );
+                    self.adding_account.url = details.verification_uri().to_string();
+                    self.adding_account.code = details.user_code().secret().to_string();
+
+                    self.view = View::AddingAccount;
                     self.show_navbar = false;
                 }
 
@@ -204,12 +204,11 @@ impl Application for App {
 
                 ret = self.accounts.update(message).map(Message::AccountsMessage);
             }
-            Message::Login(url, code) => {
-                open::that(url).unwrap();
-
-                // copy code to clipboard
-                let mut ctx = ClipboardContext::new().unwrap();
-                ctx.set_contents(code).unwrap();
+            Message::AddingAccountMessage(message) => {
+                ret = self
+                    .adding_account
+                    .update(message)
+                    .map(Message::AddingAccountMessage);
             }
             Message::GotAccountHead(result) => match result {
                 Ok(head) => {
@@ -266,7 +265,10 @@ impl Application for App {
             View::Settings => self.settings.view().map(Message::SettingsMessage),
             View::About => self.about.view(),
             View::Accounts => self.accounts.view().map(Message::AccountsMessage),
-            View::AddingAccount(url, code) => adding_account::view(url, code),
+            View::AddingAccount => self
+                .adding_account
+                .view()
+                .map(Message::AddingAccountMessage),
         };
 
         if self.show_navbar {
