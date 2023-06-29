@@ -31,3 +31,9 @@ pub async fn get_versions() -> Result<Vec<Version>> {
 
     Ok(resp.versions)
 }
+
+impl Version {
+    pub fn install(&self) -> Result<()> {
+        todo!()
+    }
+}
