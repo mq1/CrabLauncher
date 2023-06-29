@@ -3,8 +3,11 @@
 
 use iced::{Command, Element};
 
-pub mod status;
+pub mod modrinth_installer;
+pub mod new_instance;
 pub mod settings;
+pub mod status;
+pub mod vanilla_installer;
 
 pub trait Page {
     type Message;

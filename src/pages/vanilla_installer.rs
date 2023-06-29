@@ -11,6 +11,7 @@ use iced::{
 };
 
 use crate::{
+    pages::Page,
     style,
     util::{self, instances::Instances},
 };
@@ -21,7 +22,7 @@ pub enum Message {
     GotVersions(Result<Vec<util::vanilla_installer::Version>, String>),
     ChangeName(String),
     SelectVersion(util::vanilla_installer::Version),
-    Create,
+    Create(Option<Instances>),
     CreatedInstance(Result<Instances, String>),
 }
 
@@ -39,8 +40,12 @@ impl VanillaInstaller {
             name: String::new(),
         }
     }
+}
 
-    pub fn update(&mut self, message: Message, instances: Instances) -> Command<Message> {
+impl Page for VanillaInstaller {
+    type Message = Message;
+
+    fn update(&mut self, message: Message) -> Command<Message> {
         let mut ret = Command::none();
 
         match message {
@@ -62,10 +67,10 @@ impl VanillaInstaller {
             Message::SelectVersion(version) => {
                 self.selected_version = Some(version);
             }
-            Message::Create => {
+            Message::Create(instances) => {
                 let name = self.name.clone();
                 let version = self.selected_version.clone().unwrap();
-                let instances = instances.clone();
+                let instances = instances.unwrap();
 
                 ret = Command::perform(
                     async move {
@@ -88,7 +93,7 @@ impl VanillaInstaller {
         ret
     }
 
-    pub fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         let title = text("Vanilla Installer").size(30);
 
         let name_text = text("Instance name");
@@ -114,7 +119,7 @@ impl VanillaInstaller {
         let create_button = button("Create")
             .style(style::circle_button())
             .padding(10)
-            .on_press(Message::Create);
+            .on_press(Message::Create(None));
         let footer = row![horizontal_space(Length::Fill), create_button];
 
         column![

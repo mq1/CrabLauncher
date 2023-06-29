@@ -7,12 +7,9 @@ mod adding_account;
 mod components;
 mod instance;
 mod instances;
-mod modrinth_installer;
-mod new_instance;
 mod pages;
 mod style;
 mod util;
-mod vanilla_installer;
 
 use std::{fs, path::PathBuf};
 
@@ -64,7 +61,9 @@ struct App {
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
     account_head: Option<Vec<u8>>,
-    vanilla_installer: vanilla_installer::VanillaInstaller,
+    new_instance: pages::new_instance::NewInstance,
+    vanilla_installer: pages::vanilla_installer::VanillaInstaller,
+    modrinth_installer: pages::modrinth_installer::ModrinthInstaller,
 }
 
 #[derive(Debug, Clone)]
@@ -79,7 +78,7 @@ pub enum Message {
     AddingAccount(Result<util::accounts::Account, String>),
     SelectAccount(util::accounts::Account),
     GotAccountHead(Result<Vec<u8>, String>),
-    VanillaInstallerMessage(vanilla_installer::Message),
+    VanillaInstallerMessage(pages::vanilla_installer::Message),
     CreatedInstance(Result<util::instances::Instances, String>),
 }
 
@@ -129,7 +128,9 @@ impl Application for App {
                 settings,
                 accounts,
                 account_head,
-                vanilla_installer: vanilla_installer::VanillaInstaller::new(),
+                new_instance: pages::new_instance::NewInstance,
+                vanilla_installer: pages::vanilla_installer::VanillaInstaller::new(),
+                modrinth_installer: pages::modrinth_installer::ModrinthInstaller,
             },
             command,
         )
@@ -151,10 +152,7 @@ impl Application for App {
                 if view == View::VanillaInstaller {
                     ret = self
                         .vanilla_installer
-                        .update(
-                            vanilla_installer::Message::GetVersions,
-                            self.instances.clone(),
-                        )
+                        .update(pages::vanilla_installer::Message::GetVersions)
                         .map(Message::VanillaInstallerMessage);
 
                     self.view = view;
@@ -238,16 +236,19 @@ impl Application for App {
                     eprintln!("Error getting account head: {e}");
                 }
             },
-            Message::VanillaInstallerMessage(message) => {
-                if message == vanilla_installer::Message::Create {
+            Message::VanillaInstallerMessage(mut message) => {
+                // if we're creating an instance, show the status page
+                if let pages::vanilla_installer::Message::Create(_) = message {
                     self.view = View::Status;
                     self.status.text = "Creating instance...".to_string();
                     self.show_navbar = false;
+                    message =
+                        pages::vanilla_installer::Message::Create(Some(self.instances.clone()));
                 }
 
                 ret = self
                     .vanilla_installer
-                    .update(message, self.instances.clone())
+                    .update(message)
                     .map(Message::VanillaInstallerMessage);
             }
             Message::CreatedInstance(result) => {
@@ -273,12 +274,12 @@ impl Application for App {
             View::Status => self.status.view(),
             View::LatestInstance => instance::view("Latest"),
             View::Instances => instances::view(&self.instances),
-            View::NewInstance => new_instance::view(),
+            View::NewInstance => self.new_instance.view(),
             View::VanillaInstaller => self
                 .vanilla_installer
                 .view()
                 .map(Message::VanillaInstallerMessage),
-            View::ModrinthInstaller => modrinth_installer::view(),
+            View::ModrinthInstaller => self.modrinth_installer.view(),
             View::Settings => self.settings.view().map(Message::SettingsMessage),
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),
