@@ -3,7 +3,6 @@
 
 mod components;
 mod instance;
-mod instances;
 mod pages;
 mod style;
 mod util;
@@ -67,7 +66,6 @@ struct App {
 #[derive(Debug, Clone)]
 pub enum Message {
     ChangeView(View),
-    ShowNavbar(bool),
     GotUpdate(Result<Option<(String, String)>, String>),
     SettingsMessage(pages::settings::Message),
     OpenURL(String),
@@ -157,9 +155,6 @@ impl Application for App {
                 } else {
                     self.view = view;
                 }
-            }
-            Message::ShowNavbar(show) => {
-                self.show_navbar = show;
             }
             Message::GotUpdate(result) => match result {
                 Ok(update) => {
@@ -255,7 +250,7 @@ impl Application for App {
         let view = match &self.view {
             View::Status => self.status.view(),
             View::LatestInstance => instance::view("Latest"),
-            View::Instances => instances::view(&self.instances),
+            View::Instances => self.instances.view(),
             View::NewInstance => self.new_instance.view(),
             View::VanillaInstaller => self
                 .vanilla_installer
