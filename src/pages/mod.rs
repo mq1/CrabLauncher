@@ -3,6 +3,7 @@
 
 use iced::{Command, Element};
 
+pub mod status;
 pub mod settings;
 
 pub trait Page {
