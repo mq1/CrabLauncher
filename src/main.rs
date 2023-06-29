@@ -58,6 +58,7 @@ pub enum View {
 
 struct App {
     view: View,
+    show_navbar: bool,
     instances: util::instances::Instances,
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
@@ -68,6 +69,7 @@ struct App {
 #[derive(Debug, Clone)]
 pub enum Message {
     ChangeView(View),
+    ShowNavbar(bool),
     GotUpdate(Result<Option<(String, String)>, String>),
     SettingsMessage(pages::settings::Message),
     OpenURL(String),
@@ -120,6 +122,7 @@ impl Application for App {
         (
             Self {
                 view: View::LatestInstance,
+                show_navbar: true,
                 instances,
                 settings,
                 accounts,
@@ -157,6 +160,9 @@ impl Application for App {
                     self.view = view;
                 }
             }
+            Message::ShowNavbar(show) => {
+                self.show_navbar = show;
+            }
             Message::GotUpdate(result) => match result {
                 Ok(update) => {
                     if let Some((version, url)) = update {
@@ -192,6 +198,7 @@ impl Application for App {
                     details.verification_uri().to_string(),
                     details.user_code().secret().to_string(),
                 );
+                self.show_navbar = false;
 
                 ret = Command::perform(
                     util::accounts::get_account(client, details).map_err(|e| e.to_string()),
@@ -205,15 +212,19 @@ impl Application for App {
                 let mut ctx = ClipboardContext::new().unwrap();
                 ctx.set_contents(code).unwrap();
             }
-            Message::AddingAccount(account) => match account {
-                Ok(account) => {
-                    self.accounts.add_account(account).unwrap();
-                    self.view = View::Accounts;
+            Message::AddingAccount(account) => {
+                self.show_navbar = true;
+
+                match account {
+                    Ok(account) => {
+                        self.accounts.add_account(account).unwrap();
+                        self.view = View::Accounts;
+                    }
+                    Err(e) => {
+                        self.view = View::FullscreenMessage(e);
+                    }
                 }
-                Err(e) => {
-                    self.view = View::FullscreenMessage(e);
-                }
-            },
+            }
             Message::SelectAccount(account) => {
                 self.accounts.set_active_account(account).unwrap();
             }
@@ -228,6 +239,7 @@ impl Application for App {
             Message::VanillaInstallerMessage(message) => {
                 if message == vanilla_installer::Message::Create {
                     self.view = View::FullscreenMessage("Creating instance...".to_string());
+                    self.show_navbar = false;
                 }
 
                 ret = self
@@ -235,15 +247,19 @@ impl Application for App {
                     .update(message, self.instances.clone())
                     .map(Message::VanillaInstallerMessage);
             }
-            Message::CreatedInstance(result) => match result {
-                Ok(instances) => {
-                    self.instances = instances;
-                    self.view = View::Instances;
+            Message::CreatedInstance(result) => {
+                self.show_navbar = true;
+
+                match result {
+                    Ok(instances) => {
+                        self.instances = instances;
+                        self.view = View::Instances;
+                    }
+                    Err(e) => {
+                        self.view = View::FullscreenMessage(e);
+                    }
                 }
-                Err(e) => {
-                    self.view = View::FullscreenMessage(e);
-                }
-            },
+            }
         }
 
         ret
@@ -266,16 +282,12 @@ impl Application for App {
             View::FullscreenMessage(message) => components::fullscreen_message::view(message),
         };
 
-        if let View::AddingAccount(_, _) = self.view {
-            return view;
+        if self.show_navbar {
+            let navbar = components::navbar::view(&self.view, &self.account_head);
+
+            row![navbar, view].into()
+        } else {
+            view.into()
         }
-
-        if let View::FullscreenMessage(_) = self.view {
-            return view;
-        }
-
-        let navbar = components::navbar::view(&self.view, &self.account_head);
-
-        row![navbar, view].into()
     }
 }
