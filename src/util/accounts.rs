@@ -107,49 +107,50 @@ impl Accounts {
 
         Ok(())
     }
-}
 
-pub fn get_client() -> Result<BasicClient> {
-    let client_id = ClientId::new(CLIENT_ID.to_owned());
-    let auth_url = AuthUrl::new(MSA_AUTHORIZATION_ENDPOINT.to_owned())?;
-    let token_url = TokenUrl::new(MSA_TOKEN_ENDPOINT.to_owned())?;
-    let device_auth_url = DeviceAuthorizationUrl::new(MSA_DEVICE_AUTH_ENDPOINT.to_owned())?;
+    pub fn get_client() -> Result<BasicClient> {
+        let client_id = ClientId::new(CLIENT_ID.to_owned());
+        let auth_url = AuthUrl::new(MSA_AUTHORIZATION_ENDPOINT.to_owned())?;
+        let token_url = TokenUrl::new(MSA_TOKEN_ENDPOINT.to_owned())?;
+        let device_auth_url = DeviceAuthorizationUrl::new(MSA_DEVICE_AUTH_ENDPOINT.to_owned())?;
 
-    let client = BasicClient::new(client_id, None, auth_url, Some(token_url))
-        .set_device_authorization_url(device_auth_url);
+        let client = BasicClient::new(client_id, None, auth_url, Some(token_url))
+            .set_device_authorization_url(device_auth_url);
 
-    Ok(client)
-}
+        Ok(client)
+    }
 
-pub fn get_details(client: &BasicClient) -> Result<StandardDeviceAuthorizationResponse> {
-    let scopes = SCOPES
-        .iter()
-        .map(|s| Scope::new(s.to_string()))
-        .collect::<Vec<_>>();
+    pub fn get_details(client: &BasicClient) -> Result<StandardDeviceAuthorizationResponse> {
+        let scopes = SCOPES
+            .iter()
+            .map(|s| Scope::new(s.to_string()))
+            .collect::<Vec<_>>();
 
-    let details = client
-        .exchange_device_code()?
-        .add_scopes(scopes)
-        .request(http_client)?;
+        let details = client
+            .exchange_device_code()?
+            .add_scopes(scopes)
+            .request(http_client)?;
 
-    Ok(details)
-}
+        Ok(details)
+    }
 
-pub async fn get_account(
-    client: BasicClient,
-    details: StandardDeviceAuthorizationResponse,
-) -> Result<Account> {
-    let token_result =
-        client
-            .exchange_device_access_token(&details)
-            .request(http_client, thread::sleep, None)?;
+    pub async fn get_account(
+        client: BasicClient,
+        details: StandardDeviceAuthorizationResponse,
+    ) -> Result<Account> {
+        let token_result = client.exchange_device_access_token(&details).request(
+            http_client,
+            thread::sleep,
+            None,
+        )?;
 
-    let account = get_minecraft_account_data(
-        &token_result.access_token().secret().to_string(),
-        &token_result.refresh_token().unwrap().secret().to_string(),
-    )?;
+        let account = get_minecraft_account_data(
+            &token_result.access_token().secret().to_string(),
+            &token_result.refresh_token().unwrap().secret().to_string(),
+        )?;
 
-    Ok(account)
+        Ok(account)
+    }
 }
 
 pub fn get_minecraft_account_data(
