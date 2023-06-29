@@ -6,7 +6,9 @@ use iced::{
     Command, Element, Length,
 };
 
-use crate::{components::icons, style, util};
+use crate::{components::icons, style, util::settings::Settings};
+
+use super::Page;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
@@ -14,36 +16,28 @@ pub enum Message {
     SaveSettings,
 }
 
-pub struct SettingsPage {
-    pub settings: util::settings::Settings,
-}
+impl Page for Settings {
+    type Message = Message;
 
-impl SettingsPage {
-    pub fn new() -> Self {
-        Self {
-            settings: util::settings::Settings::load().unwrap(),
-        }
-    }
-
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         let ret = Command::none();
 
         match message {
             Message::SetCheckForUpdates(value) => {
-                self.settings.check_for_updates = value;
+                self.check_for_updates = value;
             }
             Message::SaveSettings => {
-                self.settings.save().unwrap();
+                self.save().unwrap();
             }
         }
 
         ret
     }
 
-    pub fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<Message> {
         let check_for_updates = toggler(
             "Check for updates".to_owned(),
-            self.settings.check_for_updates,
+            self.check_for_updates,
             Message::SetCheckForUpdates,
         );
 
