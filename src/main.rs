@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 mod components;
-mod instance;
 mod pages;
 mod style;
 mod util;
@@ -12,7 +11,10 @@ use std::{fs, path::PathBuf};
 use anyhow::Result;
 use directories::ProjectDirs;
 use iced::{
-    executor, futures::TryFutureExt, widget::row, Application, Command, Element, Settings, Theme,
+    executor,
+    futures::TryFutureExt,
+    widget::{row, text},
+    Application, Command, Element, Settings, Theme,
 };
 use once_cell::sync::Lazy;
 use pages::Page;
@@ -247,9 +249,14 @@ impl Application for App {
     }
 
     fn view(&self) -> Element<Message> {
+        let latest_instance = match &self.instances.list.get(0) {
+            Some(instance) => instance.view(),
+            None => text("No instances").size(20).into(),
+        };
+
         let view = match &self.view {
             View::Status => self.status.view(),
-            View::LatestInstance => instance::view("Latest"),
+            View::LatestInstance => latest_instance,
             View::Instances => self.instances.view(),
             View::NewInstance => self.new_instance.view(),
             View::VanillaInstaller => self
