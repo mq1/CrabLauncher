@@ -44,6 +44,7 @@ pub fn main() -> Result<()> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum View {
+    Status,
     LatestInstance,
     Instances,
     NewInstance,
@@ -53,12 +54,12 @@ pub enum View {
     About,
     Accounts,
     AddingAccount(String, String),
-    FullscreenMessage(String),
 }
 
 struct App {
     view: View,
     show_navbar: bool,
+    status: pages::status::Status,
     instances: util::instances::Instances,
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
@@ -123,6 +124,7 @@ impl Application for App {
             Self {
                 view: View::LatestInstance,
                 show_navbar: true,
+                status: pages::status::Status::new(),
                 instances,
                 settings,
                 accounts,
@@ -181,7 +183,7 @@ impl Application for App {
                     }
                 }
                 Err(e) => {
-                    println!("Error checking for updates: {e}");
+                    eprintln!("Error checking for updates: {e}");
                 }
             },
             Message::SettingsMessage(message) => {
@@ -221,7 +223,7 @@ impl Application for App {
                         self.view = View::Accounts;
                     }
                     Err(e) => {
-                        self.view = View::FullscreenMessage(e);
+                        eprintln!("Error adding account: {e}");
                     }
                 }
             }
@@ -233,12 +235,13 @@ impl Application for App {
                     self.account_head = Some(head);
                 }
                 Err(e) => {
-                    println!("Error getting account head: {e}")
+                    eprintln!("Error getting account head: {e}");
                 }
             },
             Message::VanillaInstallerMessage(message) => {
                 if message == vanilla_installer::Message::Create {
-                    self.view = View::FullscreenMessage("Creating instance...".to_string());
+                    self.view = View::Status;
+                    self.status.text = "Creating instance...".to_string();
                     self.show_navbar = false;
                 }
 
@@ -256,7 +259,7 @@ impl Application for App {
                         self.view = View::Instances;
                     }
                     Err(e) => {
-                        self.view = View::FullscreenMessage(e);
+                        eprintln!("Error creating instance: {e}");
                     }
                 }
             }
@@ -267,6 +270,7 @@ impl Application for App {
 
     fn view(&self) -> Element<Message> {
         let view = match &self.view {
+            View::Status => self.status.view(),
             View::LatestInstance => instance::view("Latest"),
             View::Instances => instances::view(&self.instances),
             View::NewInstance => new_instance::view(),
@@ -279,7 +283,6 @@ impl Application for App {
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),
             View::AddingAccount(url, code) => adding_account::view(url, code),
-            View::FullscreenMessage(message) => components::fullscreen_message::view(message),
         };
 
         if self.show_navbar {
