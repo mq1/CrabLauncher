@@ -7,9 +7,9 @@ mod adding_account;
 mod components;
 mod instance;
 mod instances;
-pub mod modrinth_installer;
+mod modrinth_installer;
 mod new_instance;
-mod settings;
+mod pages;
 mod style;
 mod util;
 mod vanilla_installer;
@@ -23,6 +23,7 @@ use iced::{
     executor, futures::TryFutureExt, widget::row, Application, Command, Element, Settings, Theme,
 };
 use once_cell::sync::Lazy;
+use pages::Page;
 use rfd::{MessageButtons, MessageDialog, MessageLevel};
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
@@ -58,7 +59,7 @@ pub enum View {
 struct App {
     view: View,
     instances: util::instances::Instances,
-    settings_page: settings::SettingsPage,
+    settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
     account_head: Option<Vec<u8>>,
     vanilla_installer: vanilla_installer::VanillaInstaller,
@@ -68,7 +69,7 @@ struct App {
 pub enum Message {
     ChangeView(View),
     GotUpdate(Result<Option<(String, String)>, String>),
-    SettingsMessage(settings::Message),
+    SettingsMessage(pages::settings::Message),
     OpenURL(String),
     AddAccount,
     Login(String, String),
@@ -88,9 +89,9 @@ impl Application for App {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         let instances = util::instances::Instances::load().unwrap();
         let accounts = util::accounts::Accounts::load().unwrap();
-        let settings_page = settings::SettingsPage::new();
+        let settings = util::settings::Settings::load().unwrap();
 
-        let updates_command = if settings_page.settings.check_for_updates {
+        let updates_command = if settings.check_for_updates {
             Command::perform(
                 util::updater::check_for_updates().map_err(|e| e.to_string()),
                 Message::GotUpdate,
@@ -120,7 +121,7 @@ impl Application for App {
             Self {
                 view: View::LatestInstance,
                 instances,
-                settings_page,
+                settings,
                 accounts,
                 account_head,
                 vanilla_installer: vanilla_installer::VanillaInstaller::new(),
@@ -178,10 +179,7 @@ impl Application for App {
                 }
             },
             Message::SettingsMessage(message) => {
-                ret = self
-                    .settings_page
-                    .update(message)
-                    .map(Message::SettingsMessage);
+                ret = self.settings.update(message).map(Message::SettingsMessage);
             }
             Message::OpenURL(url) => {
                 open::that(url).unwrap();
@@ -261,7 +259,7 @@ impl Application for App {
                 .view()
                 .map(Message::VanillaInstallerMessage),
             View::ModrinthInstaller => modrinth_installer::view(),
-            View::Settings => self.settings_page.view().map(Message::SettingsMessage),
+            View::Settings => self.settings.view().map(Message::SettingsMessage),
             View::About => about::view(),
             View::Accounts => accounts::view(&self.accounts),
             View::AddingAccount(url, code) => adding_account::view(url, code),
