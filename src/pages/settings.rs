@@ -6,7 +6,7 @@ use iced::{
     Command, Element, Length,
 };
 
-use crate::{components::icons, style, util::settings::Settings, pages::Page};
+use crate::{components::icons, pages::Page, style, util::settings::Settings};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
