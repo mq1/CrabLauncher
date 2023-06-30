@@ -1,10 +1,12 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::fmt::Display;
+use std::{fmt::Display, fs};
 
 use anyhow::Result;
 use serde::Deserialize;
+
+use crate::util::{runtime_manager, DownloadItem};
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Version {
@@ -33,7 +35,19 @@ pub async fn get_versions() -> Result<Vec<Version>> {
 }
 
 impl Version {
-    pub fn install(&self) -> Result<()> {
-        todo!()
+    pub fn install(&self) -> Result<Vec<DownloadItem>> {
+        let mut download_items = Vec::new();
+
+        let jvm_assets = runtime_manager::get_assets_info("17")?;
+        if !runtime_manager::is_updated(&jvm_assets)? {
+            let path = jvm_assets.get_path();
+            if path.exists() {
+                fs::remove_dir_all(path)?;
+            }
+
+            download_items.push(jvm_assets.get_download_item());
+        }
+
+        Ok(download_items)
     }
 }

@@ -4,7 +4,7 @@
 use std::{
     fs::{self, File},
     io::{self, BufReader, BufWriter, Read, Seek},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use anyhow::{anyhow, bail, Result};
@@ -21,8 +21,20 @@ pub mod instances;
 pub mod settings;
 pub mod updater;
 pub mod vanilla_installer;
+mod runtime_manager;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+
+pub enum HashAlgorithm {
+    Sha1,
+    Sha256,
+}
+
+pub struct DownloadItem {
+    pub url: String,
+    pub path: PathBuf,
+    pub hash: Option<(String, HashAlgorithm)>,
+}
 
 fn calc_hash<D: Digest>(mut reader: impl Read + Seek) -> Result<String> {
     let mut hasher = D::new();

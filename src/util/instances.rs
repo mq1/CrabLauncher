@@ -81,8 +81,6 @@ impl Instances {
         installer: String,
         version: util::vanilla_installer::Version,
     ) -> Result<Self> {
-        version.install()?;
-
         let path = INSTANCES_DIR.join(&name);
         fs::create_dir(&path)?;
 
