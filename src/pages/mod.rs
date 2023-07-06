@@ -10,6 +10,7 @@ pub mod instance;
 pub mod instances;
 pub mod modrinth_installer;
 pub mod new_instance;
+pub mod no_instances;
 pub mod settings;
 pub mod status;
 pub mod vanilla_installer;
