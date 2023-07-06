@@ -10,20 +10,23 @@ use std::{
 use anyhow::{anyhow, bail, Result};
 use digest::Digest;
 use flate2::bufread::GzDecoder;
+use once_cell::sync::Lazy;
 use sha1::Sha1;
 use sha2::Sha256;
 use tar::Archive;
 use tempfile::{tempfile, NamedTempFile};
+use ureq::{Agent, AgentBuilder};
 use zip::ZipArchive;
 
 pub mod accounts;
 pub mod instances;
+mod runtime_manager;
 pub mod settings;
 pub mod updater;
 pub mod vanilla_installer;
-mod runtime_manager;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+pub static AGENT: Lazy<Agent> = Lazy::new(|| AgentBuilder::new().user_agent(USER_AGENT).build());
 
 pub enum HashAlgorithm {
     Sha1,
@@ -88,7 +91,7 @@ pub fn download_file(
         fs::create_dir_all(parent)?;
     }
 
-    let response = ureq::get(url).set("User-Agent", USER_AGENT).call()?;
+    let response = AGENT.get(url).call()?;
     let mut file = NamedTempFile::new()?;
 
     // write to file
@@ -133,7 +136,7 @@ pub fn download_json(
         fs::create_dir_all(parent)?;
     }
 
-    let response = ureq::get(url).set("User-Agent", USER_AGENT).call()?;
+    let response = AGENT.get(url).call()?;
     let file = NamedTempFile::new()?;
 
     // write to file
@@ -177,7 +180,7 @@ pub fn download_and_unpack(
         fs::create_dir_all(parent)?;
     }
 
-    let response = ureq::get(url).set("User-Agent", USER_AGENT).call()?;
+    let response = AGENT.get(url).call()?;
     let file = tempfile()?;
 
     // write to file

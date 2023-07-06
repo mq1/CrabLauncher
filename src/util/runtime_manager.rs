@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use serde::Deserialize;
 
 use crate::{
-    util::{DownloadItem, HashAlgorithm, USER_AGENT},
+    util::{DownloadItem, HashAlgorithm, AGENT},
     BASE_DIR,
 };
 
@@ -63,10 +63,7 @@ impl Assets {
 
 pub fn get_assets_info(java_version: &str) -> Result<Assets> {
     let url = format!("{ADOPTIUM_API_ENDPOINT}/v3/assets/latest/{java_version}/hotspot?architecture={ARCH_STRING}&image_type=jre&os={OS_STRING}&vendor=eclipse");
-    let mut response = ureq::get(&url)
-        .set("User-Agent", USER_AGENT)
-        .call()?
-        .into_json::<Vec<Assets>>()?;
+    let mut response = AGENT.get(&url).call()?.into_json::<Vec<Assets>>()?;
     let assets = response.pop().unwrap();
 
     Ok(assets)

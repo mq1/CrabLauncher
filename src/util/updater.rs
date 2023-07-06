@@ -5,7 +5,7 @@ use anyhow::Result;
 use serde::Deserialize;
 use version_compare::Version;
 
-use crate::util::USER_AGENT;
+use crate::util::AGENT;
 
 const LATEST_RELEASE_URL: &str = "https://api.github.com/repos/mq1/icy-launcher/releases/latest";
 const RELEASES_BASE_URL: &str = "https://github.com/mq1/icy-launcher/releases/tag/";
@@ -16,10 +16,7 @@ struct Release {
 }
 
 fn get_latest_release() -> Result<Release> {
-    let resp = ureq::get(LATEST_RELEASE_URL)
-        .set("User-Agent", USER_AGENT)
-        .call()?
-        .into_json()?;
+    let resp = AGENT.get(LATEST_RELEASE_URL).call()?.into_json()?;
 
     Ok(resp)
 }

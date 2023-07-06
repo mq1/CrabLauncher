@@ -6,7 +6,7 @@ use std::{fmt::Display, fs};
 use anyhow::Result;
 use serde::Deserialize;
 
-use crate::util::{runtime_manager, DownloadItem};
+use crate::util::{runtime_manager, DownloadItem, AGENT};
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Version {
@@ -27,7 +27,8 @@ pub async fn get_versions() -> Result<Vec<Version>> {
         versions: Vec<Version>,
     }
 
-    let resp = ureq::get("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")
+    let resp = AGENT
+        .get("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")
         .call()?
         .into_json::<Response>()?;
 
