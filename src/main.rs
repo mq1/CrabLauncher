@@ -11,13 +11,10 @@ use std::{fs, path::PathBuf};
 use anyhow::Result;
 use directories::ProjectDirs;
 use iced::{
-    executor,
-    futures::TryFutureExt,
-    widget::{row, text},
-    Application, Command, Element, Settings, Theme,
+    executor, futures::TryFutureExt, widget::row, Application, Command, Element, Settings, Theme,
 };
 use once_cell::sync::Lazy;
-use pages::Page;
+use pages::{no_instances::NoInstances, Page};
 use rfd::{MessageButtons, MessageDialog, MessageLevel};
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
@@ -251,7 +248,7 @@ impl Application for App {
     fn view(&self) -> Element<Message> {
         let latest_instance = match &self.instances.list.get(0) {
             Some(instance) => instance.view(),
-            None => text("No instances").size(20).into(),
+            None => NoInstances.view(),
         };
 
         let view = match &self.view {
