@@ -11,9 +11,8 @@ use oauth2::{
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use ureq::AgentBuilder;
 
-use crate::{util::USER_AGENT, BASE_DIR};
+use crate::{util::AGENT, BASE_DIR};
 
 pub const MSA_DEVICE_AUTH_ENDPOINT: &str =
     "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode";
@@ -157,8 +156,6 @@ pub fn get_minecraft_account_data(
     access_token: &str,
     refresh_token: &str,
 ) -> Result<Account, ureq::Error> {
-    let agent = AgentBuilder::new().user_agent(USER_AGENT).build();
-
     // Authenticate with Xbox Live
 
     #[derive(Deserialize)]
@@ -190,7 +187,7 @@ pub fn get_minecraft_account_data(
     });
 
     println!("Authenticating with Xbox Live...");
-    let xbl_response = agent
+    let xbl_response = AGENT
         .post(XBOXLIVE_AUTH_ENDPOINT)
         .set("Accept", "application/json")
         .send_json(&params)?
@@ -215,7 +212,7 @@ pub fn get_minecraft_account_data(
     });
 
     println!("Authenticating with XSTS...");
-    let xsts_response = agent
+    let xsts_response = AGENT
         .post(XSTS_AUTHORIZATION_ENDPOINT)
         .set("Accept", "application/json")
         .send_json(&params)?
@@ -238,7 +235,7 @@ pub fn get_minecraft_account_data(
     });
 
     println!("Authenticating with Minecraft...");
-    let minecraft_response = agent
+    let minecraft_response = AGENT
         .post(MINECRAFT_AUTH_ENDPOINT)
         .set("Accept", "application/json")
         .send_json(&params)?
@@ -253,7 +250,7 @@ pub fn get_minecraft_account_data(
         name: String,
     }
 
-    let minecraft_profile = agent
+    let minecraft_profile = AGENT
         .get(MINECRAFT_PROFILE_ENDPOINT)
         .set(
             "Authorization",
@@ -273,7 +270,9 @@ pub fn get_minecraft_account_data(
 }
 
 pub async fn get_head(account: Account) -> Result<Vec<u8>> {
-    let resp = ureq::get(&format!("https://crafatar.com/avatars/{}", account.mc_id)).call()?;
+    let resp = AGENT
+        .get(&format!("https://crafatar.com/avatars/{}", account.mc_id))
+        .call()?;
     let mut bytes = Vec::with_capacity(resp.header("Content-Length").unwrap().parse::<usize>()?);
     io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
 
