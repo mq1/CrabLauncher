@@ -25,8 +25,11 @@ pub fn arrow_left<M>() -> Element<'static, M> {
     view!(assets::MDI_ARROW_LEFT_SVG).into()
 }
 
-pub fn cog<M>() -> Element<'static, M> {
-    view!(assets::MDI_COG_OUTLINE_SVG).into()
+pub fn cog<M>(dimensions: f32) -> Element<'static, M> {
+    view!(assets::MDI_COG_OUTLINE_SVG)
+        .width(Length::Fixed(dimensions))
+        .height(Length::Fixed(dimensions))
+        .into()
 }
 
 pub fn content_save<M>() -> Element<'static, M> {
