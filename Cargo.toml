@@ -32,6 +32,11 @@ digest = "0.10"
 base16ct = { version = "0.2", features = ["alloc"] }
 tempfile = "3.6"
 
+[features]
+default = ["updater"]
+updater = []
+offline-accounts = []
+
 [profile.release]
 opt-level = "z"
 lto = true
