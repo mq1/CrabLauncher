@@ -42,8 +42,8 @@ pub fn main() -> iced::Result {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum View {
     Status,
-    LatestInstance,
     Instances,
+    Instance(Option<util::instances::Instance>),
     NewInstance,
     VanillaInstaller,
     ModrinthInstaller,
@@ -79,6 +79,7 @@ pub enum Message {
     GotAccountHead(Result<Vec<u8>, String>),
     VanillaInstallerMessage(pages::vanilla_installer::Message),
     CreatedInstance(Result<util::instances::Instances, String>),
+    OpenInstance(util::instances::Instance),
 }
 
 impl Application for App {
@@ -121,7 +122,7 @@ impl Application for App {
 
         (
             Self {
-                view: View::LatestInstance,
+                view: View::Instance(instances.list.get(0).cloned()),
                 show_navbar: true,
                 status: pages::status::Status::new(),
                 instances,
@@ -251,20 +252,24 @@ impl Application for App {
                     }
                 }
             }
+            Message::OpenInstance(instance) => {
+                self.view = View::Instance(Some(instance));
+            }
         }
 
         ret
     }
 
     fn view(&self) -> Element<Message> {
-        let latest_instance = match &self.instances.list.get(0) {
-            Some(instance) => instance.view(),
-            None => NoInstances.view(),
-        };
-
         let view = match &self.view {
             View::Status => self.status.view(),
-            View::LatestInstance => latest_instance,
+            View::Instance(instance) => {
+                if let Some(instance) = instance {
+                    instance.view()
+                } else {
+                    NoInstances.view()
+                }
+            }
             View::Instances => self.instances.view(),
             View::NewInstance => self.new_instance.view(),
             View::VanillaInstaller => self
@@ -282,7 +287,11 @@ impl Application for App {
         };
 
         if self.show_navbar {
-            let navbar = components::navbar::view(&self.view, &self.account_head);
+            let navbar = components::navbar::view(
+                &self.view,
+                &self.account_head,
+                self.instances.list.get(0).cloned(),
+            );
 
             row![navbar, view].into()
         } else {
