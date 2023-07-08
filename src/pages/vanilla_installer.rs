@@ -22,8 +22,7 @@ pub enum Message {
     GotVersions(Result<Vec<util::vanilla_installer::Version>, String>),
     ChangeName(String),
     SelectVersion(usize),
-    Create(Option<Instances>),
-    CreatedInstance(Result<Instances, String>),
+    Create,
 }
 
 pub struct VanillaInstaller {
@@ -67,27 +66,9 @@ impl Page for VanillaInstaller {
             Message::SelectVersion(version) => {
                 self.selected_version = Some(version);
             }
-            Message::Create(instances) => {
-                let name = self.name.clone();
-                let version = self.selected_version.clone().unwrap();
-                let version = self.versions[version].clone();
-                let instances = instances.unwrap();
-
-                ret = Command::perform(
-                    async move {
-                        instances
-                            .new(name, "vanilla".to_string(), version)
-                            .map_err(|e| e.to_string())
-                    },
-                    Message::CreatedInstance,
-                );
-            }
-            Message::CreatedInstance(Ok(_)) => {
+            Message::Create => {
                 self.name = String::new();
                 self.selected_version = None;
-            }
-            Message::CreatedInstance(Err(err)) => {
-                eprintln!("Error: {}", err);
             }
         }
 
@@ -127,7 +108,7 @@ impl Page for VanillaInstaller {
         let create_button = button("Create")
             .style(style::circle_button())
             .padding(10)
-            .on_press(Message::Create(None));
+            .on_press(Message::Create);
         let footer = row![horizontal_space(Length::Fill), create_button];
 
         column![title, choose_name, select_version, footer,]

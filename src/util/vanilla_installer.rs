@@ -4,11 +4,14 @@
 use std::{fmt::Display, fs};
 
 use anyhow::Result;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-use crate::util::{runtime_manager, DownloadItem, AGENT};
+use crate::{
+    util::{runtime_manager, DownloadItem, AGENT},
+    META_DIR,
+};
 
-#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Version {
     pub id: String,
     pub url: String,
@@ -22,7 +25,7 @@ impl Display for Version {
 }
 
 pub async fn get_versions() -> Result<Vec<Version>> {
-    #[derive(Deserialize)]
+    #[derive(Deserialize, Serialize)]
     struct Response {
         versions: Vec<Version>,
     }
@@ -30,7 +33,13 @@ pub async fn get_versions() -> Result<Vec<Version>> {
     let resp = AGENT
         .get("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")
         .call()?
-        .into_json::<Response>()?;
+        .into_string()?;
+
+    // save the response to a file
+    let path = META_DIR.join("version_manifest_v2.json");
+    fs::write(path, &resp)?;
+
+    let resp: Response = serde_json::from_str(&resp)?;
 
     Ok(resp.versions)
 }

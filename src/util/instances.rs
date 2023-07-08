@@ -10,7 +10,12 @@ use time::PrimitiveDateTime;
 
 use crate::{util, BASE_DIR};
 
-pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("instances"));
+pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| {
+    let dir = BASE_DIR.join("instances");
+    fs::create_dir_all(&dir).unwrap();
+
+    dir
+});
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct InstanceInfo {
@@ -76,11 +81,11 @@ impl Instances {
     }
 
     pub fn new(
-        &self,
+        &mut self,
         name: String,
         installer: String,
         version: util::vanilla_installer::Version,
-    ) -> Result<Self> {
+    ) -> Result<()> {
         let path = INSTANCES_DIR.join(&name);
         fs::create_dir(&path)?;
 
@@ -92,11 +97,9 @@ impl Instances {
         let info_str = toml::to_string_pretty(&info)?;
         fs::write(path.join("instance.toml"), info_str)?;
 
-        let mut list = Vec::new();
-        list.clone_from_slice(&self.list);
-        list.push(Instance { name, info });
+        self.list.push(Instance { name, info });
 
-        Ok(Instances { list })
+        Ok(())
     }
 }
 

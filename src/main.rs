@@ -18,19 +18,25 @@ use pages::{no_instances::NoInstances, Page};
 use rfd::{MessageButtons, MessageDialog, MessageLevel};
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    ProjectDirs::from("eu", "mq1", "icy-launcher")
+    let dir = ProjectDirs::from("eu", "mq1", "icy-launcher")
         .unwrap()
         .data_dir()
-        .to_path_buf()
+        .to_path_buf();
+
+    fs::create_dir_all(&dir).unwrap();
+
+    dir
 });
 
-pub fn main() -> Result<()> {
-    if !BASE_DIR.exists() {
-        fs::create_dir_all(BASE_DIR.as_path())?;
-    }
+pub static META_DIR: Lazy<PathBuf> = Lazy::new(|| {
+    let dir = BASE_DIR.join("meta");
+    fs::create_dir_all(&dir).unwrap();
 
-    App::run(Settings::default())?;
-    Ok(())
+    dir
+});
+
+pub fn main() -> iced::Result {
+    App::run(Settings::default())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -213,14 +219,18 @@ impl Application for App {
                     eprintln!("Error getting account head: {e}");
                 }
             },
-            Message::VanillaInstallerMessage(mut message) => {
+            Message::VanillaInstallerMessage(message) => {
                 // if we're creating an instance, show the status page
-                if let pages::vanilla_installer::Message::Create(_) = message {
-                    self.view = View::Status;
-                    self.status.text = "Creating instance...".to_string();
-                    self.show_navbar = false;
-                    message =
-                        pages::vanilla_installer::Message::Create(Some(self.instances.clone()));
+                if message == pages::vanilla_installer::Message::Create {
+                    let name = self.vanilla_installer.name.clone();
+                    let version = self.vanilla_installer.selected_version.clone().unwrap();
+                    let version = self.vanilla_installer.versions[version].clone();
+
+                    self.instances
+                        .new(name, "vanilla".to_string(), version)
+                        .unwrap();
+
+                    self.view = View::Instances;
                 }
 
                 ret = self
