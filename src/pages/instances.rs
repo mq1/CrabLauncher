@@ -9,7 +9,7 @@ use iced_aw::Wrap;
 
 use crate::{
     components::assets, pages::no_instances::NoInstances, pages::Page, style,
-    util::instances::Instances, Message,
+    util::instances::Instances, Message, View,
 };
 
 impl Page for Instances {
@@ -30,16 +30,12 @@ impl Page for Instances {
             let logo = Image::new(logo_handle).height(100);
 
             let c = button(
-                container(
-                    column![logo, text(instance.to_owned()).size(20)]
-                        .align_items(Alignment::Center)
-                        .spacing(10)
-                        .padding(10),
-                )
-                .style(style::card()),
+                column![logo, text(instance.to_owned()).size(20)]
+                    .align_items(Alignment::Center)
+                    .spacing(10)
+                    .padding(10),
             )
-            .style(style::transparent_button())
-            .on_press(Message::ChangeView(crate::View::Instance(Some(
+            .on_press(Message::ChangeView(View::Instance(Some(
                 instance.to_owned(),
             ))));
             wrap = wrap.push(container(c).padding(5));
