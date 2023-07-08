@@ -20,4 +20,6 @@ pub const MDI_PACKAGE_VARIANT_CLOSED_SVG: &[u8] =
 pub const MDI_PACKAGE_VARIANT_CLOSED_PLUS_SVG: &[u8] =
     include_bytes!("../../assets/icons/MdiPackageVariantClosedPlus.svg");
 pub const MDI_PLUS_SVG: &[u8] = include_bytes!("../../assets/icons/MdiPlus.svg");
+pub const MDI_ROCKET_LAUNCH_OUTLINE_SVG: &[u8] =
+    include_bytes!("../../assets/icons/MdiRocketLaunchOutline.svg");
 pub const MODRINTH_SVG: &[u8] = include_bytes!("../../assets/icons/Modrinth.svg");
