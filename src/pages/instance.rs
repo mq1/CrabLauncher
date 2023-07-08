@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{button, column, container, row, text, vertical_space},
+    widget::{button, column, horizontal_space, row, text, vertical_space},
     Alignment, Command, Element, Length,
 };
 
@@ -25,24 +25,24 @@ impl Page for Instance {
         )
         .style(style::circle_button());
 
-        let container = container(
-            column![name, play_button,]
-                .spacing(50)
-                .padding(50)
-                .align_items(Alignment::Center)
-                .width(Length::Fill),
+        let edit_button = button(
+            row![text(" Edit instance"), icons::cog(20.)]
+                .padding(5)
+                .spacing(5)
+                .align_items(Alignment::Center),
         )
-        .style(style::card())
-        .width(Length::Fill);
+        .style(style::circle_button());
 
         column![
             vertical_space(Length::Fill),
-            container,
-            vertical_space(Length::Fill)
+            name,
+            play_button,
+            vertical_space(Length::Fill),
+            row![horizontal_space(Length::Fill), edit_button].padding(10),
         ]
         .align_items(Alignment::Center)
         .width(Length::Fill)
-        .padding(200)
+        .spacing(20)
         .into()
     }
 }

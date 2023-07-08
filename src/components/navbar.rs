@@ -49,7 +49,7 @@ pub fn view<'a>(current_view: &'a View, account_head: &'a Option<Vec<u8>>) -> El
         change_view_button(View::Instances, icons::grid(), "Instances"),
         vertical_space(Length::Fill),
         change_view_button(View::Accounts, account_icon, "Accounts"),
-        change_view_button(View::Settings, icons::cog(), "Settings"),
+        change_view_button(View::Settings, icons::cog(32.), "Settings"),
         change_view_button(View::About, icons::info(), "About Icy Launcher"),
     ]
     .align_items(Alignment::Center);
