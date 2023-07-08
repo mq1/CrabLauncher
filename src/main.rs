@@ -87,6 +87,7 @@ impl Application for App {
         let settings = util::settings::Settings::load().unwrap();
 
         let mut updates_command = Command::none();
+
         #[cfg(feature = "updater")]
         if settings.check_for_updates {
             updates_command = Command::perform(

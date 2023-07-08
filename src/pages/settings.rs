@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{button, column, container, horizontal_space, row, text, toggler, vertical_space},
+    widget::{
+        button, column, container, horizontal_space, row, text, toggler, vertical_space, Column,
+    },
     Command, Element, Length,
 };
 
@@ -33,11 +35,18 @@ impl Page for Settings {
     }
 
     fn view(&self) -> Element<Message> {
-        let check_for_updates = toggler(
-            "Automatically check for updates".to_owned(),
-            self.check_for_updates,
-            Message::SetCheckForUpdates,
-        );
+        let mut settings = Column::new().padding(10);
+
+        #[cfg(feature = "updater")]
+        {
+            let check_for_updates = toggler(
+                "Automatically check for updates".to_owned(),
+                self.check_for_updates,
+                Message::SetCheckForUpdates,
+            );
+
+            settings = settings.push(check_for_updates);
+        }
 
         let save_button = button(icons::content_save())
             .style(style::circle_button())
@@ -45,7 +54,7 @@ impl Page for Settings {
 
         column![
             text("Settings").size(30),
-            container(column![check_for_updates].padding(10)).style(style::card()),
+            container(settings).style(style::card()),
             vertical_space(Length::Fill),
             row![horizontal_space(Length::Fill), save_button]
         ]
