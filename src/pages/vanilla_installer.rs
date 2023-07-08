@@ -5,7 +5,7 @@ use iced::{
     futures::TryFutureExt,
     widget::{
         button, column, container, horizontal_space, radio, row, scrollable, text, text_input,
-        vertical_space, Column,
+        Column,
     },
     Command, Element, Length,
 };
@@ -130,14 +130,9 @@ impl Page for VanillaInstaller {
             .on_press(Message::Create(None));
         let footer = row![horizontal_space(Length::Fill), create_button];
 
-        column![
-            title,
-            choose_name,
-            select_version,
-            footer,
-        ]
-        .spacing(10)
-        .padding(10)
-        .into()
+        column![title, choose_name, select_version, footer,]
+            .spacing(10)
+            .padding(10)
+            .into()
     }
 }
