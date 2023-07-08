@@ -4,8 +4,8 @@
 use iced::{
     futures::TryFutureExt,
     widget::{
-        button, column, container, horizontal_space, pick_list, row, text, text_input,
-        vertical_space,
+        button, column, container, horizontal_space, radio, row, scrollable, text, text_input,
+        vertical_space, Column,
     },
     Command, Element, Length,
 };
@@ -21,14 +21,14 @@ pub enum Message {
     GetVersions,
     GotVersions(Result<Vec<util::vanilla_installer::Version>, String>),
     ChangeName(String),
-    SelectVersion(util::vanilla_installer::Version),
+    SelectVersion(usize),
     Create(Option<Instances>),
     CreatedInstance(Result<Instances, String>),
 }
 
 pub struct VanillaInstaller {
     pub versions: Vec<util::vanilla_installer::Version>,
-    pub selected_version: Option<util::vanilla_installer::Version>,
+    pub selected_version: Option<usize>,
     pub name: String,
 }
 
@@ -70,6 +70,7 @@ impl Page for VanillaInstaller {
             Message::Create(instances) => {
                 let name = self.name.clone();
                 let version = self.selected_version.clone().unwrap();
+                let version = self.versions[version].clone();
                 let instances = instances.unwrap();
 
                 ret = Command::perform(
@@ -104,16 +105,23 @@ impl Page for VanillaInstaller {
             .style(style::card());
 
         let version_text = text("Select version");
-        let version_picker = pick_list(
-            &self.versions,
-            self.selected_version.clone(),
-            Message::SelectVersion,
-        );
+        let mut version_picker = Column::new().spacing(5);
+        for (i, version) in self.versions.iter().enumerate() {
+            version_picker = version_picker.push(radio(
+                version.id.to_owned(),
+                i,
+                self.selected_version,
+                Message::SelectVersion,
+            ));
+        }
+
+        let version_picker = scrollable(version_picker).width(Length::Fill);
+
         let select_version = column![version_text, version_picker]
             .spacing(10)
             .padding(10);
         let select_version = container(select_version)
-            .width(Length::Fill)
+            .height(Length::Fill)
             .style(style::card());
 
         let create_button = button("Create")
@@ -126,7 +134,6 @@ impl Page for VanillaInstaller {
             title,
             choose_name,
             select_version,
-            vertical_space(Length::Fill),
             footer,
         ]
         .spacing(10)
