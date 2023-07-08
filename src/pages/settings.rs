@@ -34,7 +34,7 @@ impl Page for Settings {
 
     fn view(&self) -> Element<Message> {
         let check_for_updates = toggler(
-            "Check for updates".to_owned(),
+            "Automatically check for updates".to_owned(),
             self.check_for_updates,
             Message::SetCheckForUpdates,
         );
