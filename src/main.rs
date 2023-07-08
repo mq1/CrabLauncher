@@ -86,14 +86,14 @@ impl Application for App {
         let accounts = util::accounts::Accounts::load().unwrap();
         let settings = util::settings::Settings::load().unwrap();
 
-        let updates_command = if cfg!(updater) && settings.check_for_updates {
-            Command::perform(
+        let mut updates_command = Command::none();
+        #[cfg(feature = "updater")]
+        if settings.check_for_updates {
+            updates_command = Command::perform(
                 util::updater::check_for_updates().map_err(|e| e.to_string()),
                 Message::GotUpdate,
-            )
-        } else {
-            Command::none()
-        };
+            );
+        }
 
         let (head_command, account_head) = match accounts.active {
             Some(ref account) => {
