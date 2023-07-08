@@ -61,6 +61,10 @@ pub fn plus<M>() -> Element<'static, M> {
     view!(assets::MDI_PLUS_SVG).into()
 }
 
+pub fn rocket<M>() -> Element<'static, M> {
+    view!(assets::MDI_ROCKET_LAUNCH_OUTLINE_SVG).into()
+}
+
 pub fn modrinth<M>() -> Element<'static, M> {
     view!(assets::MODRINTH_SVG).width(32).height(32).into()
 }
