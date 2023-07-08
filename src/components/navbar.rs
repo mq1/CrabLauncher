@@ -8,9 +8,13 @@ use iced::{
 };
 use iced_aw::Spinner;
 
-use crate::{components::icons, style, Message, View};
+use crate::{components::icons, style, util, Message, View};
 
-pub fn view<'a>(current_view: &'a View, account_head: &'a Option<Vec<u8>>) -> Element<'a, Message> {
+pub fn view<'a>(
+    current_view: &'a View,
+    account_head: &'a Option<Vec<u8>>,
+    latest_instance: Option<util::instances::Instance>,
+) -> Element<'a, Message> {
     let change_view_button =
         |view: View, icon: Element<'static, Message>, tooltip_text| -> Element<Message> {
             tooltip(
@@ -44,7 +48,11 @@ pub fn view<'a>(current_view: &'a View, account_head: &'a Option<Vec<u8>>) -> El
     };
 
     let col = column![
-        change_view_button(View::LatestInstance, icons::package(), "Latest Instance"),
+        change_view_button(
+            View::Instance(latest_instance),
+            icons::package(),
+            "Latest Instance"
+        ),
         change_view_button(View::NewInstance, icons::package_plus(), "New Instance"),
         change_view_button(View::Instances, icons::grid(), "Instances"),
         vertical_space(Length::Fill),

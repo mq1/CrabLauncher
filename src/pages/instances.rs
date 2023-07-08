@@ -29,18 +29,19 @@ impl Page for Instances {
             let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
             let logo = Image::new(logo_handle).height(100);
 
-            let c = container(
-                column![
-                    logo,
-                    text(instance.to_owned()).size(20),
-                    button("Edit").style(style::circle_button()),
-                    button("Launch").style(style::circle_button()),
-                ]
-                .align_items(Alignment::Center)
-                .spacing(10)
-                .padding(10),
+            let c = button(
+                container(
+                    column![logo, text(instance.to_owned()).size(20)]
+                        .align_items(Alignment::Center)
+                        .spacing(10)
+                        .padding(10),
+                )
+                .style(style::card()),
             )
-            .style(style::card());
+            .style(style::transparent_button())
+            .on_press(Message::ChangeView(crate::View::Instance(Some(
+                instance.to_owned(),
+            ))));
             wrap = wrap.push(container(c).padding(5));
         }
 
