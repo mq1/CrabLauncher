@@ -86,7 +86,7 @@ impl Application for App {
         let accounts = util::accounts::Accounts::load().unwrap();
         let settings = util::settings::Settings::load().unwrap();
 
-        let updates_command = if settings.check_for_updates {
+        let updates_command = if cfg!(updater) && settings.check_for_updates {
             Command::perform(
                 util::updater::check_for_updates().map_err(|e| e.to_string()),
                 Message::GotUpdate,
