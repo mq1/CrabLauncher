@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{column, text, vertical_space},
-    Alignment, Element, Length,
+    widget::{column, horizontal_space, row, text, vertical_space},
+    Element, Length,
 };
 
 use crate::{pages::Page, Message};
@@ -30,10 +30,13 @@ impl Page for Status {
     fn view(&self) -> Element<Message> {
         column![
             vertical_space(Length::Fill),
-            text(&self.text).size(30),
+            row![
+                horizontal_space(Length::Fill),
+                text(&self.text).size(30),
+                horizontal_space(Length::Fill)
+            ],
             vertical_space(Length::Fill),
         ]
-        .align_items(Alignment::Center)
         .into()
     }
 }
