@@ -259,10 +259,10 @@ impl Application for App {
             Message::Downloading(result) => match result {
                 Ok((mut items, total)) => {
                     if let Some(item) = items.pop() {
-                        self.status.text = format!("Downloading {}", item.url);
                         self.status.progress_bar = true;
                         self.status.progress = total - items.len();
                         self.status.progress_total = total;
+                        self.status.text = format!("Downloading... {}%", 100 * self.status.progress / total);
 
                         ret = Command::perform(
                             async move {
