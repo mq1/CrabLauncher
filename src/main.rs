@@ -80,6 +80,7 @@ pub enum Message {
     VanillaInstallerMessage(pages::vanilla_installer::Message),
     CreatedInstance(Result<util::instances::Instances, String>),
     OpenInstance(util::instances::Instance),
+    Downloading(Result<(Vec<util::DownloadItem>, usize), String>),
 }
 
 impl Application for App {
@@ -255,6 +256,34 @@ impl Application for App {
             Message::OpenInstance(instance) => {
                 self.view = View::Instance(Some(instance));
             }
+            Message::Downloading(result) => match result {
+                Ok((mut items, total)) => {
+                    if let Some(item) = items.pop() {
+                        self.status.text = format!("Downloading {}", item.url);
+                        self.status.progress_bar = true;
+                        self.status.progress = total - items.len();
+                        self.status.progress_total = total;
+
+                        ret = Command::perform(
+                            async move {
+                                let res = util::download_file(&item).await;
+
+                                if let Err(e) = &res {
+                                    return Err(e.to_string());
+                                } else {
+                                    return Ok((items, total));
+                                }
+                            },
+                            Message::Downloading,
+                        );
+                    } else {
+                        self.status.progress_bar = false;
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error downloading items: {e}");
+                }
+            },
         }
 
         ret
