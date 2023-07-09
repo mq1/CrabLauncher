@@ -5,9 +5,9 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleExecutable</key>
-  <string>ice-launcher</string>
+  <string>icy-launcher</string>
   <key>CFBundleIdentifier</key>
-  <string>eu.mq1.ice-launcher</string>
+  <string>eu.mq1.icy-launcher</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
@@ -23,7 +23,7 @@
   <key>CFBundleVersion</key>
   <string>1</string>
   <key>CFBundleIconFile</key>
-  <string>ice-launcher.icns</string>
+  <string>icy-launcher.icns</string>
   <key>NSHighResolutionCapable</key>
   <true/>
   <key>NSRequiresAquaSystemAppearance</key>
