@@ -4,7 +4,7 @@
 use std::{
     fs::{self, File},
     io::{self, BufReader, BufWriter, Read, Seek},
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use anyhow::{anyhow, bail, Result};
@@ -13,6 +13,7 @@ use flate2::bufread::GzDecoder;
 use once_cell::sync::Lazy;
 use sha1::Sha1;
 use sha2::Sha256;
+use strum_macros::Display;
 use tar::Archive;
 use tempfile::{tempfile, NamedTempFile};
 use ureq::{Agent, AgentBuilder};
@@ -28,15 +29,23 @@ pub mod vanilla_installer;
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 pub static AGENT: Lazy<Agent> = Lazy::new(|| AgentBuilder::new().user_agent(USER_AGENT).build());
 
+#[derive(Debug, Clone, Display)]
 pub enum HashAlgorithm {
     Sha1,
     Sha256,
 }
 
+#[derive(Debug, Clone)]
+pub struct Hash {
+    pub hash: String,
+    pub function: HashAlgorithm,
+}
+
+#[derive(Debug, Clone)]
 pub struct DownloadItem {
     pub url: String,
     pub path: PathBuf,
-    pub hash: Option<(String, HashAlgorithm)>,
+    pub hash: Option<Hash>,
 }
 
 fn calc_hash<D: Digest>(mut reader: impl Read + Seek) -> Result<String> {
@@ -57,41 +66,36 @@ fn calc_hash<D: Digest>(mut reader: impl Read + Seek) -> Result<String> {
     Ok(digest)
 }
 
-fn check_hash(reader: impl Read + Seek, hash: String, hash_function: String) -> Result<()> {
-    println!("checking hash: {hash_function} {hash}");
+fn check_hash(reader: impl Read + Seek, hash: &Hash) -> Result<()> {
+    println!("checking hash: {} {}", hash.function, hash.hash);
 
-    let digest = match hash_function.as_str() {
-        "sha1" => calc_hash::<Sha1>(reader)?,
-        "sha256" => calc_hash::<Sha256>(reader)?,
-        _ => bail!("unsupported hash function"),
+    let digest = match hash.function {
+        HashAlgorithm::Sha1 => calc_hash::<Sha1>(reader)?,
+        HashAlgorithm::Sha256 => calc_hash::<Sha256>(reader)?,
     };
 
-    if digest != hash {
+    if digest != hash.hash {
         bail!("hash mismatch");
     }
 
     Ok(())
 }
 
-pub fn download_file(
-    url: &str,
-    path: &Path,
-    hash: Option<String>,
-    hash_function: Option<String>,
-) -> Result<()> {
-    println!("downloading file: {url} to {}", path.display());
-
-    if path.exists() {
+pub async fn download_file(item: &DownloadItem) -> Result<()> {
+    if item.path.exists() {
+        println!("file already exists: {}", item.path.display());
         return Ok(());
     }
 
+    println!("downloading file: {} to {}", item.url, item.path.display());
+
     // create parent directory
     {
-        let parent = path.parent().ok_or_else(|| anyhow!("invalid path"))?;
+        let parent = item.path.parent().ok_or_else(|| anyhow!("invalid path"))?;
         fs::create_dir_all(parent)?;
     }
 
-    let response = AGENT.get(url).call()?;
+    let response = AGENT.get(&item.url).call()?;
     let mut file = NamedTempFile::new()?;
 
     // write to file
@@ -102,41 +106,38 @@ pub fn download_file(
     }
 
     // check hash
-    if hash.is_some() {
+    if let Some(hash) = &item.hash {
         let mut reader = BufReader::new(&mut file);
-        check_hash(&mut reader, hash.unwrap(), hash_function.unwrap())?;
+        check_hash(&mut reader, hash)?;
         reader.seek(io::SeekFrom::Start(0))?;
     }
 
     // move file to destination
-    fs::rename(file, path)?;
+    fs::rename(file, &item.path)?;
 
     Ok(())
 }
 
-pub fn download_json(
-    url: &str,
-    path: &Path,
-    hash: Option<String>,
-    hash_function: Option<String>,
-) -> Result<serde_json::Value> {
-    println!("downloading json: {url} to {}", path.display());
+pub fn download_json(item: &DownloadItem) -> Result<serde_json::Value> {
+    if item.path.exists() {
+        println!("json already exists: {}", item.path.display());
 
-    if path.exists() {
-        let file = File::open(path)?;
+        let file = File::open(&item.path)?;
         let reader = BufReader::new(file);
         let json = serde_json::from_reader(reader)?;
 
         return Ok(json);
     }
 
+    println!("downloading json: {} to {}", item.url, item.path.display());
+
     // create parent directory
     {
-        let parent = path.parent().ok_or_else(|| anyhow!("invalid path"))?;
+        let parent = item.path.parent().ok_or_else(|| anyhow!("invalid path"))?;
         fs::create_dir_all(parent)?;
     }
 
-    let response = AGENT.get(url).call()?;
+    let response = AGENT.get(&item.url).call()?;
     let file = NamedTempFile::new()?;
 
     // write to file
@@ -147,9 +148,9 @@ pub fn download_json(
     }
 
     // check hash
-    if hash.is_some() {
+    if let Some(hash) = &item.hash {
         let mut reader = BufReader::new(&file);
-        check_hash(&mut reader, hash.unwrap(), hash_function.unwrap())?;
+        check_hash(&mut reader, hash)?;
         reader.seek(io::SeekFrom::Start(0))?;
     }
 
@@ -157,30 +158,30 @@ pub fn download_json(
     let json = serde_json::from_reader(reader)?;
 
     // move file to destination
-    fs::rename(file, path)?;
+    fs::rename(file, &item.path)?;
 
     Ok(json)
 }
 
-pub fn download_and_unpack(
-    url: &str,
-    path: &Path,
-    hash: Option<String>,
-    hash_function: Option<String>,
-) -> Result<()> {
-    println!("downloading and unpacking: {url} to {}", path.display());
-
-    if path.exists() {
+pub fn download_and_unpack(item: &DownloadItem) -> Result<()> {
+    if item.path.exists() {
+        println!("file already exists: {}", item.path.display());
         return Ok(());
     }
 
+    println!(
+        "downloading and unpacking: {} to {}",
+        item.url,
+        item.path.display()
+    );
+
     // create parent directory
     {
-        let parent = path.parent().ok_or_else(|| anyhow!("invalid path"))?;
+        let parent = item.path.parent().ok_or_else(|| anyhow!("invalid path"))?;
         fs::create_dir_all(parent)?;
     }
 
-    let response = AGENT.get(url).call()?;
+    let response = AGENT.get(&item.url).call()?;
     let file = tempfile()?;
 
     // write to file
@@ -191,9 +192,9 @@ pub fn download_and_unpack(
     }
 
     // check hash
-    if hash.is_some() {
+    if let Some(hash) = &item.hash {
         let mut reader = BufReader::new(&file);
-        check_hash(&mut reader, hash.unwrap(), hash_function.unwrap())?;
+        check_hash(&mut reader, &hash)?;
         reader.seek(io::SeekFrom::Start(0))?;
     }
 
@@ -201,12 +202,12 @@ pub fn download_and_unpack(
     {
         let reader = BufReader::new(&file);
 
-        if url.ends_with(".zip") {
+        if item.url.ends_with(".zip") {
             let mut archive = ZipArchive::new(reader)?;
-            archive.extract(path.parent().unwrap())?;
-        } else if url.ends_with(".tar.gz") {
+            archive.extract(item.path.parent().unwrap())?;
+        } else if item.url.ends_with(".tar.gz") {
             let mut archive = Archive::new(GzDecoder::new(reader));
-            archive.unpack(path.parent().unwrap())?;
+            archive.unpack(item.path.parent().unwrap())?;
         } else {
             bail!("unsupported archive format");
         }

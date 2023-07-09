@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use serde::Deserialize;
 
 use crate::{
-    util::{DownloadItem, HashAlgorithm, AGENT},
+    util::{DownloadItem, Hash, HashAlgorithm, AGENT},
     BASE_DIR,
 };
 
@@ -55,7 +55,10 @@ impl Assets {
     pub fn get_download_item(&self) -> DownloadItem {
         let url = self.binary.package.link.clone();
         let path = self.get_path();
-        let hash = Some((self.binary.package.checksum.clone(), HashAlgorithm::Sha256));
+        let hash = Some(Hash {
+            hash: self.binary.package.checksum.clone(),
+            function: HashAlgorithm::Sha256,
+        });
 
         DownloadItem { url, path, hash }
     }
