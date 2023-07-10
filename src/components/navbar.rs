@@ -12,7 +12,7 @@ use crate::{components::icons, style, util, Message, View};
 
 pub fn view<'a>(
     current_view: &'a View,
-    account_head: &'a Option<Vec<u8>>,
+    active_account: &'a Option<util::accounts::Account>,
     latest_instance: Option<util::instances::Instance>,
 ) -> Element<'a, Message> {
     let change_view_button =
@@ -33,12 +33,12 @@ pub fn view<'a>(
             .style(theme::Container::Box)
             .into()
         };
-
-    let account_icon = if let Some(head) = account_head {
-        if head.is_empty() {
+    
+    let account_icon = if let Some(account) = active_account {
+        if account.cached_head.is_empty() {
             Spinner::new().into()
         } else {
-            let head_handle = image::Handle::from_memory(head.clone());
+            let head_handle = image::Handle::from_memory(account.cached_head.clone());
             let head = Image::new(head_handle).width(32).height(32);
 
             head.into()

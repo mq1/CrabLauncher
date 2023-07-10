@@ -63,7 +63,6 @@ struct App {
     settings: util::settings::Settings,
     accounts: util::accounts::Accounts,
     adding_account: pages::adding_account::AddingAccount,
-    account_head: Option<Vec<u8>>,
     new_instance: pages::new_instance::NewInstance,
     vanilla_installer: pages::vanilla_installer::VanillaInstaller,
     modrinth_installer: pages::modrinth_installer::ModrinthInstaller,
@@ -107,14 +106,18 @@ impl Application for App {
         }
 
         let (head_command, account_head) = match accounts.active.clone() {
-            Some(account) => (
-                Command::perform(
-                    async move { account.get_head().map_err(|e| e.to_string()) }
-                        .map_err(|e| e.to_string()),
-                    Message::GotAccountHead,
-                ),
-                Some(Vec::<u8>::new()),
-            ),
+            Some(account) => {
+                let head = account.cached_head.clone();
+
+                (
+                    Command::perform(
+                        async move { account.get_head().map_err(|e| e.to_string()) }
+                            .map_err(|e| e.to_string()),
+                        Message::GotAccountHead,
+                    ),
+                    Some(head),
+                )
+            }
             None => (Command::none(), None),
         };
 
@@ -129,7 +132,6 @@ impl Application for App {
                 settings,
                 accounts,
                 adding_account: pages::adding_account::AddingAccount::new(),
-                account_head,
                 new_instance: pages::new_instance::NewInstance,
                 vanilla_installer: pages::vanilla_installer::VanillaInstaller::new(),
                 modrinth_installer: pages::modrinth_installer::ModrinthInstaller,
@@ -215,7 +217,6 @@ impl Application for App {
             Message::GotAccountHead(result) => match result {
                 Ok(account) => {
                     self.accounts.update_account(&account).unwrap();
-                    self.account_head = Some(account.cached_head.unwrap());
                 }
                 Err(e) => {
                     eprintln!("Error getting account head: {e}");
@@ -319,7 +320,7 @@ impl Application for App {
         if self.show_navbar {
             let navbar = components::navbar::view(
                 &self.view,
-                &self.account_head,
+                &self.accounts.active,
                 self.instances.list.get(0).cloned(),
             );
 

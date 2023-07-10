@@ -40,8 +40,8 @@ pub struct Account {
     pub mc_access_token: String,
     pub mc_username: String,
 
-    #[serde_as(as = "Option<Base64>")]
-    pub cached_head: Option<Vec<u8>>,
+    #[serde_as(as = "Base64")]
+    pub cached_head: Vec<u8>,
 
     cached_head_time: Option<DateTime<Utc>>,
 }
@@ -50,7 +50,7 @@ impl Account {
     pub fn get_head(&self) -> Result<Self> {
         let mut account = self.clone();
 
-        if let Some(_head) = &self.cached_head && let Some(time) = &self.cached_head_time && Utc::now() < *time + Duration::minutes(5) {
+        if let Some(time) = &self.cached_head_time && Utc::now() < *time + Duration::minutes(5) {
             return Ok(account);
         } else {
             let resp = AGENT
@@ -64,7 +64,7 @@ impl Account {
             );
             io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
 
-            account.cached_head = Some(bytes.clone());
+            account.cached_head = bytes;
             account.cached_head_time = Some(Utc::now());
 
             Ok(account)
@@ -316,7 +316,7 @@ pub fn get_minecraft_account_data(
         mc_id: minecraft_profile.id,
         mc_access_token: minecraft_response.access_token,
         mc_username: minecraft_profile.name,
-        cached_head: None,
+        cached_head: Vec::new(),
         cached_head_time: None,
     };
 
