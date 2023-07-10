@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+#![feature(let_chains)]
+
 mod components;
 mod pages;
 mod style;
@@ -76,7 +78,7 @@ pub enum Message {
     OpenURL(String),
     AccountsMessage(pages::accounts::Message),
     AddingAccountMessage(pages::adding_account::Message),
-    GotAccountHead(Result<Vec<u8>, String>),
+    GotAccountHead(Result<util::accounts::Account, String>),
     VanillaInstallerMessage(pages::vanilla_installer::Message),
     CreatedInstance(Result<util::instances::Instances, String>),
     OpenInstance(util::instances::Instance),
@@ -104,18 +106,15 @@ impl Application for App {
             );
         }
 
-        let (head_command, account_head) = match accounts.active {
-            Some(ref account) => {
-                let account = account.clone();
-
-                (
-                    Command::perform(
-                        util::accounts::get_head(account).map_err(|e| e.to_string()),
-                        Message::GotAccountHead,
-                    ),
-                    Some(Vec::<u8>::new()),
-                )
-            }
+        let (head_command, account_head) = match accounts.active.clone() {
+            Some(account) => (
+                Command::perform(
+                    async move { account.get_head().map_err(|e| e.to_string()) }
+                        .map_err(|e| e.to_string()),
+                    Message::GotAccountHead,
+                ),
+                Some(Vec::<u8>::new()),
+            ),
             None => (Command::none(), None),
         };
 
@@ -214,8 +213,9 @@ impl Application for App {
                     .map(Message::AddingAccountMessage);
             }
             Message::GotAccountHead(result) => match result {
-                Ok(head) => {
-                    self.account_head = Some(head);
+                Ok(account) => {
+                    self.accounts.update_account(&account).unwrap();
+                    self.account_head = Some(account.cached_head.unwrap());
                 }
                 Err(e) => {
                     eprintln!("Error getting account head: {e}");
@@ -262,7 +262,8 @@ impl Application for App {
                         self.status.progress_bar = true;
                         self.status.progress = total - items.len();
                         self.status.progress_total = total;
-                        self.status.text = format!("Downloading... {}%", 100 * self.status.progress / total);
+                        self.status.text =
+                            format!("Downloading... {}%", 100 * self.status.progress / total);
 
                         ret = Command::perform(
                             async move {
