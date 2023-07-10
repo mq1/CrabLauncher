@@ -4,6 +4,7 @@
 use std::{fs, io, path::PathBuf, thread};
 
 use anyhow::Result;
+use chrono::{DateTime, Duration, Utc};
 use oauth2::{
     basic::BasicClient, devicecode::StandardDeviceAuthorizationResponse, ureq::http_client,
     AuthUrl, ClientId, DeviceAuthorizationUrl, Scope, TokenResponse, TokenUrl,
@@ -11,6 +12,7 @@ use oauth2::{
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use serde_with::{base64::Base64, serde_as};
 
 use crate::{util::AGENT, BASE_DIR};
 
@@ -30,12 +32,44 @@ pub const SCOPES: &'static [&str] = &["XboxLive.signin", "offline_access"];
 
 static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"));
 
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct Account {
     pub ms_refresh_token: String,
     pub mc_id: String,
     pub mc_access_token: String,
     pub mc_username: String,
+
+    #[serde_as(as = "Option<Base64>")]
+    pub cached_head: Option<Vec<u8>>,
+
+    cached_head_time: Option<DateTime<Utc>>,
+}
+
+impl Account {
+    pub fn get_head(&self) -> Result<Self> {
+        let mut account = self.clone();
+
+        if let Some(_head) = &self.cached_head && let Some(time) = &self.cached_head_time && Utc::now() < *time + Duration::minutes(5) {
+            return Ok(account);
+        } else {
+            let resp = AGENT
+                .get(&format!("https://crafatar.com/avatars/{}", self.mc_id))
+                .call()?;
+
+            let mut bytes = Vec::with_capacity(
+                resp.header("Content-Length")
+                    .unwrap()
+                    .parse::<usize>()?,
+            );
+            io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
+
+            account.cached_head = Some(bytes.clone());
+            account.cached_head_time = Some(Utc::now());
+
+            Ok(account)
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -149,6 +183,24 @@ impl Accounts {
         )?;
 
         Ok(account)
+    }
+
+    pub fn update_account(&mut self, account: &Account) -> Result<()> {
+        if let Some(active) = &mut self.active {
+            if active.mc_id == account.mc_id {
+                *active = account.to_owned();
+            }
+        } else {
+            for other in &mut self.others {
+                if other.mc_id == account.mc_id {
+                    *other = account.to_owned();
+                }
+            }
+        }
+
+        self.save()?;
+
+        Ok(())
     }
 }
 
@@ -264,17 +316,9 @@ pub fn get_minecraft_account_data(
         mc_id: minecraft_profile.id,
         mc_access_token: minecraft_response.access_token,
         mc_username: minecraft_profile.name,
+        cached_head: None,
+        cached_head_time: None,
     };
 
     Ok(account)
-}
-
-pub async fn get_head(account: Account) -> Result<Vec<u8>> {
-    let resp = AGENT
-        .get(&format!("https://crafatar.com/avatars/{}", account.mc_id))
-        .call()?;
-    let mut bytes = Vec::with_capacity(resp.header("Content-Length").unwrap().parse::<usize>()?);
-    io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
-
-    Ok(bytes)
 }

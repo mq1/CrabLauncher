@@ -4,9 +4,9 @@
 use std::{fmt::Display, fs, path::PathBuf};
 
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use time::PrimitiveDateTime;
 
 use crate::{util, BASE_DIR};
 
@@ -19,7 +19,7 @@ pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct InstanceInfo {
-    last_played: Option<PrimitiveDateTime>,
+    last_played: Option<DateTime<Utc>>,
     installer: String,
     version_id: String,
 }
@@ -38,8 +38,14 @@ pub struct Instances {
 impl Instances {
     fn sort(&mut self) {
         self.list.sort_by(|a, b| {
-            let a = a.info.last_played.unwrap_or_else(|| PrimitiveDateTime::MIN);
-            let b = b.info.last_played.unwrap_or_else(|| PrimitiveDateTime::MIN);
+            let a = a
+                .info
+                .last_played
+                .unwrap_or_else(|| DateTime::<Utc>::MIN_UTC);
+            let b = b
+                .info
+                .last_played
+                .unwrap_or_else(|| DateTime::<Utc>::MIN_UTC);
 
             b.cmp(&a)
         });
