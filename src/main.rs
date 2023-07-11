@@ -42,6 +42,13 @@ pub static META_DIR: Lazy<PathBuf> = Lazy::new(|| {
     dir
 });
 
+pub static ASSETS_DIR: Lazy<PathBuf> = Lazy::new(|| {
+    let dir = BASE_DIR.join("assets");
+    fs::create_dir_all(&dir).unwrap();
+
+    dir
+});
+
 pub fn main() -> iced::Result {
     App::run(Settings::default())
 }
