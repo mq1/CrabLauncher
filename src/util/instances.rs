@@ -20,7 +20,7 @@ pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct InstanceInfo {
     last_played: Option<DateTime<Utc>>,
-    minecraft: String,
+    pub minecraft: String,
     fabric: Option<String>,
 }
 

@@ -80,6 +80,7 @@ pub enum Message {
     CreatedInstance(Result<util::instances::Instances, String>),
     OpenInstance(util::instances::Instance),
     Downloading(Result<(Vec<util::DownloadItem>, usize), String>),
+    LaunchInstance(util::instances::Instance),
 }
 
 impl Application for App {
@@ -211,10 +212,6 @@ impl Application for App {
                     self.view = View::Instances;
                 }
 
-                if let pages::vanilla_installer::Message::GotDownloadItems(result) = message {
-                    return self.update(Message::Downloading(result));
-                }
-
                 ret = self
                     .vanilla_installer
                     .update(message)
@@ -264,6 +261,22 @@ impl Application for App {
                     eprintln!("Error downloading items: {e}");
                 }
             },
+            Message::LaunchInstance(instance) => {
+                self.show_navbar = false;
+
+                self.view = View::Status(Status {
+                    text: "Launching...".to_string(),
+                    progress: None,
+                });
+
+                ret = Command::perform(
+                    async move {
+                        util::vanilla_installer::download_version(&instance.info.minecraft)
+                            .map_err(|e| e.to_string())
+                    },
+                    Message::Downloading,
+                );
+            }
         }
 
         ret

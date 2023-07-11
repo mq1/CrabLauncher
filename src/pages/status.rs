@@ -35,6 +35,8 @@ impl Page for Status {
 
     fn view(&self) -> Element<Message> {
         let mut col = column![vertical_space(Length::Fill), text(&self.text).size(30)]
+            .padding(10)
+            .spacing(10)
             .align_items(Alignment::Center)
             .width(Length::Fill);
 
