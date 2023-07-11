@@ -10,12 +10,6 @@ use crate::{components::icons, pages::Page, Message};
 
 pub struct NoInstances;
 
-impl NoInstances {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
 impl Page for NoInstances {
     type Message = Message;
 
