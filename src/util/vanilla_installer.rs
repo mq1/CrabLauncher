@@ -136,7 +136,7 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
         if !path.exists() {
             download_items.push(DownloadItem {
                 url: format!(
-                    "http://resources.download.minecraft.net/{}",
+                    "https://resources.download.minecraft.net/{}",
                     hash.get_path()
                 ),
                 path,

@@ -23,6 +23,7 @@ impl Page for Instance {
                 .spacing(10)
                 .align_items(Alignment::Center),
         )
+        .on_press(Message::LaunchInstance(self.to_owned()))
         .style(style::circle_button());
 
         let edit_button = button(
