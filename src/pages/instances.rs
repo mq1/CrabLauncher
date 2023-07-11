@@ -8,8 +8,8 @@ use iced::{
 use iced_aw::Wrap;
 
 use crate::{
-    components::assets, pages::no_instances::NoInstances, pages::Page, style,
-    util::instances::Instances, Message, View,
+    components::assets, pages::no_instances::NoInstances, pages::Page, util::instances::Instances,
+    Message, View,
 };
 
 impl Page for Instances {

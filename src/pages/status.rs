@@ -8,12 +8,16 @@ use iced::{
 
 use crate::{pages::Page, Message};
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
+pub struct Progress {
+    pub current: usize,
+    pub total: usize,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct Status {
     pub text: String,
-    pub progress_bar: bool,
-    pub progress: usize,
-    pub progress_total: usize,
+    pub progress: Option<Progress>,
 }
 
 impl Status {
@@ -34,8 +38,8 @@ impl Page for Status {
             .align_items(Alignment::Center)
             .width(Length::Fill);
 
-        if self.progress_bar {
-            let bar = progress_bar(0.0..=self.progress_total as f32, self.progress as f32)
+        if let Some(progress) = &self.progress {
+            let bar = progress_bar(0.0..=progress.total as f32, progress.current as f32)
                 .width(Length::Fill);
 
             col = col.push(bar);

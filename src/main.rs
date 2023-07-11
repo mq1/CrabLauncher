@@ -14,7 +14,14 @@ use anyhow::Result;
 use directories::ProjectDirs;
 use iced::{executor, widget::row, Application, Command, Element, Settings, Theme};
 use once_cell::sync::Lazy;
-use pages::{no_instances::NoInstances, Page};
+use pages::{
+    about::About,
+    modrinth_installer::ModrinthInstaller,
+    new_instance::NewInstance,
+    no_instances::NoInstances,
+    status::{Progress, Status},
+    Page,
+};
 use rfd::{MessageButtons, MessageDialog, MessageLevel};
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
@@ -41,7 +48,7 @@ pub fn main() -> iced::Result {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum View {
-    Status,
+    Status(Status),
     Instances,
     Instance(Option<util::instances::Instance>),
     NewInstance,
@@ -55,14 +62,10 @@ pub enum View {
 struct App {
     view: View,
     show_navbar: bool,
-    status: pages::status::Status,
     instances: util::instances::Instances,
     settings: util::settings::Settings,
     accounts_page: pages::accounts::AccountsPage,
-    new_instance: pages::new_instance::NewInstance,
     vanilla_installer: pages::vanilla_installer::VanillaInstaller,
-    modrinth_installer: pages::modrinth_installer::ModrinthInstaller,
-    about: pages::about::About,
 }
 
 #[derive(Debug, Clone)]
@@ -114,14 +117,10 @@ impl Application for App {
             Self {
                 view: View::Instance(instances.list.get(0).cloned()),
                 show_navbar: true,
-                status: pages::status::Status::new(),
                 instances,
                 settings,
                 accounts_page: pages::accounts::AccountsPage::new(accounts),
-                new_instance: pages::new_instance::NewInstance,
                 vanilla_installer: pages::vanilla_installer::VanillaInstaller::new(),
-                modrinth_installer: pages::modrinth_installer::ModrinthInstaller,
-                about: pages::about::About,
             },
             command,
         )
@@ -202,7 +201,6 @@ impl Application for App {
                 }
             },
             Message::VanillaInstallerMessage(message) => {
-                // if we're creating an instance, show the status page
                 if message == pages::vanilla_installer::Message::Create {
                     let name = self.vanilla_installer.name.clone();
                     let version = self.vanilla_installer.selected_version.clone().unwrap();
@@ -239,11 +237,12 @@ impl Application for App {
             Message::Downloading(result) => match result {
                 Ok((mut items, total)) => {
                     if let Some(item) = items.pop() {
-                        self.status.progress_bar = true;
-                        self.status.progress = total - items.len();
-                        self.status.progress_total = total;
-                        self.status.text =
-                            format!("Downloading... {}%", 100 * self.status.progress / total);
+                        let current = total - items.len();
+
+                        self.view = View::Status(Status {
+                            text: format!("Downloading... {}%", 100 * current / total),
+                            progress: Some(Progress { current, total }),
+                        });
 
                         ret = Command::perform(
                             async move {
@@ -257,8 +256,6 @@ impl Application for App {
                             },
                             Message::Downloading,
                         );
-                    } else {
-                        self.status.progress_bar = false;
                     }
                 }
                 Err(e) => {
@@ -272,7 +269,7 @@ impl Application for App {
 
     fn view(&self) -> Element<Message> {
         let view = match &self.view {
-            View::Status => self.status.view(),
+            View::Status(status) => status.view(),
             View::Instance(instance) => {
                 if let Some(instance) = instance {
                     instance.view()
@@ -281,14 +278,14 @@ impl Application for App {
                 }
             }
             View::Instances => self.instances.view(),
-            View::NewInstance => self.new_instance.view(),
+            View::NewInstance => NewInstance.view(),
             View::VanillaInstaller => self
                 .vanilla_installer
                 .view()
                 .map(Message::VanillaInstallerMessage),
-            View::ModrinthInstaller => self.modrinth_installer.view(),
+            View::ModrinthInstaller => ModrinthInstaller.view(),
             View::Settings => self.settings.view().map(Message::SettingsMessage),
-            View::About => self.about.view(),
+            View::About => About.view(),
             View::Accounts => self.accounts_page.view().map(Message::AccountsMessage),
         };
 
