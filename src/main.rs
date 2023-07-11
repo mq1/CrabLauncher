@@ -105,20 +105,15 @@ impl Application for App {
             );
         }
 
-        let (head_command, account_head) = match accounts.active.clone() {
+        let head_command = match accounts.active.clone() {
             Some(account) => {
-                let head = account.cached_head.clone();
-
-                (
-                    Command::perform(
-                        async move { account.get_head().map_err(|e| e.to_string()) }
-                            .map_err(|e| e.to_string()),
-                        Message::GotAccountHead,
-                    ),
-                    Some(head),
+                Command::perform(
+                    async move { account.get_head().map_err(|e| e.to_string()) }
+                        .map_err(|e| e.to_string()),
+                    Message::GotAccountHead,
                 )
             }
-            None => (Command::none(), None),
+            None => Command::none(),
         };
 
         let command = Command::batch(vec![updates_command, head_command]);
