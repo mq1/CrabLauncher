@@ -18,6 +18,7 @@ pub enum Message {
     ChangeName(String),
     SelectVersion(usize),
     Create,
+    GotDownloadItems(Result<(Vec<util::DownloadItem>, usize), String>),
 }
 
 pub struct VanillaInstaller {
@@ -62,9 +63,16 @@ impl Page for VanillaInstaller {
                 self.selected_version = Some(version);
             }
             Message::Create => {
+                if let Some(version) = self.selected_version {
+                    let items = util::vanilla_installer::download_version(&self.versions[version])
+                        .map_err(|e| e.to_string());
+                    return self.update(Message::GotDownloadItems(items));
+                }
+
                 self.name = String::new();
                 self.selected_version = None;
             }
+            _ => {}
         }
 
         ret

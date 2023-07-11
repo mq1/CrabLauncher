@@ -206,11 +206,13 @@ impl Application for App {
                     let version = self.vanilla_installer.selected_version.clone().unwrap();
                     let version = self.vanilla_installer.versions[version].clone();
 
-                    self.instances
-                        .new(name, "vanilla".to_string(), version, None)
-                        .unwrap();
+                    self.instances.new(name, version, None).unwrap();
 
                     self.view = View::Instances;
+                }
+
+                if let pages::vanilla_installer::Message::GotDownloadItems(result) = message {
+                    return self.update(Message::Downloading(result));
                 }
 
                 ret = self
