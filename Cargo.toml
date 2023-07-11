@@ -2,7 +2,7 @@
 name = "icy-launcher"
 version = "0.3.0"
 edition = "2021"
-authors = ["Manuel Quarneti <hi@mq1.eu>"]
+authors = ["Manuel Quarneti <manuq01@pm.me>"]
 repository = "https://github.com/mq1/icy-launcher"
 license = "GPL-3.0-only"
 description = "An unofficial launcher for Minecraft: Java Edition"
