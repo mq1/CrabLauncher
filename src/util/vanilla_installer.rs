@@ -24,7 +24,7 @@ impl Display for Version {
     }
 }
 
-pub async fn get_versions() -> Result<Vec<Version>> {
+pub fn get_versions() -> Result<Vec<Version>> {
     #[derive(Deserialize, Serialize)]
     struct Response {
         versions: Vec<Version>,

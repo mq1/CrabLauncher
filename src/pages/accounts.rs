@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use copypasta::{ClipboardContext, ClipboardProvider};
 use iced::{
-    futures::TryFutureExt,
-    widget::{button, column, container, row, scrollable, text},
-    Command, Element, Length,
+    widget::{button, column, container, row, scrollable, text, vertical_space},
+    Alignment, Command, Element, Length,
 };
 use iced_aw::FloatingElement;
 
@@ -15,56 +15,65 @@ use crate::{
     util::accounts::{Account, Accounts},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
-    GenerateDetails,
-    AddAccount(
-        (
-            oauth2::basic::BasicClient,
-            oauth2::devicecode::StandardDeviceAuthorizationResponse,
-        ),
-    ),
+    AddAccount,
     AddingAccount(Result<Account, String>),
     SelectAccount(Account),
+    Login,
 }
 
-impl Page for Accounts {
+pub struct AccountsPage {
+    pub accounts: Accounts,
+    pub adding_account: bool,
+    pub url: String,
+    pub code: String,
+}
+
+impl AccountsPage {
+    pub fn new(accounts: Accounts) -> Self {
+        Self {
+            accounts,
+            adding_account: false,
+            url: String::new(),
+            code: String::new(),
+        }
+    }
+}
+
+impl Page for AccountsPage {
     type Message = Message;
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         let mut ret = Command::none();
 
         match message {
-            Message::GenerateDetails => {
-                ret = Command::perform(
-                    async {
-                        let client = Accounts::get_client().unwrap();
-                        let details = Accounts::get_details(&client).unwrap();
-
-                        (client, details)
-                    },
-                    Message::AddAccount,
-                )
-            }
-            Message::AddAccount((client, details)) => {
+            Message::AddAccount => {
                 let client = Accounts::get_client().unwrap();
                 let details = Accounts::get_details(&client).unwrap();
 
                 ret = Command::perform(
-                    Accounts::get_account(client, details).map_err(|e| e.to_string()),
+                    async move { Accounts::get_account(client, details).map_err(|e| e.to_string()) },
                     Message::AddingAccount,
                 )
             }
             Message::AddingAccount(account) => match account {
                 Ok(account) => {
-                    self.add_account(account).unwrap();
+                    self.accounts.add_account(account).unwrap();
                 }
                 Err(e) => {
                     eprintln!("Error adding account: {e}");
                 }
             },
             Message::SelectAccount(account) => {
-                self.active = Some(account);
+                self.accounts.active = Some(account);
+            }
+            Message::Login => {
+                open::that(&self.url).unwrap();
+
+                // copy code to clipboard
+                let mut ctx = ClipboardContext::new().unwrap();
+                ctx.set_contents(self.code.to_owned()).unwrap();
             }
         }
 
@@ -72,9 +81,32 @@ impl Page for Accounts {
     }
 
     fn view(&self) -> Element<Self::Message> {
+        if self.adding_account {
+            let message = text(format!(
+                "Please open up {} in a browser and put in the code {} to proceed with login",
+                self.url, self.code
+            ))
+            .size(20);
+
+            let open_button = button("Open page and copy code")
+                .style(style::circle_button())
+                .on_press(Message::Login);
+
+            return column![
+                vertical_space(Length::Fill),
+                message,
+                open_button,
+                vertical_space(Length::Fill),
+            ]
+            .width(Length::Fill)
+            .spacing(10)
+            .align_items(Alignment::Center)
+            .into();
+        }
+
         let mut content = column![];
 
-        if let Some(active_account) = &self.active {
+        if let Some(active_account) = &self.accounts.active {
             let row = row![
                 text("Active account:"),
                 text(active_account.mc_username.to_owned())
@@ -84,7 +116,7 @@ impl Page for Accounts {
             content = content.push(row);
         }
 
-        for account in &self.others {
+        for account in &self.accounts.others {
             let row = row![text(account.mc_username.to_owned()), button("Select")].spacing(5);
 
             content = content.push(row);
@@ -96,7 +128,7 @@ impl Page for Accounts {
             container(
                 button(icons::plus())
                     .style(style::circle_button())
-                    .on_press(Message::GenerateDetails),
+                    .on_press(Message::AddAccount),
             )
             .padding([0, 20, 20, 0])
             .into()

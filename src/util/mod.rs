@@ -81,7 +81,7 @@ fn check_hash(reader: impl Read + Seek, hash: &Hash) -> Result<()> {
     Ok(())
 }
 
-pub async fn download_file(item: &DownloadItem) -> Result<()> {
+pub fn download_file(item: &DownloadItem) -> Result<()> {
     if item.path.exists() {
         println!("file already exists: {}", item.path.display());
         return Ok(());

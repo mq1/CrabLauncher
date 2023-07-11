@@ -5,7 +5,6 @@ use iced::{Command, Element};
 
 pub mod about;
 pub mod accounts;
-pub mod adding_account;
 pub mod instance;
 pub mod instances;
 pub mod modrinth_installer;
