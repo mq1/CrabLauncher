@@ -14,14 +14,14 @@ use crate::{pages::Page, style, util};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
     GetVersions,
-    GotVersions(Result<Vec<util::vanilla_installer::Version>, String>),
+    GotVersions(Result<Vec<String>, String>),
     ChangeName(String),
     SelectVersion(usize),
     Create,
 }
 
 pub struct VanillaInstaller {
-    pub versions: Vec<util::vanilla_installer::Version>,
+    pub versions: Vec<String>,
     pub selected_version: Option<usize>,
     pub name: String,
 }
@@ -84,7 +84,7 @@ impl Page for VanillaInstaller {
         let mut version_picker = Column::new().spacing(5);
         for (i, version) in self.versions.iter().enumerate() {
             version_picker = version_picker.push(radio(
-                version.id.to_owned(),
+                version.to_owned(),
                 i,
                 self.selected_version,
                 Message::SelectVersion,

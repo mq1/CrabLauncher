@@ -1,47 +1,47 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fmt::Display, fs};
+use std::{fs, collections::HashMap};
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::{
-    util::{runtime_manager, DownloadItem, AGENT},
+    util::{download_json, runtime_manager, DownloadItem, Hash, HashAlgorithm},
     META_DIR,
 };
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize)]
+struct VersionManifest {
+    versions: Vec<Version>,
+}
+
+#[derive(Deserialize)]
 pub struct Version {
-    pub id: String,
-    pub url: String,
-    pub sha1: String,
+    id: String,
+    url: String,
+    sha1: String,
 }
 
-impl Display for Version {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.id)
-    }
-}
+pub fn get_versions() -> Result<Vec<String>> {
+    let resp = download_json::<VersionManifest>(&DownloadItem {
+        url: "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json".to_string(),
+        path: META_DIR.join("version_manifest_v2.json.new"),
+        hash: None,
+    })?;
 
-pub fn get_versions() -> Result<Vec<Version>> {
-    #[derive(Deserialize, Serialize)]
-    struct Response {
-        versions: Vec<Version>,
-    }
+    fs::rename(
+        META_DIR.join("version_manifest_v2.json.new"),
+        META_DIR.join("version_manifest_v2.json"),
+    )?;
 
-    let resp = AGENT
-        .get("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")
-        .call()?
-        .into_string()?;
+    let versions = resp
+        .versions
+        .into_iter()
+        .map(|v| v.id)
+        .collect::<Vec<String>>();
 
-    // save the response to a file
-    let path = META_DIR.join("version_manifest_v2.json");
-    fs::write(path, &resp)?;
-
-    let resp: Response = serde_json::from_str(&resp)?;
-
-    Ok(resp.versions)
+    Ok(versions)
 }
 
 impl Version {
@@ -60,4 +60,86 @@ impl Version {
 
         Ok(download_items)
     }
+}
+
+#[derive(Deserialize)]
+pub struct AssetIndexMeta {
+    id: String,
+    sha1: String,
+    url: String,
+}
+
+#[derive(Deserialize)]
+pub struct VersionMeta {
+    #[serde(rename = "assetIndex")]
+    asset_index: AssetIndexMeta,
+}
+
+#[derive(Deserialize)]
+pub struct Object {
+    hash: String,
+}
+
+#[derive(Deserialize)]
+pub struct AssetIndex {
+    objects: HashMap<String, Object>
+}
+
+pub fn download_version(id: &str) -> Result<Vec<DownloadItem>> {
+    let version_manifest = {
+        let path = META_DIR.join("version_manifest_v2.json");
+        let contents = fs::read_to_string(path)?;
+        serde_json::from_str::<VersionManifest>(&contents)?
+    };
+
+    let version = version_manifest
+        .versions
+        .into_iter()
+        .find(|v| v.id == id)
+        .unwrap();
+
+    // download version meta
+    let version_meta = download_json::<VersionMeta>(&DownloadItem {
+        url: version.url,
+        path: META_DIR.join("versions").join(format!("{}.json", id)),
+        hash: Some(Hash {
+            hash: version.sha1,
+            function: HashAlgorithm::Sha1,
+        }),
+    })?;
+
+    let asset_index = download_json::<AssetIndex>(&DownloadItem {
+        url: version_meta.asset_index.url,
+        path: META_DIR
+            .join("assets")
+            .join("indexes")
+            .join(format!("{}.json", version_meta.asset_index.id)),
+        hash: Some(Hash {
+            hash: version_meta.asset_index.sha1,
+            function: HashAlgorithm::Sha1,
+        }),
+    })?;
+
+    let mut download_items = Vec::new();
+
+    for value in asset_index.objects.into_values() {
+        let hash = Hash {
+            hash: value.hash,
+            function: HashAlgorithm::Sha1,
+        };
+
+        let path = META_DIR.join("assets").join("objects").join(&hash.get_path());
+        if !path.exists() {
+            download_items.push(DownloadItem {
+                url: format!(
+                    "http://resources.download.minecraft.net/{}",
+                    hash.get_path()
+                ),
+                path,
+                hash: Some(hash),
+            });
+        }
+    }
+
+    Ok(download_items)
 }

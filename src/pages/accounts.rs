@@ -25,18 +25,16 @@ pub enum Message {
 
 pub struct AccountsPage {
     pub accounts: Accounts,
-    pub adding_account: bool,
-    pub url: String,
-    pub code: String,
+    pub url: Option<String>,
+    pub code: Option<String>,
 }
 
 impl AccountsPage {
     pub fn new(accounts: Accounts) -> Self {
         Self {
             accounts,
-            adding_account: false,
-            url: String::new(),
-            code: String::new(),
+            url: None,
+            code: None,
         }
     }
 }
@@ -52,9 +50,8 @@ impl Page for AccountsPage {
                 let client = Accounts::get_client().unwrap();
                 let details = Accounts::get_details(&client).unwrap();
 
-                self.adding_account = true;
-                self.url = details.verification_uri().to_string();
-                self.code = details.user_code().secret().to_string();
+                self.url = Some(details.verification_uri().to_string());
+                self.code = Some(details.user_code().secret().to_string());
 
                 ret = Command::perform(
                     async move { Accounts::get_account(client, details).map_err(|e| e.to_string()) },
@@ -62,7 +59,8 @@ impl Page for AccountsPage {
                 )
             }
             Message::AddingAccount(account) => {
-                self.adding_account = false;
+                self.url = None;
+                self.code = None;
 
                 match account {
                     Ok(account) => {
@@ -77,11 +75,15 @@ impl Page for AccountsPage {
                 self.accounts.active = Some(account);
             }
             Message::Login => {
-                open::that(&self.url).unwrap();
+                if let (Some(url), Some(code)) = (&self.url, &self.code) {
+                    println!("Please open up {} in a browser and put in the code {} to proceed with login", url, code);
 
-                // copy code to clipboard
-                let mut ctx = ClipboardContext::new().unwrap();
-                ctx.set_contents(self.code.to_owned()).unwrap();
+                    open::that(url).unwrap();
+
+                    // copy code to clipboard
+                    let mut ctx = ClipboardContext::new().unwrap();
+                    ctx.set_contents(code.to_owned()).unwrap();
+                }
             }
         }
 
@@ -89,10 +91,10 @@ impl Page for AccountsPage {
     }
 
     fn view(&self) -> Element<Self::Message> {
-        if self.adding_account {
+        if let (Some(url), Some(code)) = (&self.url, &self.code) {
             let message = text(format!(
                 "Please open up {} in a browser and put in the code {} to proceed with login",
-                self.url, self.code
+                url, code
             ))
             .size(20);
 

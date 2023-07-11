@@ -207,7 +207,7 @@ impl Application for App {
                     let version = self.vanilla_installer.versions[version].clone();
 
                     self.instances
-                        .new(name, "vanilla".to_string(), version)
+                        .new(name, "vanilla".to_string(), version, None)
                         .unwrap();
 
                     self.view = View::Instances;
