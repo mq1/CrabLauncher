@@ -21,7 +21,7 @@ fn get_latest_release() -> Result<Release> {
     Ok(resp)
 }
 
-pub async fn check_for_updates() -> Result<Option<(String, String)>> {
+pub fn check_for_updates() -> Result<Option<(String, String)>> {
     let latest_release = get_latest_release()?;
     let latest_release = Version::from(&latest_release.tag_name).unwrap();
     let current_version = Version::from(env!("CARGO_PKG_VERSION")).unwrap();

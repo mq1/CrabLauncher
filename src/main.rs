@@ -12,9 +12,7 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Result;
 use directories::ProjectDirs;
-use iced::{
-    executor, futures::TryFutureExt, widget::row, Application, Command, Element, Settings, Theme,
-};
+use iced::{executor, widget::row, Application, Command, Element, Settings, Theme};
 use once_cell::sync::Lazy;
 use pages::{no_instances::NoInstances, Page};
 use rfd::{MessageButtons, MessageDialog, MessageLevel};
@@ -52,7 +50,6 @@ pub enum View {
     Settings,
     About,
     Accounts,
-    AddingAccount,
 }
 
 struct App {
@@ -61,8 +58,7 @@ struct App {
     status: pages::status::Status,
     instances: util::instances::Instances,
     settings: util::settings::Settings,
-    accounts: util::accounts::Accounts,
-    adding_account: pages::adding_account::AddingAccount,
+    accounts_page: pages::accounts::AccountsPage,
     new_instance: pages::new_instance::NewInstance,
     vanilla_installer: pages::vanilla_installer::VanillaInstaller,
     modrinth_installer: pages::modrinth_installer::ModrinthInstaller,
@@ -76,7 +72,6 @@ pub enum Message {
     SettingsMessage(pages::settings::Message),
     OpenURL(String),
     AccountsMessage(pages::accounts::Message),
-    AddingAccountMessage(pages::adding_account::Message),
     GotAccountHead(Result<util::accounts::Account, String>),
     VanillaInstallerMessage(pages::vanilla_installer::Message),
     CreatedInstance(Result<util::instances::Instances, String>),
@@ -100,18 +95,16 @@ impl Application for App {
         #[cfg(feature = "updater")]
         if settings.check_for_updates {
             updates_command = Command::perform(
-                util::updater::check_for_updates().map_err(|e| e.to_string()),
+                async move { util::updater::check_for_updates().map_err(|e| e.to_string()) },
                 Message::GotUpdate,
             );
         }
 
         let head_command = match accounts.active.clone() {
-            Some(account) => {
-                Command::perform(
-                    async move { account.get_head().map_err(|e| e.to_string()) },
-                    Message::GotAccountHead,
-                )
-            }
+            Some(account) => Command::perform(
+                async move { account.get_head().map_err(|e| e.to_string()) },
+                Message::GotAccountHead,
+            ),
             None => Command::none(),
         };
 
@@ -124,8 +117,7 @@ impl Application for App {
                 status: pages::status::Status::new(),
                 instances,
                 settings,
-                accounts,
-                adding_account: pages::adding_account::AddingAccount::new(),
+                accounts_page: pages::accounts::AccountsPage::new(accounts),
                 new_instance: pages::new_instance::NewInstance,
                 vanilla_installer: pages::vanilla_installer::VanillaInstaller::new(),
                 modrinth_installer: pages::modrinth_installer::ModrinthInstaller,
@@ -187,30 +179,23 @@ impl Application for App {
                 open::that(url).unwrap();
             }
             Message::AccountsMessage(message) => {
-                if let pages::accounts::Message::AddAccount((_, details)) = &message {
-                    self.adding_account.url = details.verification_uri().to_string();
-                    self.adding_account.code = details.user_code().secret().to_string();
-
-                    self.view = View::AddingAccount;
+                if message == pages::accounts::Message::AddAccount {
                     self.show_navbar = false;
-                }
-
-                if let pages::accounts::Message::AddingAccount(_) = &message {
-                    self.view = View::Accounts;
+                } else if let pages::accounts::Message::AddingAccount(_) = &message {
                     self.show_navbar = true;
                 }
 
-                ret = self.accounts.update(message).map(Message::AccountsMessage);
-            }
-            Message::AddingAccountMessage(message) => {
                 ret = self
-                    .adding_account
+                    .accounts_page
                     .update(message)
-                    .map(Message::AddingAccountMessage);
+                    .map(Message::AccountsMessage);
             }
             Message::GotAccountHead(result) => match result {
                 Ok(account) => {
-                    self.accounts.update_account(&account).unwrap();
+                    self.accounts_page
+                        .accounts
+                        .update_account(&account)
+                        .unwrap();
                 }
                 Err(e) => {
                     eprintln!("Error getting account head: {e}");
@@ -262,7 +247,7 @@ impl Application for App {
 
                         ret = Command::perform(
                             async move {
-                                let res = util::download_file(&item).await;
+                                let res = util::download_file(&item);
 
                                 if let Err(e) = &res {
                                     return Err(e.to_string());
@@ -304,17 +289,13 @@ impl Application for App {
             View::ModrinthInstaller => self.modrinth_installer.view(),
             View::Settings => self.settings.view().map(Message::SettingsMessage),
             View::About => self.about.view(),
-            View::Accounts => self.accounts.view().map(Message::AccountsMessage),
-            View::AddingAccount => self
-                .adding_account
-                .view()
-                .map(Message::AddingAccountMessage),
+            View::Accounts => self.accounts_page.view().map(Message::AccountsMessage),
         };
 
         if self.show_navbar {
             let navbar = components::navbar::view(
                 &self.view,
-                &self.accounts.active,
+                &self.accounts_page.accounts.active,
                 self.instances.list.get(0).cloned(),
             );
 

@@ -167,7 +167,7 @@ impl Accounts {
         Ok(details)
     }
 
-    pub async fn get_account(
+    pub fn get_account(
         client: BasicClient,
         details: StandardDeviceAuthorizationResponse,
     ) -> Result<Account> {

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    futures::TryFutureExt,
     widget::{
         button, column, container, horizontal_space, radio, row, scrollable, text, text_input,
         Column,
@@ -10,11 +9,7 @@ use iced::{
     Command, Element, Length,
 };
 
-use crate::{
-    pages::Page,
-    style,
-    util::{self, instances::Instances},
-};
+use crate::{pages::Page, style, util};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
@@ -50,7 +45,7 @@ impl Page for VanillaInstaller {
         match message {
             Message::GetVersions => {
                 ret = Command::perform(
-                    util::vanilla_installer::get_versions().map_err(|e| e.to_string()),
+                    async move { util::vanilla_installer::get_versions().map_err(|e| e.to_string()) },
                     Message::GotVersions,
                 );
             }
