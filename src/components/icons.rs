@@ -21,6 +21,10 @@ pub fn account_alert<M>() -> Element<'static, M> {
     view!(assets::MDI_ACCOUNT_ALERT_OUTLINE_SVG).into()
 }
 
+pub fn account_check<M>() -> Element<'static, M> {
+    view!(assets::MDI_ACCOUNT_CHECK_OUTLINE_SVG).into()
+}
+
 pub fn arrow_left<M>() -> Element<'static, M> {
     view!(assets::MDI_ARROW_LEFT_SVG).into()
 }
@@ -34,6 +38,10 @@ pub fn cog<M>(dimensions: f32) -> Element<'static, M> {
 
 pub fn content_save<M>() -> Element<'static, M> {
     view!(assets::MDI_CONTENT_SAVE_OUTLINE_SVG).into()
+}
+
+pub fn delete<M>() -> Element<'static, M> {
+    view!(assets::MDI_DELETE_OUTLINE_SVG).into()
 }
 
 pub fn github<M>() -> Element<'static, M> {

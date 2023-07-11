@@ -3,10 +3,11 @@
 
 use copypasta::{ClipboardContext, ClipboardProvider};
 use iced::{
-    widget::{button, column, container, row, scrollable, text, vertical_space},
+    widget::{button, column, container, horizontal_space, row, scrollable, text, vertical_space},
     Alignment, Command, Element, Length,
 };
 use iced_aw::FloatingElement;
+use rfd::MessageDialog;
 
 use crate::{
     components::icons,
@@ -20,6 +21,7 @@ pub enum Message {
     AddAccount,
     AddingAccount(Result<Account, String>),
     SelectAccount(Account),
+    RemoveAccount(Account),
     Login,
 }
 
@@ -85,6 +87,20 @@ impl Page for AccountsPage {
                     ctx.set_contents(code.to_owned()).unwrap();
                 }
             }
+            Message::RemoveAccount(account) => {
+                let yes = MessageDialog::new()
+                    .set_title("Remove account")
+                    .set_description(&format!(
+                        "Are you sure you want to remove {}?",
+                        account.mc_username
+                    ))
+                    .set_buttons(rfd::MessageButtons::YesNo)
+                    .show();
+
+                if yes {
+                    self.accounts.remove_account(&account.mc_id).unwrap();
+                }
+            }
         }
 
         ret
@@ -114,25 +130,52 @@ impl Page for AccountsPage {
             .into();
         }
 
-        let mut content = column![];
+        let mut content = column![]
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .spacing(10);
 
         if let Some(active_account) = &self.accounts.active {
             let row = row![
-                text("Active account:"),
-                text(active_account.mc_username.to_owned())
+                text(&active_account.mc_username),
+                horizontal_space(Length::Fill),
+                button(icons::delete())
+                    .on_press(Message::RemoveAccount(active_account.clone()))
+                    .style(style::circle_button()),
             ]
-            .spacing(5);
+            .align_items(Alignment::Center)
+            .padding(10);
 
-            content = content.push(row);
+            let active = container(row).style(style::card());
+            content = content
+                .push(text("Active account"))
+                .push(active)
+                .push(vertical_space(10));
         }
 
-        for account in &self.accounts.others {
-            let row = row![text(account.mc_username.to_owned()), button("Select")].spacing(5);
+        if !self.accounts.others.is_empty() {
+            let mut others = column![];
 
-            content = content.push(row);
+            for account in &self.accounts.others {
+                let row = row![
+                    text(&account.mc_username),
+                    horizontal_space(Length::Fill),
+                    button(icons::account_check())
+                        .on_press(Message::SelectAccount(account.clone()))
+                        .style(style::circle_button()),
+                    button(icons::delete())
+                        .on_press(Message::RemoveAccount(account.clone()))
+                        .style(style::circle_button()),
+                ];
+
+                others = others.push(row);
+            }
+
+            let others = scrollable(others);
+            let others = container(others).style(style::card());
+
+            content = content.push(text("Other accounts")).push(others);
         }
-
-        let content = scrollable(content).width(Length::Fill).height(Length::Fill);
 
         let content = FloatingElement::new(content, || {
             container(

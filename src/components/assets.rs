@@ -6,10 +6,13 @@ pub const LOGO_PNG: &[u8] = include_bytes!("../../assets/icy-launcher.png");
 // Icons
 pub const MDI_ACCOUNT_ALERT_OUTLINE_SVG: &[u8] =
     include_bytes!("../../assets/icons/MdiAccountAlertOutline.svg");
+pub const MDI_ACCOUNT_CHECK_OUTLINE_SVG: &[u8] =
+    include_bytes!("../../assets/icons/MdiAccountCheckOutline.svg");
 pub const MDI_ARROW_LEFT_SVG: &[u8] = include_bytes!("../../assets/icons/MdiArrowLeft.svg");
 pub const MDI_COG_OUTLINE_SVG: &[u8] = include_bytes!("../../assets/icons/MdiCogOutline.svg");
 pub const MDI_CONTENT_SAVE_OUTLINE_SVG: &[u8] =
     include_bytes!("../../assets/icons/MdiContentSaveOutline.svg");
+pub const MDI_DELETE_OUTLINE_SVG: &[u8] = include_bytes!("../../assets/icons/MdiDeleteOutline.svg");
 pub const MDI_GITHUB_SVG: &[u8] = include_bytes!("../../assets/icons/MdiGithub.svg");
 pub const MDI_GRID_SVG: &[u8] = include_bytes!("../../assets/icons/MdiGrid.svg");
 pub const MDI_INFORMATION_OUTLINE_SVG: &[u8] =
