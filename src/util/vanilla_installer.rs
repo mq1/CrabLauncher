@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs, collections::HashMap};
+use std::{collections::HashMap, fs};
 
 use anyhow::Result;
 use serde::Deserialize;
@@ -82,10 +82,10 @@ pub struct Object {
 
 #[derive(Deserialize)]
 pub struct AssetIndex {
-    objects: HashMap<String, Object>
+    objects: HashMap<String, Object>,
 }
 
-pub fn download_version(id: &str) -> Result<Vec<DownloadItem>> {
+pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
     let version_manifest = {
         let path = META_DIR.join("version_manifest_v2.json");
         let contents = fs::read_to_string(path)?;
@@ -128,7 +128,11 @@ pub fn download_version(id: &str) -> Result<Vec<DownloadItem>> {
             function: HashAlgorithm::Sha1,
         };
 
-        let path = META_DIR.join("assets").join("objects").join(&hash.get_path());
+        let path = META_DIR
+            .join("assets")
+            .join("objects")
+            .join(&hash.get_path());
+
         if !path.exists() {
             download_items.push(DownloadItem {
                 url: format!(
@@ -141,5 +145,7 @@ pub fn download_version(id: &str) -> Result<Vec<DownloadItem>> {
         }
     }
 
-    Ok(download_items)
+    let len = download_items.len();
+
+    Ok((download_items, len))
 }

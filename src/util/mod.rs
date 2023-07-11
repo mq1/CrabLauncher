@@ -29,13 +29,13 @@ pub mod vanilla_installer;
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 pub static AGENT: Lazy<Agent> = Lazy::new(|| AgentBuilder::new().user_agent(USER_AGENT).build());
 
-#[derive(Debug, Clone, Display)]
+#[derive(Debug, Clone, Display, PartialEq, Eq)]
 pub enum HashAlgorithm {
     Sha1,
     Sha256,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hash {
     pub hash: String,
     pub function: HashAlgorithm,
@@ -47,7 +47,7 @@ impl Hash {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DownloadItem {
     pub url: String,
     pub path: PathBuf,

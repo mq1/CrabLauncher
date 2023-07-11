@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <hi@mq1.eu>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fmt::Display, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -20,7 +20,6 @@ pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct InstanceInfo {
     last_played: Option<DateTime<Utc>>,
-    installer: String,
     minecraft: String,
     fabric: Option<String>,
 }
@@ -90,7 +89,6 @@ impl Instances {
     pub fn new(
         &mut self,
         name: String,
-        installer: String,
         minecraft_version: String,
         fabric_version: Option<String>,
     ) -> Result<()> {
@@ -99,7 +97,6 @@ impl Instances {
 
         let info = InstanceInfo {
             last_played: None,
-            installer,
             minecraft: minecraft_version,
             fabric: fabric_version,
         };
