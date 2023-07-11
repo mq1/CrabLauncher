@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::{
     util::{download_json, runtime_manager, DownloadItem, Hash, HashAlgorithm},
-    META_DIR,
+    ASSETS_DIR, META_DIR,
 };
 
 #[derive(Deserialize)]
@@ -110,8 +110,7 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
 
     let asset_index = download_json::<AssetIndex>(&DownloadItem {
         url: version_meta.asset_index.url,
-        path: META_DIR
-            .join("assets")
+        path: ASSETS_DIR
             .join("indexes")
             .join(format!("{}.json", version_meta.asset_index.id)),
         hash: Some(Hash {
@@ -128,10 +127,7 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
             function: HashAlgorithm::Sha1,
         };
 
-        let path = META_DIR
-            .join("assets")
-            .join("objects")
-            .join(&hash.get_path());
+        let path = ASSETS_DIR.join("objects").join(&hash.get_path());
 
         if !path.exists() {
             download_items.push(DownloadItem {
