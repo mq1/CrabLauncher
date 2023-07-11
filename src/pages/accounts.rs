@@ -52,19 +52,27 @@ impl Page for AccountsPage {
                 let client = Accounts::get_client().unwrap();
                 let details = Accounts::get_details(&client).unwrap();
 
+                self.adding_account = true;
+                self.url = details.verification_uri().to_string();
+                self.code = details.user_code().secret().to_string();
+
                 ret = Command::perform(
                     async move { Accounts::get_account(client, details).map_err(|e| e.to_string()) },
                     Message::AddingAccount,
                 )
             }
-            Message::AddingAccount(account) => match account {
-                Ok(account) => {
-                    self.accounts.add_account(account).unwrap();
+            Message::AddingAccount(account) => {
+                self.adding_account = false;
+
+                match account {
+                    Ok(account) => {
+                        self.accounts.add_account(account).unwrap();
+                    }
+                    Err(e) => {
+                        eprintln!("Error adding account: {e}");
+                    }
                 }
-                Err(e) => {
-                    eprintln!("Error adding account: {e}");
-                }
-            },
+            }
             Message::SelectAccount(account) => {
                 self.accounts.active = Some(account);
             }
