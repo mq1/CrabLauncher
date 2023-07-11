@@ -108,8 +108,7 @@ impl Application for App {
         let head_command = match accounts.active.clone() {
             Some(account) => {
                 Command::perform(
-                    async move { account.get_head().map_err(|e| e.to_string()) }
-                        .map_err(|e| e.to_string()),
+                    async move { account.get_head().map_err(|e| e.to_string()) },
                     Message::GotAccountHead,
                 )
             }
