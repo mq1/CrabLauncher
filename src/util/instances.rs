@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use crate::{util, BASE_DIR};
+use crate::BASE_DIR;
 
 pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| {
     let dir = BASE_DIR.join("instances");
@@ -21,7 +21,8 @@ pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| {
 pub struct InstanceInfo {
     last_played: Option<DateTime<Utc>>,
     installer: String,
-    version_id: String,
+    minecraft: String,
+    fabric: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,7 +91,8 @@ impl Instances {
         &mut self,
         name: String,
         installer: String,
-        version: util::vanilla_installer::Version,
+        minecraft_version: String,
+        fabric_version: Option<String>,
     ) -> Result<()> {
         let path = INSTANCES_DIR.join(&name);
         fs::create_dir(&path)?;
@@ -98,7 +100,8 @@ impl Instances {
         let info = InstanceInfo {
             last_played: None,
             installer,
-            version_id: version.id,
+            minecraft: minecraft_version,
+            fabric: fabric_version,
         };
         let info_str = toml::to_string_pretty(&info)?;
         fs::write(path.join("instance.toml"), info_str)?;
@@ -106,11 +109,5 @@ impl Instances {
         self.list.push(Instance { name, info });
 
         Ok(())
-    }
-}
-
-impl Display for Instance {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
     }
 }

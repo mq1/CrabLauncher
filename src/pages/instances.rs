@@ -30,7 +30,7 @@ impl Page for Instances {
             let logo = Image::new(logo_handle).height(100);
 
             let c = button(
-                column![logo, text(instance.to_owned()).size(20)]
+                column![logo, text(&instance.name).size(20)]
                     .align_items(Alignment::Center)
                     .spacing(10)
                     .padding(10),

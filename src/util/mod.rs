@@ -41,6 +41,12 @@ pub struct Hash {
     pub function: HashAlgorithm,
 }
 
+impl Hash {
+    pub fn get_path(&self) -> String {
+        format!("{}/{}", self.hash.chars().take(2).collect::<String>(), self.hash)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct DownloadItem {
     pub url: String,
@@ -118,7 +124,7 @@ pub fn download_file(item: &DownloadItem) -> Result<()> {
     Ok(())
 }
 
-pub fn download_json(item: &DownloadItem) -> Result<serde_json::Value> {
+pub fn download_json<T: for<'a> serde::Deserialize<'a>>(item: &DownloadItem) -> Result<T> {
     if item.path.exists() {
         println!("json already exists: {}", item.path.display());
 
