@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022-present Manuel Quarneti <hi@mq1.eu>
+// SPDX-FileCopyrightText: 2022-present Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
 use std::{fs, path::PathBuf};
