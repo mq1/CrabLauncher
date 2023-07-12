@@ -22,7 +22,10 @@ pub fn account_alert<M>() -> Element<'static, M> {
 }
 
 pub fn account_check<M>() -> Element<'static, M> {
-    view!(assets::MDI_ACCOUNT_CHECK_OUTLINE_SVG).into()
+    view!(assets::MDI_ACCOUNT_CHECK_OUTLINE_SVG)
+        .width(20)
+        .height(20)
+        .into()
 }
 
 pub fn arrow_left<M>() -> Element<'static, M> {
@@ -41,7 +44,10 @@ pub fn content_save<M>() -> Element<'static, M> {
 }
 
 pub fn delete<M>() -> Element<'static, M> {
-    view!(assets::MDI_DELETE_OUTLINE_SVG).into()
+    view!(assets::MDI_DELETE_OUTLINE_SVG)
+        .width(20)
+        .height(20)
+        .into()
 }
 
 pub fn github<M>() -> Element<'static, M> {
@@ -74,8 +80,4 @@ pub fn plus<M>() -> Element<'static, M> {
 
 pub fn rocket<M>() -> Element<'static, M> {
     view!(assets::MDI_ROCKET_LAUNCH_OUTLINE_SVG).into()
-}
-
-pub fn modrinth<M>() -> Element<'static, M> {
-    view!(assets::MODRINTH_SVG).width(32).height(32).into()
 }

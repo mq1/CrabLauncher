@@ -47,10 +47,6 @@ impl Page for NewInstance {
         let vanilla_btn = btn("Vanilla", View::VanillaInstaller, icons::minecraft());
         wrap = wrap.push(vanilla_btn);
 
-        // Modrinth
-        let modrinth_btn = btn("Modrinth", View::ModrinthInstaller, icons::modrinth());
-        wrap = wrap.push(modrinth_btn);
-
         column![title, wrap].spacing(10).padding(10).into()
     }
 }
