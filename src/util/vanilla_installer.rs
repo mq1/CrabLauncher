@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{collections::HashMap, fs};
+use std::{
+    collections::HashMap,
+    fs::{self, File},
+    io::BufReader,
+};
 
 use anyhow::Result;
 use serde::Deserialize;
@@ -19,6 +23,12 @@ const OS: &str = "linux";
 
 #[cfg(target_os = "macos")]
 const OS: &str = "osx";
+
+#[cfg(target_os = "windows")]
+const SEPARATOR: char = ';';
+
+#[cfg(not(target_os = "windows"))]
+const SEPARATOR: char = ':';
 
 #[derive(Deserialize)]
 struct VersionManifest {
@@ -131,6 +141,8 @@ struct VersionMeta {
     #[serde(rename = "assetIndex")]
     asset_index: AssetIndexMeta,
     libraries: Vec<Library>,
+    #[serde(rename = "mainClass")]
+    main_class: String,
 }
 
 #[derive(Deserialize)]
@@ -225,4 +237,27 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
     let len = download_items.len();
 
     Ok((download_items, len))
+}
+
+pub fn get_classpath(version_id: &str) -> Result<String> {
+    let version_meta = {
+        let path = META_DIR
+            .join("versions")
+            .join(format!("{}.json", version_id));
+        let mut reader = BufReader::new(File::open(path)?);
+        serde_json::from_reader::<_, VersionMeta>(&mut reader)?
+    };
+
+    let mut classpath = String::new();
+
+    for library in version_meta.libraries {
+        if library.check() {
+            let path = LIBRARIES_DIR.join(library.downloads.artifact.path);
+
+            classpath.push_str(&path.to_string_lossy());
+            classpath.push(SEPARATOR);
+        }
+    }
+
+    Ok(classpath)
 }
