@@ -76,6 +76,8 @@ pub fn install(java_version: &str) -> Result<Vec<DownloadItem>> {
             hash,
             extract: true,
         });
+    } else {
+        println!("Runtime already up to date");
     }
 
     Ok(download_items)
