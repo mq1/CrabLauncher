@@ -243,7 +243,7 @@ impl Application for App {
             Message::Downloading(result) => match result {
                 Ok((mut items, total)) => {
                     if let Some(item) = items.pop() {
-                        let current = total - items.len();
+                        let current = total - items.len() - 1;
 
                         self.view = View::Status(Status {
                             text: format!("Downloading... {}%", 100 * current / total),

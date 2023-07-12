@@ -124,6 +124,8 @@ pub fn download_file(item: &DownloadItem) -> Result<()> {
     }
 
     if item.extract {
+        println!("extracting archive: {}", item.path.display());
+
         let reader = BufReader::new(&file);
 
         if item.url.ends_with(".zip") {
