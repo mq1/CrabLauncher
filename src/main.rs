@@ -64,6 +64,7 @@ pub fn main() -> iced::Result {
 pub enum View {
     Status(Status),
     Instances,
+    // TODO: remove argument and use current_instance
     Instance(Option<util::instances::Instance>),
     NewInstance,
     VanillaInstaller,
@@ -77,6 +78,7 @@ struct App {
     view: View,
     show_navbar: bool,
     instances: util::instances::Instances,
+    current_instance: Option<util::instances::Instance>,
     settings: util::settings::Settings,
     accounts_page: pages::accounts::AccountsPage,
     vanilla_installer: pages::vanilla_installer::VanillaInstaller,
@@ -133,6 +135,7 @@ impl Application for App {
                 view: View::Instance(instances.list.get(0).cloned()),
                 show_navbar: true,
                 instances,
+                current_instance: None,
                 settings,
                 accounts_page: pages::accounts::AccountsPage::new(accounts),
                 vanilla_installer: pages::vanilla_installer::VanillaInstaller::new(),
@@ -273,7 +276,7 @@ impl Application for App {
                         println!("Done downloading");
                         println!("Launching instance");
 
-                        if let View::Instance(Some(instance)) = self.view.clone() {
+                        if let Some(instance) = self.current_instance.as_ref() {
                             self.view = View::Status(Status {
                                 text: "Launching...".to_string(),
                                 progress: None,
@@ -296,6 +299,8 @@ impl Application for App {
                     text: "Launching...".to_string(),
                     progress: None,
                 });
+
+                self.current_instance = Some(instance.clone());
 
                 ret = Command::perform(
                     async move {
