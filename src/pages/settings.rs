@@ -6,7 +6,7 @@ use iced::{
     widget::{
         button, column, container, horizontal_space, row, text, toggler, vertical_space, Column,
     },
-    Command, Element, Length,
+    Alignment, Command, Element, Length,
 };
 
 use crate::{components::icons, pages::Page, style, util::settings::Settings};
@@ -49,9 +49,13 @@ impl Page for Settings {
             settings = settings.push(check_for_updates);
         }
 
-        let save_button = button(icons::content_save())
-            .style(style::circle_button(theme::Button::Positive))
-            .on_press(Message::SaveSettings);
+        let save_button = button(
+            row![text(" Save "), icons::content_save()]
+                .padding(5)
+                .align_items(Alignment::Center),
+        )
+        .style(style::circle_button(theme::Button::Positive))
+        .on_press(Message::SaveSettings);
 
         column![
             text("Settings").size(30),
