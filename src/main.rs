@@ -250,7 +250,7 @@ impl Application for App {
             Message::Downloading(result) => match result {
                 Ok((mut items, total)) => {
                     if let Some(item) = items.pop() {
-                        let current = total - items.len() - 1;
+                        let current = total - items.len();
 
                         self.view = View::Status(Status {
                             text: format!("Downloading... {}%", 100 * current / total),
@@ -270,8 +270,19 @@ impl Application for App {
                             Message::Downloading,
                         );
                     } else {
-                        // launch instance
-                        todo!()
+                        println!("Done downloading");
+                        println!("Launching instance");
+
+                        if let View::Instance(Some(instance)) = self.view.clone() {
+                            self.view = View::Status(Status {
+                                text: "Launching...".to_string(),
+                                progress: None,
+                            });
+
+                            instance
+                                .launch(self.accounts_page.accounts.active.clone().unwrap())
+                                .unwrap();
+                        }
                     }
                 }
                 Err(e) => {

@@ -5,6 +5,7 @@ use std::{
     collections::HashMap,
     fs::{self, File},
     io::BufReader,
+    path::PathBuf,
 };
 
 use anyhow::Result;
@@ -137,12 +138,66 @@ impl Library {
 }
 
 #[derive(Deserialize)]
-struct VersionMeta {
+struct ClientArtifact {
+    sha1: String,
+    url: String,
+}
+
+#[derive(Deserialize)]
+struct VersionDownloads {
+    client: ClientArtifact,
+}
+
+#[derive(Deserialize)]
+pub struct VersionMeta {
+    id: String,
     #[serde(rename = "assetIndex")]
     asset_index: AssetIndexMeta,
     libraries: Vec<Library>,
     #[serde(rename = "mainClass")]
-    main_class: String,
+    pub main_class: String,
+    pub assets: String,
+    downloads: VersionDownloads,
+}
+
+impl VersionMeta {
+    pub fn load(id: &str) -> Result<Self> {
+        let path = META_DIR.join("versions").join(format!("{}.json", id));
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+        let version_meta = serde_json::from_reader(reader)?;
+
+        Ok(version_meta)
+    }
+
+    fn get_client_path(&self) -> PathBuf {
+        LIBRARIES_DIR
+            .join("com")
+            .join("mojang")
+            .join("minecraft")
+            .join(self.id.as_str())
+            .join(format!("minecraft-{}-client.jar", self.id))
+    }
+
+    pub fn get_classpath(&self) -> Result<String> {
+        let mut paths = vec![self.get_client_path()];
+
+        for library in &self.libraries {
+            if library.check() {
+                let path = LIBRARIES_DIR.join(&library.downloads.artifact.path);
+
+                paths.push(path);
+            }
+        }
+
+        let classpath = paths
+            .into_iter()
+            .map(|p| p.to_str().unwrap().to_string())
+            .collect::<Vec<String>>()
+            .join(&SEPARATOR.to_string());
+
+        Ok(classpath)
+    }
 }
 
 #[derive(Deserialize)]
@@ -179,6 +234,21 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
         extract: false,
     })?;
 
+    let mut download_items = vec![];
+
+    // download client
+    download_items.push(DownloadItem {
+        url: version_meta.downloads.client.url.clone(),
+        path: version_meta.get_client_path(),
+        hash: Some(Hash {
+            hash: version_meta.downloads.client.sha1,
+            function: HashAlgorithm::Sha1,
+        }),
+        extract: false,
+    });
+
+    download_items.extend_from_slice(&adoptium::install("17")?);
+
     let asset_index = download_json::<AssetIndex>(&DownloadItem {
         url: version_meta.asset_index.url,
         path: ASSETS_DIR
@@ -190,8 +260,6 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
         }),
         extract: false,
     })?;
-
-    let mut download_items = adoptium::install("17")?;
 
     for value in asset_index.objects.into_values() {
         let hash = Hash {
@@ -237,27 +305,4 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
     let len = download_items.len();
 
     Ok((download_items, len))
-}
-
-pub fn get_classpath(version_id: &str) -> Result<String> {
-    let version_meta = {
-        let path = META_DIR
-            .join("versions")
-            .join(format!("{}.json", version_id));
-        let mut reader = BufReader::new(File::open(path)?);
-        serde_json::from_reader::<_, VersionMeta>(&mut reader)?
-    };
-
-    let mut classpath = String::new();
-
-    for library in version_meta.libraries {
-        if library.check() {
-            let path = LIBRARIES_DIR.join(library.downloads.artifact.path);
-
-            classpath.push_str(&path.to_string_lossy());
-            classpath.push(SEPARATOR);
-        }
-    }
-
-    Ok(classpath)
 }

@@ -1,14 +1,17 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, process};
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use crate::BASE_DIR;
+use crate::{BASE_DIR, util::{adoptium, vanilla_installer, accounts::Account}, ASSETS_DIR};
+
+// https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks
+const OPTIMIZED_FLAGS: &str = "-XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions -XX:+AlwaysActAsServerClassMachine -XX:+AlwaysPreTouch -XX:+DisableExplicitGC -XX:+UseNUMA -XX:NmethodSweepActivity=1 -XX:ReservedCodeCacheSize=400M -XX:NonNMethodCodeHeapSize=12M -XX:ProfiledCodeHeapSize=194M -XX:NonProfiledCodeHeapSize=194M -XX:-DontCompileHugeMethods -XX:MaxNodeLimit=240000 -XX:NodeLimitFudgeFactor=8000 -XX:+UseVectorCmov -XX:+PerfDisableSharedMem -XX:+UseFastUnorderedTimeStamps -XX:+UseCriticalJavaThreadPriority -XX:ThreadPriorityPolicy=1 -XX:AllocatePrefetchStyle=3 -XX:+UseShenandoahGC -XX:ShenandoahGCMode=iu -XX:ShenandoahGuaranteedGCInterval=1000000 -XX:AllocatePrefetchStyle=1";
 
 pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| {
     let dir = BASE_DIR.join("instances");
@@ -28,6 +31,56 @@ pub struct InstanceInfo {
 pub struct Instance {
     pub name: String,
     pub info: InstanceInfo,
+}
+
+impl Instance {
+    pub fn launch(&self, account: Account) -> Result<()> {
+        let dir = INSTANCES_DIR.join(&self.name);
+        let path = dir.join("instance.toml");
+        let info = fs::read_to_string(path)?;
+        let info = toml::from_str::<InstanceInfo>(&info)?;
+
+        let version_meta = vanilla_installer::VersionMeta::load(&info.minecraft)?;
+
+        let java_path = adoptium::get_path("17")?;
+        
+        let mut child = process::Command::new(java_path)
+            .current_dir(dir)
+            .args(OPTIMIZED_FLAGS.split(' '))
+            .arg("-Xmx4G") // TODO: Make this configurable
+            .arg("-Xms4G") // TODO: Make this configurable
+            .arg("-cp")
+            .arg(version_meta.get_classpath()?)
+            .arg(format!("-Dminecraft.launcher.brand={}", env!("CARGO_PKG_NAME")))
+            .arg(format!("-Dminecraft.launcher.version={}", env!("CARGO_PKG_VERSION")))
+            .arg(version_meta.main_class)
+            .arg("--username")
+            .arg(account.mc_username)
+            .arg("--uuid")
+            .arg(account.mc_id)
+            .arg("--accessToken")
+            .arg(account.mc_access_token)
+            .arg("--userType")
+            .arg("microsoft")
+            .arg("--version")
+            .arg(info.minecraft)
+            .arg("--gameDir")
+            .arg(".")
+            .arg("--assetsDir")
+            .arg(ASSETS_DIR.to_string_lossy().to_string())
+            .arg("--assetIndex")
+            .arg(version_meta.assets)
+            .arg("--versionType")
+            .arg("release")
+            .arg("--clientId")
+            .arg(format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")))
+            .spawn()?;
+
+        println!("Launched instance: {}", self.name);
+
+        child.wait()?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
