@@ -75,7 +75,7 @@ impl Page for AccountsPage {
                 }
             }
             Message::SelectAccount(account) => {
-                self.accounts.active = Some(account);
+                self.accounts.set_active_account(account).unwrap();
             }
             Message::Login => {
                 if let (Some(url), Some(code)) = (&self.url, &self.code) {
