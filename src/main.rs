@@ -262,6 +262,9 @@ impl Application for App {
                             },
                             Message::Downloading,
                         );
+                    } else {
+                        // launch instance
+                        todo!()
                     }
                 }
                 Err(e) => {
