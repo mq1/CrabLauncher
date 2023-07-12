@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
+    theme,
     widget::{
         button, column, container, horizontal_space, radio, row, scrollable, text, text_input,
         Column,
@@ -101,7 +102,7 @@ impl Page for VanillaInstaller {
             .style(style::card());
 
         let create_button = button("Create")
-            .style(style::circle_button())
+            .style(style::circle_button(theme::Button::Primary))
             .padding(10)
             .on_press(Message::Create);
         let footer = row![horizontal_space(Length::Fill), create_button];

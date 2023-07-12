@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
+    theme,
     widget::{
         button, column, container, horizontal_space, row, text, toggler, vertical_space, Column,
     },
@@ -49,7 +50,7 @@ impl Page for Settings {
         }
 
         let save_button = button(icons::content_save())
-            .style(style::circle_button())
+            .style(style::circle_button(theme::Button::Positive))
             .on_press(Message::SaveSettings);
 
         column![

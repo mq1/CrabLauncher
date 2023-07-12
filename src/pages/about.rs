@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
+    theme,
     widget::{button, column, horizontal_space, image, row, text, vertical_space, Image},
     Alignment, Element, Length,
 };
@@ -36,7 +37,7 @@ impl Page for About {
                 .align_items(Alignment::Center)
                 .padding([0, 0, 0, 5]),
         )
-        .style(style::circle_button())
+        .style(style::circle_button(theme::Button::Primary))
         .on_press(Message::OpenURL(REPOSITORY.to_string()));
 
         column![

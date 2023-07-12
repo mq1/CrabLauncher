@@ -105,8 +105,8 @@ impl button::StyleSheet for CircleButtonStyle {
     }
 }
 
-pub fn circle_button() -> theme::Button {
-    theme::Button::Custom(Box::new(CircleButtonStyle::new(theme::Button::Primary)))
+pub fn circle_button(theme: theme::Button) -> theme::Button {
+    theme::Button::Custom(Box::new(CircleButtonStyle::new(theme)))
 }
 
 pub struct SelectedButtonStyle {
