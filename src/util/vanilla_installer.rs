@@ -7,9 +7,18 @@ use anyhow::Result;
 use serde::Deserialize;
 
 use crate::{
-    util::{download_json, adoptium, DownloadItem, Hash, HashAlgorithm},
-    ASSETS_DIR, META_DIR,
+    util::{adoptium, download_json, DownloadItem, Hash, HashAlgorithm},
+    ASSETS_DIR, LIBRARIES_DIR, META_DIR,
 };
+
+#[cfg(target_os = "windows")]
+const OS: &str = "windows";
+
+#[cfg(target_os = "linux")]
+const OS: &str = "linux";
+
+#[cfg(target_os = "macos")]
+const OS: &str = "osx";
 
 #[derive(Deserialize)]
 struct VersionManifest {
@@ -46,25 +55,91 @@ pub fn get_versions() -> Result<Vec<String>> {
 }
 
 #[derive(Deserialize)]
-pub struct AssetIndexMeta {
+struct AssetIndexMeta {
     id: String,
     sha1: String,
     url: String,
 }
 
 #[derive(Deserialize)]
-pub struct VersionMeta {
-    #[serde(rename = "assetIndex")]
-    asset_index: AssetIndexMeta,
+struct Artifact {
+    url: String,
+    path: String,
+    sha1: String,
 }
 
 #[derive(Deserialize)]
-pub struct Object {
+struct LibraryDownloads {
+    artifact: Artifact,
+}
+
+#[derive(Deserialize)]
+struct Os {
+    name: String,
+}
+
+#[derive(Deserialize)]
+struct Rule {
+    action: String,
+    os: Os,
+}
+
+#[derive(Deserialize)]
+struct Library {
+    downloads: LibraryDownloads,
+    rules: Option<Vec<Rule>>,
+}
+
+impl Library {
+    pub fn check(&self) -> bool {
+        let mut yes = true;
+
+        if let Some(rules) = &self.rules {
+            yes = false;
+
+            for rule in rules {
+                if rule.action == "allow" && rule.os.name == OS {
+                    yes = true;
+                }
+            }
+        }
+
+        let path = &self.downloads.artifact.path;
+
+        if path.contains("linux") && cfg!(not(target_os = "linux")) {
+            yes = false;
+        } else if path.contains("windows") && cfg!(not(target_os = "windows")) {
+            yes = false;
+        } else if path.contains("osx") && cfg!(not(target_os = "macos")) {
+            yes = false;
+        }
+
+        if path.contains("x86") && cfg!(not(target_arch = "x86_64")) {
+            yes = false;
+        } else if (path.contains("aarch_64") || path.contains("arm64"))
+            && cfg!(not(target_arch = "aarch64"))
+        {
+            yes = false;
+        }
+
+        yes
+    }
+}
+
+#[derive(Deserialize)]
+struct VersionMeta {
+    #[serde(rename = "assetIndex")]
+    asset_index: AssetIndexMeta,
+    libraries: Vec<Library>,
+}
+
+#[derive(Deserialize)]
+struct Object {
     hash: String,
 }
 
 #[derive(Deserialize)]
-pub struct AssetIndex {
+struct AssetIndex {
     objects: HashMap<String, Object>,
 }
 
@@ -124,6 +199,26 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
                 hash: Some(hash),
                 extract: false,
             });
+        }
+    }
+
+    for library in version_meta.libraries {
+        if library.check() {
+            let hash = Hash {
+                hash: library.downloads.artifact.sha1,
+                function: HashAlgorithm::Sha1,
+            };
+
+            let path = LIBRARIES_DIR.join(library.downloads.artifact.path);
+
+            if !path.exists() {
+                download_items.push(DownloadItem {
+                    url: library.downloads.artifact.url,
+                    path,
+                    hash: Some(hash),
+                    extract: false,
+                });
+            }
         }
     }
 
