@@ -28,9 +28,8 @@ impl Page for Instance {
         .style(style::circle_button(theme::Button::Primary));
 
         let edit_button = button(
-            row![text(" Edit instance"), icons::cog(20.)]
+            row![text(" Edit instance "), icons::cog(20.)]
                 .padding(5)
-                .spacing(5)
                 .align_items(Alignment::Center),
         )
         .style(style::circle_button(theme::Button::Primary));

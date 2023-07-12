@@ -40,7 +40,10 @@ pub fn cog<M>(dimensions: f32) -> Element<'static, M> {
 }
 
 pub fn content_save<M>() -> Element<'static, M> {
-    view!(assets::MDI_CONTENT_SAVE_OUTLINE_SVG).into()
+    view!(assets::MDI_CONTENT_SAVE_OUTLINE_SVG)
+        .width(20)
+        .height(20)
+        .into()
 }
 
 pub fn delete<M>() -> Element<'static, M> {
