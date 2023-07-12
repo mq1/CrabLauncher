@@ -23,7 +23,7 @@ pub fn view<'a>(
                     .style(if &view == current_view {
                         style::selected_button()
                     } else {
-                        style::transparent_button()
+                        theme::Button::Text
                     })
                     .on_press(Message::ChangeView(view)),
                 tooltip_text,
@@ -33,7 +33,7 @@ pub fn view<'a>(
             .style(theme::Container::Box)
             .into()
         };
-    
+
     let account_icon = if let Some(account) = active_account {
         if account.cached_head.is_empty() {
             Spinner::new().into()
