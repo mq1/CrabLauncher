@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
+    theme,
     widget::{button, column, horizontal_space, row, text, vertical_space},
     Alignment, Command, Element, Length,
 };
@@ -24,7 +25,7 @@ impl Page for Instance {
                 .align_items(Alignment::Center),
         )
         .on_press(Message::LaunchInstance(self.to_owned()))
-        .style(style::circle_button());
+        .style(style::circle_button(theme::Button::Primary));
 
         let edit_button = button(
             row![text(" Edit instance"), icons::cog(20.)]
@@ -32,7 +33,7 @@ impl Page for Instance {
                 .spacing(5)
                 .align_items(Alignment::Center),
         )
-        .style(style::circle_button());
+        .style(style::circle_button(theme::Button::Primary));
 
         column![
             vertical_space(Length::Fill),

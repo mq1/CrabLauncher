@@ -3,6 +3,7 @@
 
 use copypasta::{ClipboardContext, ClipboardProvider};
 use iced::{
+    theme,
     widget::{button, column, container, horizontal_space, row, scrollable, text, vertical_space},
     Alignment, Command, Element, Length,
 };
@@ -115,7 +116,7 @@ impl Page for AccountsPage {
             .size(20);
 
             let open_button = button("Open page and copy code")
-                .style(style::circle_button())
+                .style(style::circle_button(theme::Button::Primary))
                 .on_press(Message::Login);
 
             return column![
@@ -141,7 +142,7 @@ impl Page for AccountsPage {
                 horizontal_space(Length::Fill),
                 button(icons::delete())
                     .on_press(Message::RemoveAccount(active_account.clone()))
-                    .style(style::circle_button()),
+                    .style(style::circle_button(theme::Button::Destructive)),
             ]
             .align_items(Alignment::Center)
             .padding(10);
@@ -162,10 +163,10 @@ impl Page for AccountsPage {
                     horizontal_space(Length::Fill),
                     button(icons::account_check())
                         .on_press(Message::SelectAccount(account.clone()))
-                        .style(style::circle_button()),
+                        .style(style::circle_button(theme::Button::Positive)),
                     button(icons::delete())
                         .on_press(Message::RemoveAccount(account.clone()))
-                        .style(style::circle_button()),
+                        .style(style::circle_button(theme::Button::Destructive)),
                 ];
 
                 others = others.push(row);
@@ -180,7 +181,7 @@ impl Page for AccountsPage {
         let content = FloatingElement::new(content, || {
             container(
                 button(icons::plus())
-                    .style(style::circle_button())
+                    .style(style::circle_button(theme::Button::Primary))
                     .on_press(Message::AddAccount),
             )
             .padding([0, 20, 20, 0])
