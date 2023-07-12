@@ -15,13 +15,13 @@ use sha1::Sha1;
 use sha2::Sha256;
 use strum_macros::Display;
 use tar::Archive;
-use tempfile::{tempfile, NamedTempFile};
+use tempfile::NamedTempFile;
 use ureq::{Agent, AgentBuilder};
 use zip::ZipArchive;
 
 pub mod accounts;
+mod adoptium;
 pub mod instances;
-mod runtime_manager;
 pub mod settings;
 pub mod updater;
 pub mod vanilla_installer;
@@ -43,7 +43,11 @@ pub struct Hash {
 
 impl Hash {
     pub fn get_path(&self) -> String {
-        format!("{}/{}", self.hash.chars().take(2).collect::<String>(), self.hash)
+        format!(
+            "{}/{}",
+            self.hash.chars().take(2).collect::<String>(),
+            self.hash
+        )
     }
 }
 
@@ -52,6 +56,7 @@ pub struct DownloadItem {
     pub url: String,
     pub path: PathBuf,
     pub hash: Option<Hash>,
+    pub extract: bool,
 }
 
 fn calc_hash<D: Digest>(mut reader: impl Read + Seek) -> Result<String> {
@@ -118,8 +123,25 @@ pub fn download_file(item: &DownloadItem) -> Result<()> {
         reader.seek(io::SeekFrom::Start(0))?;
     }
 
-    // move file to destination
-    fs::rename(file, &item.path)?;
+    if item.extract {
+        let reader = BufReader::new(&file);
+
+        if item.url.ends_with(".zip") {
+            let mut archive = ZipArchive::new(reader)?;
+            archive.extract(item.path.parent().unwrap())?;
+        } else if item.url.ends_with(".tar.gz") {
+            let mut archive = Archive::new(GzDecoder::new(reader));
+            archive.unpack(item.path.parent().unwrap())?;
+        } else {
+            fs::remove_file(&item.path)?;
+            bail!("unsupported archive format");
+        }
+
+        fs::remove_file(&file)?;
+    } else {
+        // move file to destination
+        fs::rename(file, &item.path)?;
+    }
 
     Ok(())
 }
@@ -167,57 +189,4 @@ pub fn download_json<T: for<'a> serde::Deserialize<'a>>(item: &DownloadItem) -> 
     fs::rename(file, &item.path)?;
 
     Ok(json)
-}
-
-pub fn download_and_unpack(item: &DownloadItem) -> Result<()> {
-    if item.path.exists() {
-        println!("file already exists: {}", item.path.display());
-        return Ok(());
-    }
-
-    println!(
-        "downloading and unpacking: {} to {}",
-        item.url,
-        item.path.display()
-    );
-
-    // create parent directory
-    {
-        let parent = item.path.parent().ok_or_else(|| anyhow!("invalid path"))?;
-        fs::create_dir_all(parent)?;
-    }
-
-    let response = AGENT.get(&item.url).call()?;
-    let file = tempfile()?;
-
-    // write to file
-    {
-        let mut writer = BufWriter::new(&file);
-        io::copy(&mut response.into_reader(), &mut writer)?;
-        writer.seek(io::SeekFrom::Start(0))?;
-    }
-
-    // check hash
-    if let Some(hash) = &item.hash {
-        let mut reader = BufReader::new(&file);
-        check_hash(&mut reader, &hash)?;
-        reader.seek(io::SeekFrom::Start(0))?;
-    }
-
-    // unpack file
-    {
-        let reader = BufReader::new(&file);
-
-        if item.url.ends_with(".zip") {
-            let mut archive = ZipArchive::new(reader)?;
-            archive.extract(item.path.parent().unwrap())?;
-        } else if item.url.ends_with(".tar.gz") {
-            let mut archive = Archive::new(GzDecoder::new(reader));
-            archive.unpack(item.path.parent().unwrap())?;
-        } else {
-            bail!("unsupported archive format");
-        }
-    }
-
-    Ok(())
 }

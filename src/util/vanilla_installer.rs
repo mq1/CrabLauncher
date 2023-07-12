@@ -7,7 +7,7 @@ use anyhow::Result;
 use serde::Deserialize;
 
 use crate::{
-    util::{download_json, runtime_manager, DownloadItem, Hash, HashAlgorithm},
+    util::{download_json, adoptium, DownloadItem, Hash, HashAlgorithm},
     ASSETS_DIR, META_DIR,
 };
 
@@ -28,6 +28,7 @@ pub fn get_versions() -> Result<Vec<String>> {
         url: "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json".to_string(),
         path: META_DIR.join("version_manifest_v2.json.new"),
         hash: None,
+        extract: false,
     })?;
 
     fs::rename(
@@ -42,24 +43,6 @@ pub fn get_versions() -> Result<Vec<String>> {
         .collect::<Vec<String>>();
 
     Ok(versions)
-}
-
-impl Version {
-    pub fn install(&self) -> Result<Vec<DownloadItem>> {
-        let mut download_items = Vec::new();
-
-        let jvm_assets = runtime_manager::get_assets_info("17")?;
-        if !runtime_manager::is_updated(&jvm_assets)? {
-            let path = jvm_assets.get_path();
-            if path.exists() {
-                fs::remove_dir_all(path)?;
-            }
-
-            download_items.push(jvm_assets.get_download_item());
-        }
-
-        Ok(download_items)
-    }
 }
 
 #[derive(Deserialize)]
@@ -106,6 +89,7 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
             hash: version.sha1,
             function: HashAlgorithm::Sha1,
         }),
+        extract: false,
     })?;
 
     let asset_index = download_json::<AssetIndex>(&DownloadItem {
@@ -117,9 +101,10 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
             hash: version_meta.asset_index.sha1,
             function: HashAlgorithm::Sha1,
         }),
+        extract: false,
     })?;
 
-    let mut download_items = Vec::new();
+    let mut download_items = adoptium::install("17")?;
 
     for value in asset_index.objects.into_values() {
         let hash = Hash {
@@ -137,6 +122,7 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
                 ),
                 path,
                 hash: Some(hash),
+                extract: false,
             });
         }
     }
