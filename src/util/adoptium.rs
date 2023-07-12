@@ -1,11 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{
-    env::consts::{ARCH, OS},
-    fs,
-    path::PathBuf,
-};
+use std::{fs, path::PathBuf};
 
 use anyhow::{anyhow, bail, Result};
 use once_cell::sync::Lazy;
@@ -17,6 +13,21 @@ use crate::{
 };
 
 static RUNTIMES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("runtimes"));
+
+#[cfg(target_os = "windows")]
+const OS: &str = "windows";
+
+#[cfg(target_os = "linux")]
+const OS: &str = "linux";
+
+#[cfg(target_os = "macos")]
+const OS: &str = "mac";
+
+#[cfg(target_arch = "x86_64")]
+const ARCH: &str = "x64";
+
+#[cfg(target_arch = "aarch64")]
+const ARCH: &str = "aarch64";
 
 #[derive(Deserialize)]
 struct Package {
@@ -36,22 +47,9 @@ struct Assets {
 }
 
 pub fn install(java_version: &str) -> Result<Vec<DownloadItem>> {
-    let arch = match ARCH {
-        "x86_64" => "x64",
-        "aarch64" => "aarch64",
-        _ => bail!("Unsupported architecture: {}", ARCH),
-    };
-
-    let os = match OS {
-        "windows" => "windows",
-        "linux" => "linux",
-        "macos" => "mac",
-        _ => bail!("Unsupported OS: {}", OS),
-    };
-
     let url = format!(
         "https://api.adoptium.net/v3/assets/latest/{}/hotspot?architecture={}&image_type=jre&os={}&vendor=eclipse",
-        java_version, arch, os
+        java_version, ARCH, OS
     );
 
     let assets = &AGENT.get(&url).call()?.into_json::<Vec<Assets>>()?[0];
