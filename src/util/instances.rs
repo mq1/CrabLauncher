@@ -8,10 +8,24 @@ use chrono::{DateTime, Utc};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use crate::{BASE_DIR, util::{adoptium, vanilla_installer, accounts::Account}, ASSETS_DIR};
+use crate::{
+    util::{accounts::Account, adoptium, vanilla_installer},
+    ASSETS_DIR, BASE_DIR,
+};
 
 // https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks
 const OPTIMIZED_FLAGS: &str = "-XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions -XX:+AlwaysActAsServerClassMachine -XX:+AlwaysPreTouch -XX:+DisableExplicitGC -XX:+UseNUMA -XX:NmethodSweepActivity=1 -XX:ReservedCodeCacheSize=400M -XX:NonNMethodCodeHeapSize=12M -XX:ProfiledCodeHeapSize=194M -XX:NonProfiledCodeHeapSize=194M -XX:-DontCompileHugeMethods -XX:MaxNodeLimit=240000 -XX:NodeLimitFudgeFactor=8000 -XX:+UseVectorCmov -XX:+PerfDisableSharedMem -XX:+UseFastUnorderedTimeStamps -XX:+UseCriticalJavaThreadPriority -XX:ThreadPriorityPolicy=1 -XX:AllocatePrefetchStyle=3 -XX:+UseShenandoahGC -XX:ShenandoahGCMode=iu -XX:ShenandoahGuaranteedGCInterval=1000000 -XX:AllocatePrefetchStyle=1";
+
+// this works only if the launcher, java and javaw are started with admin privileges)
+// not recommended, the flags are ignored if the launcher is not started with admin privileges
+#[cfg(target_os = "windows")]
+const OS_FLAGS: &str = "-XX:+UseLargePages -XX:LargePageSizeInBytes=2m";
+
+#[cfg(target_os = "macos")]
+const OS_FLAGS: &str = "-XstartOnFirstThread";
+
+#[cfg(target_os = "linux")]
+const OS_FLAGS: &str = "-XX:+UseTransparentHugePages";
 
 pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| {
     let dir = BASE_DIR.join("instances");
@@ -43,16 +57,23 @@ impl Instance {
         let version_meta = vanilla_installer::VersionMeta::load(&info.minecraft)?;
 
         let java_path = adoptium::get_path("17")?;
-        
+
         let mut child = process::Command::new(java_path)
             .current_dir(dir)
             .args(OPTIMIZED_FLAGS.split(' '))
+            .args(OS_FLAGS.split(' '))
             .arg("-Xmx4G") // TODO: Make this configurable
             .arg("-Xms4G") // TODO: Make this configurable
             .arg("-cp")
             .arg(version_meta.get_classpath()?)
-            .arg(format!("-Dminecraft.launcher.brand={}", env!("CARGO_PKG_NAME")))
-            .arg(format!("-Dminecraft.launcher.version={}", env!("CARGO_PKG_VERSION")))
+            .arg(format!(
+                "-Dminecraft.launcher.brand={}",
+                env!("CARGO_PKG_NAME")
+            ))
+            .arg(format!(
+                "-Dminecraft.launcher.version={}",
+                env!("CARGO_PKG_VERSION")
+            ))
             .arg(version_meta.main_class)
             .arg("--username")
             .arg(account.mc_username)
@@ -61,7 +82,7 @@ impl Instance {
             .arg("--accessToken")
             .arg(account.mc_access_token)
             .arg("--userType")
-            .arg("microsoft")
+            .arg("msa")
             .arg("--version")
             .arg(info.minecraft)
             .arg("--gameDir")
@@ -73,7 +94,11 @@ impl Instance {
             .arg("--versionType")
             .arg("release")
             .arg("--clientId")
-            .arg(format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")))
+            .arg(format!(
+                "{}/{}",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION")
+            ))
             .spawn()?;
 
         println!("Launched instance: {}", self.name);

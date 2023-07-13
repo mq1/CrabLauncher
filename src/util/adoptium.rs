@@ -84,22 +84,26 @@ pub fn install(java_version: &str) -> Result<Vec<DownloadItem>> {
 pub fn get_path(java_version: &str) -> Result<PathBuf> {
     let dir = RUNTIMES_DIR.join(java_version);
     let runtime_dir = fs::read_dir(&dir)?
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().unwrap().is_dir())
         .next()
-        .ok_or_else(|| anyhow!("No runtime found for version {}", java_version))??;
+        .ok_or_else(|| anyhow!("No runtime found for version {}", java_version))?;
     let runtime_dir = runtime_dir.path();
 
-    let runtime_path = match OS {
-        "windows" => runtime_dir.join("bin").join("java.exe"),
-        "macos" => runtime_dir
+    let runtime_path = if cfg!(target_os = "windows") {
+        runtime_dir.join("bin").join("java.exe")
+    } else if cfg!(target_os = "macos") {
+        runtime_dir
             .join("Contents")
             .join("Home")
             .join("bin")
-            .join("java"),
-        "linux" => runtime_dir.join("bin").join("java"),
-        _ => bail!("Unsupported OS: {}", OS),
+            .join("java")
+    } else {
+        runtime_dir.join("bin").join("java")
     };
 
     if !runtime_path.exists() {
+        println!("{:?}", runtime_path);
         bail!("No runtime found for version {}", java_version);
     }
 
