@@ -223,8 +223,12 @@ impl Application for App {
                     let name = self.vanilla_installer.name.clone();
                     let version = self.vanilla_installer.selected_version.clone().unwrap();
                     let version = self.vanilla_installer.versions[version].clone();
+                    let optimize_jvm = self.vanilla_installer.optimize_jvm;
+                    let memory = self.vanilla_installer.memory.clone();
 
-                    self.instances.new(name, version, None).unwrap();
+                    self.instances
+                        .new(name, version, None, optimize_jvm, memory)
+                        .unwrap();
 
                     self.view = View::Instances;
                 }
