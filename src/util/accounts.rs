@@ -36,15 +36,14 @@ static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct Account {
-    pub ms_refresh_token: String,
+    pub ms_refresh_token: Option<String>,
     pub mc_id: String,
     pub mc_access_token: String,
     pub mc_username: String,
-    pub r#type: String,
-    pub token_time: DateTime<Utc>,
+    pub token_time: Option<DateTime<Utc>>,
 
-    #[serde_as(as = "Base64")]
-    pub cached_head: Vec<u8>,
+    #[serde_as(as = "Option<Base64>")]
+    pub cached_head: Option<Vec<u8>>,
 
     cached_head_time: Option<DateTime<Utc>>,
 }
@@ -67,10 +66,31 @@ impl Account {
             );
             io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
 
-            account.cached_head = bytes;
+            account.cached_head = Some(bytes);
             account.cached_head_time = Some(Utc::now());
 
             Ok(account)
+        }
+    }
+
+    #[cfg(feature = "offline-accounts")]
+    pub fn new_offline(username: String) -> Self {
+        use md5::{Digest, Md5};
+
+        let mc_id = {
+            let text = format!("OfflinePlayer:{}", username);
+            let hash = Md5::digest(text.as_bytes());
+            base16ct::lower::encode_string(&hash)
+        };
+
+        Self {
+            ms_refresh_token: None,
+            mc_id,
+            mc_access_token: "".to_string(),
+            mc_username: username,
+            token_time: None,
+            cached_head: None,
+            cached_head_time: None,
         }
     }
 }
@@ -203,21 +223,23 @@ impl Accounts {
     }
 
     pub fn refresh_account(&mut self, account: Account) -> Result<Account> {
-        if account.token_time + Duration::minutes(30) > Utc::now() {
-            return Ok(account);
+        if let Some(token_time) = account.token_time && token_time + Duration::minutes(30) > Utc::now() {
+            Ok(account)
+        } else if let Some(refresh_token) = account.ms_refresh_token {
+            let refresh_token = RefreshToken::new(refresh_token);
+
+            let token = Self::get_client()?
+                .exchange_refresh_token(&refresh_token)
+                .request(http_client)?;
+
+            let account = get_minecraft_account_data(&token)?;
+
+            self.update_account(&account)?;
+
+            Ok(account)
+        } else {
+            Ok(account)
         }
-
-        let refresh_token = RefreshToken::new(account.ms_refresh_token);
-
-        let token = Self::get_client()?
-            .exchange_refresh_token(&refresh_token)
-            .request(http_client)?;
-
-        let account = get_minecraft_account_data(&token)?;
-
-        self.update_account(&account)?;
-
-        Ok(account)
     }
 }
 
@@ -328,13 +350,12 @@ pub fn get_minecraft_account_data<A: ExtraTokenFields, B: TokenType>(
         .into_json::<MinecraftProfile>()?;
 
     let account = Account {
-        ms_refresh_token: token.refresh_token().unwrap().secret().to_string(),
+        ms_refresh_token: Some(token.refresh_token().unwrap().secret().to_string()),
         mc_id: minecraft_profile.id,
         mc_access_token: minecraft_response.access_token,
         mc_username: minecraft_profile.name,
-        r#type: "msa".to_string(),
-        token_time: Utc::now(),
-        cached_head: Vec::new(),
+        token_time: Some(Utc::now()),
+        cached_head: None,
         cached_head_time: None,
     };
 
