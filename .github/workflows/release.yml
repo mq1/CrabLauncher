@@ -33,7 +33,7 @@ jobs:
           hdiutil create IcyLauncher-${{github.ref_name}}-macos.dmg -volname "Icy Launcher" -fs HFS+ -srcfolder macos -format UDZO
       - uses: softprops/action-gh-release@v1
         with:
-          files: IcyLauncher-${{github.ref_name}}-macos.dmg
+          files: IcyLauncher-${{github.ref_name}}-macos-universal.dmg
   build-ubuntu:
     runs-on: ubuntu-20.04
     steps:
@@ -49,7 +49,7 @@ jobs:
       - run: tar czf IcyLauncher-${{github.ref_name}}-linux.tar.gz --directory=target/release icy-launcher
       - uses: softprops/action-gh-release@v1
         with:
-          files: IcyLauncher-${{github.ref_name}}-linux.tar.gz
+          files: IcyLauncher-${{github.ref_name}}-linux-x86_64.tar.gz
   build-windows:
     runs-on: windows-latest
     steps:
@@ -64,4 +64,4 @@ jobs:
       - run: Compress-Archive ./target/release/icy-launcher.exe ./IcyLauncher-${{github.ref_name}}-windows.zip
       - uses: softprops/action-gh-release@v1
         with:
-          files: IcyLauncher-${{github.ref_name}}-windows.zip
+          files: IcyLauncher-${{github.ref_name}}-windows-x86_64.zip
