@@ -237,15 +237,17 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
     let mut download_items = vec![];
 
     // download client
-    download_items.push(DownloadItem {
-        url: version_meta.downloads.client.url.clone(),
-        path: version_meta.get_client_path(),
-        hash: Some(Hash {
-            hash: version_meta.downloads.client.sha1,
-            function: HashAlgorithm::Sha1,
-        }),
-        extract: false,
-    });
+    if !version_meta.get_client_path().exists() {
+        download_items.push(DownloadItem {
+            url: version_meta.downloads.client.url.clone(),
+            path: version_meta.get_client_path(),
+            hash: Some(Hash {
+                hash: version_meta.downloads.client.sha1,
+                function: HashAlgorithm::Sha1,
+            }),
+            extract: false,
+        });
+    }
 
     download_items.extend_from_slice(&adoptium::install("17")?);
 
