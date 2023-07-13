@@ -23,11 +23,11 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: +nightly --target x86_64-apple-darwin --release
+          args: --target x86_64-apple-darwin --release
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: +nightly --target aarch64-apple-darwin --release
+          args: --target aarch64-apple-darwin --release
       - run: |
           lipo target/x86_64-apple-darwin/release/icy-launcher target/aarch64-apple-darwin/release/icy-launcher -create -output "macos/Icy Launcher.app/Contents/MacOS/icy-launcher"
           hdiutil create IcyLauncher-${{github.ref_name}}-macos.dmg -volname "Icy Launcher" -fs HFS+ -srcfolder macos -format UDZO
@@ -60,7 +60,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: +nightly --release
+          args: --release
       - run: Compress-Archive ./target/release/icy-launcher.exe ./IcyLauncher-${{github.ref_name}}-windows.zip
       - uses: softprops/action-gh-release@v1
         with:

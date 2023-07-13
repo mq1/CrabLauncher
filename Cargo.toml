@@ -41,6 +41,9 @@ default = ["updater"]
 updater = []
 offline-accounts = []
 
+[toolchain]
+channel = "nightly"
+
 [profile.release]
 opt-level = "z"
 lto = true
