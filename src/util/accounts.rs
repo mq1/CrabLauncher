@@ -52,25 +52,24 @@ impl Account {
     pub fn get_head(&self) -> Result<Self> {
         let mut account = self.clone();
 
-        if let Some(time) = &self.cached_head_time && Utc::now() < *time + Duration::minutes(5) {
-            return Ok(account);
-        } else {
-            let resp = AGENT
-                .get(&format!("https://crafatar.com/avatars/{}", self.mc_id))
-                .call()?;
-
-            let mut bytes = Vec::with_capacity(
-                resp.header("Content-Length")
-                    .unwrap()
-                    .parse::<usize>()?,
-            );
-            io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
-
-            account.cached_head = Some(bytes);
-            account.cached_head_time = Some(Utc::now());
-
-            Ok(account)
+        if let Some(time) = &self.cached_head_time {
+            if Utc::now() < *time + Duration::minutes(5) {
+                return Ok(account);
+            }
         }
+
+        let resp = AGENT
+            .get(&format!("https://crafatar.com/avatars/{}", self.mc_id))
+            .call()?;
+
+        let mut bytes =
+            Vec::with_capacity(resp.header("Content-Length").unwrap().parse::<usize>()?);
+        io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
+
+        account.cached_head = Some(bytes);
+        account.cached_head_time = Some(Utc::now());
+
+        Ok(account)
     }
 
     #[cfg(feature = "offline-accounts")]
@@ -206,26 +205,33 @@ impl Accounts {
     }
 
     pub fn update_account(&mut self, account: &Account) -> Result<()> {
-        if let Some(active) = &mut self.active && active.mc_id == account.mc_id {
-            *active = account.to_owned();
-        } else {
-            for other in &mut self.others {
-                if other.mc_id == account.mc_id {
-                    *other = account.to_owned();
-                    break;
-                }
+        if let Some(active) = &mut self.active {
+            if active.mc_id == account.mc_id {
+                *active = account.to_owned();
+                self.save()?;
+                return Ok(());
             }
         }
 
-        self.save()?;
+        for other in &mut self.others {
+            if other.mc_id == account.mc_id {
+                *other = account.to_owned();
+                self.save()?;
+                return Ok(());
+            }
+        }
 
         Ok(())
     }
 
     pub fn refresh_account(&mut self, account: Account) -> Result<Account> {
-        if let Some(token_time) = account.token_time && token_time + Duration::minutes(30) > Utc::now() {
-            Ok(account)
-        } else if let Some(refresh_token) = account.ms_refresh_token {
+        if let Some(token_time) = account.token_time {
+            if Utc::now() < token_time + Duration::minutes(30) {
+                return Ok(account);
+            }
+        }
+
+        if let Some(refresh_token) = account.ms_refresh_token {
             let refresh_token = RefreshToken::new(refresh_token);
 
             let token = Self::get_client()?
