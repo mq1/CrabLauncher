@@ -285,6 +285,8 @@ impl Application for App {
                             instance
                                 .launch(self.accounts_page.accounts.active.clone().unwrap())
                                 .unwrap();
+
+                            self.view = View::Instance(Some(instance.clone()));
                         }
                     }
                 }
