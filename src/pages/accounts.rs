@@ -4,14 +4,16 @@
 use copypasta::{ClipboardContext, ClipboardProvider};
 use iced::{
     theme,
-    widget::{
-        button, column, container, horizontal_space, row, scrollable, text, text_input,
-        vertical_space,
-    },
+    widget::{button, column, container, horizontal_space, row, scrollable, text, vertical_space},
     Alignment, Command, Element, Length,
 };
-use iced_aw::{Card, FloatingElement, Modal};
+use iced_aw::FloatingElement;
 use rfd::MessageDialog;
+
+#[cfg(feature = "offline-accounts")]
+use iced::widget::text_input;
+#[cfg(feature = "offline-accounts")]
+use iced_aw::{Card, Modal};
 
 use crate::{
     components::icons,
