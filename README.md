@@ -22,6 +22,7 @@ As of now, this launcher is considered a technical preview and every release bre
 **Table of Contents**
 
 - [Installation](#installation)
+- [FAQ](#faq)
 - [Thanks](#thanks)
 - [License](#license)
 
@@ -38,6 +39,14 @@ git clone https://github.com/mq1/icy-launcher.git
 cd icy-launcher
 cargo build --release
 ```
+
+## FAQ
+
+### Are offline/cracked accounts supported?
+
+No.
+
+However, you can build the launcher from source with the `offline-accounts` feature enabled to add offline account support (ONLY FOR TESTING PURPOSES)
 
 ## Thanks
 
