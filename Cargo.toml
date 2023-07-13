@@ -1,6 +1,6 @@
 [package]
 name = "icy-launcher"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 authors = ["Manuel Quarneti <manuq01@pm.me>"]
 repository = "https://github.com/mq1/icy-launcher"
