@@ -291,6 +291,7 @@ impl Application for App {
                                 .unwrap();
 
                             self.view = View::Instance(Some(instance.clone()));
+                            self.show_navbar = true;
                         }
                     }
                 }
