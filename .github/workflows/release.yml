@@ -30,7 +30,7 @@ jobs:
           args: --target aarch64-apple-darwin --release
       - run: |
           lipo target/x86_64-apple-darwin/release/icy-launcher target/aarch64-apple-darwin/release/icy-launcher -create -output "macos/Icy Launcher.app/Contents/MacOS/icy-launcher"
-          hdiutil create IcyLauncher-${{github.ref_name}}-macos.dmg -volname "Icy Launcher" -fs HFS+ -srcfolder macos -format UDZO
+          hdiutil create IcyLauncher-${{github.ref_name}}-macos-universal.dmg -volname "Icy Launcher" -fs HFS+ -srcfolder macos -format UDZO
       - uses: softprops/action-gh-release@v1
         with:
           files: IcyLauncher-${{github.ref_name}}-macos-universal.dmg
@@ -46,7 +46,7 @@ jobs:
         with:
           command: build
           args: --release
-      - run: tar czf IcyLauncher-${{github.ref_name}}-linux.tar.gz --directory=target/release icy-launcher
+      - run: tar czf IcyLauncher-${{github.ref_name}}-linux-x86_64.tar.gz --directory=target/release icy-launcher
       - uses: softprops/action-gh-release@v1
         with:
           files: IcyLauncher-${{github.ref_name}}-linux-x86_64.tar.gz
@@ -61,7 +61,7 @@ jobs:
         with:
           command: build
           args: --release
-      - run: Compress-Archive ./target/release/icy-launcher.exe ./IcyLauncher-${{github.ref_name}}-windows.zip
+      - run: Compress-Archive ./target/release/icy-launcher.exe ./IcyLauncher-${{github.ref_name}}-windows-x86_64.zip
       - uses: softprops/action-gh-release@v1
         with:
           files: IcyLauncher-${{github.ref_name}}-windows-x86_64.zip
