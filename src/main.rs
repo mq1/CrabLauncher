@@ -16,7 +16,6 @@ use iced::{executor, widget::row, Application, Command, Element, Settings, Theme
 use once_cell::sync::Lazy;
 use pages::{
     about::About,
-    modrinth_installer::ModrinthInstaller,
     new_instance::NewInstance,
     no_instances::NoInstances,
     status::{Progress, Status},
@@ -68,7 +67,6 @@ pub enum View {
     Instance(Option<util::instances::Instance>),
     NewInstance,
     VanillaInstaller,
-    ModrinthInstaller,
     Settings,
     About,
     Accounts,
@@ -358,7 +356,6 @@ impl Application for App {
                 .vanilla_installer
                 .view()
                 .map(Message::VanillaInstallerMessage),
-            View::ModrinthInstaller => ModrinthInstaller.view(),
             View::Settings => self.settings.view().map(Message::SettingsMessage),
             View::About => About.view(),
             View::Accounts => self.accounts_page.view().map(Message::AccountsMessage),

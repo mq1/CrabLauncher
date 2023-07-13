@@ -78,7 +78,7 @@ pub fn package_plus<M>() -> Element<'static, M> {
 }
 
 pub fn plus<M>() -> Element<'static, M> {
-    view!(assets::MDI_PLUS_SVG).into()
+    view!(assets::MDI_PLUS_SVG).width(20).height(20).into()
 }
 
 pub fn rocket<M>() -> Element<'static, M> {

@@ -35,13 +35,13 @@ pub fn view<'a>(
         };
 
     let account_icon = if let Some(account) = active_account {
-        if account.cached_head.is_empty() {
-            Spinner::new().into()
-        } else {
-            let head_handle = image::Handle::from_memory(account.cached_head.clone());
+        if let Some(cached_head) = &account.cached_head {
+            let head_handle = image::Handle::from_memory(cached_head.clone());
             let head = Image::new(head_handle).width(32).height(32);
 
             head.into()
+        } else {
+            Spinner::new().into()
         }
     } else {
         icons::account_alert().into()

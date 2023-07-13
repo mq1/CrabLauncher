@@ -2,12 +2,8 @@
     "rust-analyzer.linkedProjects": [
         "./Cargo.toml"
     ],
-    "Lua.diagnostics.globals": [
-        "fetch_json",
-        "get_os",
-        "get_arch",
-        "download_json",
-        "download_file",
-        "download_and_unpack"
+    "rust-analyzer.cargo.features": [
+        "updater",
+        "offline-accounts"
     ]
 }
