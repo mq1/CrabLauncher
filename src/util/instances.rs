@@ -191,4 +191,13 @@ impl Instances {
 
         Ok(())
     }
+
+    pub fn delete(&mut self, name: &str) -> Result<()> {
+        let path = INSTANCES_DIR.join(name);
+        fs::remove_dir_all(path)?;
+
+        self.list.retain(|instance| instance.name != name);
+
+        Ok(())
+    }
 }
