@@ -286,9 +286,15 @@ impl Application for App {
                                 progress: None,
                             });
 
-                            instance
-                                .launch(self.accounts_page.accounts.active.clone().unwrap())
+                            let account = self.accounts_page.accounts.active.clone().unwrap();
+
+                            let account = self
+                                .accounts_page
+                                .accounts
+                                .refresh_account(account)
                                 .unwrap();
+
+                            instance.launch(account).unwrap();
 
                             self.view = View::Instance(Some(instance.clone()));
                             self.show_navbar = true;
