@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod components;
 mod pages;
 mod style;
