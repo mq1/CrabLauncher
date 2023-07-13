@@ -58,8 +58,3 @@ However, you can build the launcher from source with the `offline-accounts` feat
 ## License
 
 `icy-launcher` is distributed under the terms of the [GPL-3.0-only](https://spdx.org/licenses/GPL-3.0-only.html) license.
-
-### Licenses
-
-- [Inter](https://github.com/rsms/inter) | [OFL-1.1](https://github.com/rsms/inter/blob/master/LICENSE.txt)
-- [Material Icons](https://github.com/google/material-design-icons) | [Apache-2.0](https://github.com/google/material-design-icons/blob/master/LICENSE)
