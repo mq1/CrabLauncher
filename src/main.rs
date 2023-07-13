@@ -97,6 +97,7 @@ pub enum Message {
     OpenInstance(util::instances::Instance),
     Downloading(Result<(Vec<util::DownloadItem>, usize), String>),
     LaunchInstance(util::instances::Instance),
+    DeleteInstance(String),
 }
 
 impl Application for App {
@@ -322,6 +323,19 @@ impl Application for App {
                     },
                     Message::Downloading,
                 );
+            }
+            Message::DeleteInstance(name) => {
+                let yes = MessageDialog::new()
+                    .set_level(MessageLevel::Warning)
+                    .set_title("Delete instance")
+                    .set_description(&format!("Are you sure you want to delete {}?", name))
+                    .set_buttons(MessageButtons::YesNo)
+                    .show();
+
+                if yes {
+                    self.instances.delete(&name).unwrap();
+                    self.view = View::Instances;
+                }
             }
         }
 

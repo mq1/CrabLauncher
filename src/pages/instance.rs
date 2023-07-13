@@ -27,6 +27,14 @@ impl Page for Instance {
         .on_press(Message::LaunchInstance(self.to_owned()))
         .style(style::circle_button(theme::Button::Primary));
 
+        let delete_button = button(
+            row![text(" Delete instance "), icons::delete()]
+                .padding(5)
+                .align_items(Alignment::Center),
+        )
+        .style(style::circle_button(theme::Button::Destructive))
+        .on_press(Message::DeleteInstance(self.name.clone()));
+
         let edit_button = button(
             row![text(" Edit instance "), icons::cog(20.)]
                 .padding(5)
@@ -39,7 +47,9 @@ impl Page for Instance {
             name,
             play_button,
             vertical_space(Length::Fill),
-            row![horizontal_space(Length::Fill), edit_button].padding(10),
+            row![horizontal_space(Length::Fill), delete_button, edit_button]
+                .spacing(10)
+                .padding(10),
         ]
         .align_items(Alignment::Center)
         .width(Length::Fill)
