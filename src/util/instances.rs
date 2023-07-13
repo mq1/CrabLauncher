@@ -14,18 +14,7 @@ use crate::{
 };
 
 // https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks
-const OPTIMIZED_FLAGS: &str = "-XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions -XX:+AlwaysActAsServerClassMachine -XX:+AlwaysPreTouch -XX:+DisableExplicitGC -XX:+UseNUMA -XX:NmethodSweepActivity=1 -XX:ReservedCodeCacheSize=400M -XX:NonNMethodCodeHeapSize=12M -XX:ProfiledCodeHeapSize=194M -XX:NonProfiledCodeHeapSize=194M -XX:-DontCompileHugeMethods -XX:MaxNodeLimit=240000 -XX:NodeLimitFudgeFactor=8000 -XX:+UseVectorCmov -XX:+PerfDisableSharedMem -XX:+UseFastUnorderedTimeStamps -XX:+UseCriticalJavaThreadPriority -XX:ThreadPriorityPolicy=1 -XX:AllocatePrefetchStyle=3 -XX:+UseShenandoahGC -XX:ShenandoahGCMode=iu -XX:ShenandoahGuaranteedGCInterval=1000000 -XX:AllocatePrefetchStyle=1";
-
-// this works only if the launcher, java and javaw are started with admin privileges)
-// not recommended, the flags are ignored if the launcher is not started with admin privileges
-#[cfg(target_os = "windows")]
-const OS_FLAGS: &str = "-XX:+UseLargePages -XX:LargePageSizeInBytes=2m";
-
-#[cfg(target_os = "macos")]
-const OS_FLAGS: &str = "-XstartOnFirstThread";
-
-#[cfg(target_os = "linux")]
-const OS_FLAGS: &str = "-XX:+UseTransparentHugePages";
+const OPTIMIZED_FLAGS: &str = " -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions -XX:+AlwaysActAsServerClassMachine -XX:+AlwaysPreTouch -XX:+DisableExplicitGC -XX:+UseNUMA -XX:NmethodSweepActivity=1 -XX:ReservedCodeCacheSize=400M -XX:NonNMethodCodeHeapSize=12M -XX:ProfiledCodeHeapSize=194M -XX:NonProfiledCodeHeapSize=194M -XX:-DontCompileHugeMethods -XX:MaxNodeLimit=240000 -XX:NodeLimitFudgeFactor=8000 -XX:+UseVectorCmov -XX:+PerfDisableSharedMem -XX:+UseFastUnorderedTimeStamps -XX:+UseCriticalJavaThreadPriority -XX:ThreadPriorityPolicy=1 -XX:AllocatePrefetchStyle=3 -XX:+UseShenandoahGC -XX:ShenandoahGCMode=iu -XX:ShenandoahGuaranteedGCInterval=1000000 -XX:AllocatePrefetchStyle=1";
 
 pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| {
     let dir = BASE_DIR.join("instances");
@@ -39,6 +28,8 @@ pub struct InstanceInfo {
     last_played: Option<DateTime<Utc>>,
     pub minecraft: String,
     fabric: Option<String>,
+    pub optimize_jvm: bool,
+    pub memory: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,12 +49,23 @@ impl Instance {
 
         let java_path = adoptium::get_path("17")?;
 
+        let mut jvm_flags = format!("-Xmx{0} -Xms{0}", info.memory);
+
+        if info.optimize_jvm {
+            jvm_flags.push_str(OPTIMIZED_FLAGS);
+
+            if cfg!(target_os = "linux") {
+                jvm_flags.push_str(" -XX:+UseTransparentHugePages");
+            }
+        }
+
+        if cfg!(target_os = "macos") {
+            jvm_flags.push_str(" -XstartOnFirstThread");
+        }
+
         let mut child = process::Command::new(java_path)
             .current_dir(dir)
-            .args(OPTIMIZED_FLAGS.split(' '))
-            .args(OS_FLAGS.split(' '))
-            .arg("-Xmx4G") // TODO: Make this configurable
-            .arg("-Xms4G") // TODO: Make this configurable
+            .args(jvm_flags.split(' '))
             .arg("-cp")
             .arg(version_meta.get_classpath()?)
             .arg(format!(
@@ -169,6 +171,8 @@ impl Instances {
         name: String,
         minecraft_version: String,
         fabric_version: Option<String>,
+        optimize_jvm: bool,
+        memory: String,
     ) -> Result<()> {
         let path = INSTANCES_DIR.join(&name);
         fs::create_dir(&path)?;
@@ -177,6 +181,8 @@ impl Instances {
             last_played: None,
             minecraft: minecraft_version,
             fabric: fabric_version,
+            optimize_jvm,
+            memory,
         };
         let info_str = toml::to_string_pretty(&info)?;
         fs::write(path.join("instance.toml"), info_str)?;
