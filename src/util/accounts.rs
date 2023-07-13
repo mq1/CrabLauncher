@@ -7,7 +7,8 @@ use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
 use oauth2::{
     basic::BasicClient, devicecode::StandardDeviceAuthorizationResponse, ureq::http_client,
-    AuthUrl, ClientId, DeviceAuthorizationUrl, Scope, TokenResponse, TokenUrl,
+    AuthUrl, ClientId, DeviceAuthorizationUrl, ExtraTokenFields, RefreshToken, Scope,
+    StandardTokenResponse, TokenResponse, TokenType, TokenUrl,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -39,6 +40,8 @@ pub struct Account {
     pub mc_id: String,
     pub mc_access_token: String,
     pub mc_username: String,
+    pub r#type: String,
+    pub token_time: DateTime<Utc>,
 
     #[serde_as(as = "Base64")]
     pub cached_head: Vec<u8>,
@@ -171,29 +174,25 @@ impl Accounts {
         client: BasicClient,
         details: StandardDeviceAuthorizationResponse,
     ) -> Result<Account> {
-        let token_result = client.exchange_device_access_token(&details).request(
+        let token = client.exchange_device_access_token(&details).request(
             http_client,
             thread::sleep,
             None,
         )?;
 
-        let account = get_minecraft_account_data(
-            &token_result.access_token().secret().to_string(),
-            &token_result.refresh_token().unwrap().secret().to_string(),
-        )?;
+        let account = get_minecraft_account_data(&token)?;
 
         Ok(account)
     }
 
     pub fn update_account(&mut self, account: &Account) -> Result<()> {
-        if let Some(active) = &mut self.active {
-            if active.mc_id == account.mc_id {
-                *active = account.to_owned();
-            }
+        if let Some(active) = &mut self.active && active.mc_id == account.mc_id {
+            *active = account.to_owned();
         } else {
             for other in &mut self.others {
                 if other.mc_id == account.mc_id {
                     *other = account.to_owned();
+                    break;
                 }
             }
         }
@@ -202,11 +201,28 @@ impl Accounts {
 
         Ok(())
     }
+
+    pub fn refresh_account(&mut self, account: Account) -> Result<Account> {
+        if account.token_time + Duration::minutes(30) > Utc::now() {
+            return Ok(account);
+        }
+
+        let refresh_token = RefreshToken::new(account.ms_refresh_token);
+
+        let token = Self::get_client()?
+            .exchange_refresh_token(&refresh_token)
+            .request(http_client)?;
+
+        let account = get_minecraft_account_data(&token)?;
+
+        self.update_account(&account)?;
+
+        Ok(account)
+    }
 }
 
-pub fn get_minecraft_account_data(
-    access_token: &str,
-    refresh_token: &str,
+pub fn get_minecraft_account_data<A: ExtraTokenFields, B: TokenType>(
+    token: &StandardTokenResponse<A, B>,
 ) -> Result<Account, ureq::Error> {
     // Authenticate with Xbox Live
 
@@ -232,7 +248,7 @@ pub fn get_minecraft_account_data(
         "Properties": {
             "AuthMethod": "RPS",
             "SiteName": "user.auth.xboxlive.com",
-            "RpsTicket": format!("d={}", access_token),
+            "RpsTicket": format!("d={}", token.access_token().secret()),
         },
         "RelyingParty": "http://auth.xboxlive.com",
         "TokenType": "JWT",
@@ -312,10 +328,12 @@ pub fn get_minecraft_account_data(
         .into_json::<MinecraftProfile>()?;
 
     let account = Account {
-        ms_refresh_token: refresh_token.to_owned(),
+        ms_refresh_token: token.refresh_token().unwrap().secret().to_string(),
         mc_id: minecraft_profile.id,
         mc_access_token: minecraft_response.access_token,
         mc_username: minecraft_profile.name,
+        r#type: "msa".to_string(),
+        token_time: Utc::now(),
         cached_head: Vec::new(),
         cached_head_time: None,
     };
