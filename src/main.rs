@@ -220,11 +220,11 @@ impl Application for App {
             },
             Message::VanillaInstallerMessage(message) => {
                 if message == pages::vanilla_installer::Message::Create {
-                    let name = &self.vanilla_installer.name;
-                    let version = self.vanilla_installer.selected_version.unwrap();
-                    let version = &self.vanilla_installer.versions[version];
+                    let name = self.vanilla_installer.name.clone();
+                    let version = self.vanilla_installer.selected_version.clone().unwrap();
+                    let version = self.vanilla_installer.versions[version].clone();
                     let optimize_jvm = self.vanilla_installer.optimize_jvm;
-                    let memory = &self.vanilla_installer.memory;
+                    let memory = self.vanilla_installer.memory.clone();
 
                     self.instances
                         .new(name, version, None, optimize_jvm, memory)
