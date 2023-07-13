@@ -168,11 +168,11 @@ impl Instances {
 
     pub fn new(
         &mut self,
-        name: String,
-        minecraft_version: String,
-        fabric_version: Option<String>,
+        name: &str,
+        minecraft_version: &str,
+        fabric_version: Option<&str>,
         optimize_jvm: bool,
-        memory: String,
+        memory: &str,
     ) -> Result<()> {
         let path = INSTANCES_DIR.join(&name);
         fs::create_dir(&path)?;
