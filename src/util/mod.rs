@@ -22,6 +22,7 @@ use zip::ZipArchive;
 pub mod accounts;
 mod adoptium;
 pub mod instances;
+pub mod modrinth;
 pub mod settings;
 pub mod updater;
 pub mod vanilla_installer;
@@ -128,7 +129,7 @@ pub fn download_file(item: &DownloadItem) -> Result<()> {
 
         let reader = BufReader::new(&file);
 
-        if item.url.ends_with(".zip") {
+        if item.url.ends_with(".zip") || item.url.ends_with(".mrpack") {
             let mut archive = ZipArchive::new(reader)?;
             archive.extract(item.path.parent().unwrap())?;
         } else if item.url.ends_with(".tar.gz") {
