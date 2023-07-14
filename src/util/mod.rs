@@ -12,7 +12,7 @@ use digest::Digest;
 use flate2::bufread::GzDecoder;
 use once_cell::sync::Lazy;
 use sha1::Sha1;
-use sha2::Sha256;
+use sha2::{Sha256, Sha512};
 use strum_macros::Display;
 use tar::Archive;
 use tempfile::NamedTempFile;
@@ -34,6 +34,7 @@ pub static AGENT: Lazy<Agent> = Lazy::new(|| AgentBuilder::new().user_agent(USER
 pub enum HashAlgorithm {
     Sha1,
     Sha256,
+    Sha512,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -84,6 +85,7 @@ fn check_hash(reader: impl Read + Seek, hash: &Hash) -> Result<()> {
     let digest = match hash.function {
         HashAlgorithm::Sha1 => calc_hash::<Sha1>(reader)?,
         HashAlgorithm::Sha256 => calc_hash::<Sha256>(reader)?,
+        HashAlgorithm::Sha512 => calc_hash::<Sha512>(reader)?,
     };
 
     if digest != hash.hash {

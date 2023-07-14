@@ -32,8 +32,7 @@ pub fn search_modpacks(query: &str) -> Result<Projects> {
 
 #[derive(Deserialize)]
 pub struct Hashes {
-    pub sha1: String,
-    pub sha512: String, // todo: use this
+    pub sha512: String,
 }
 
 #[derive(Deserialize)]
@@ -63,8 +62,8 @@ pub fn install_version(version: &Version, dest_dir: &Path) -> Result<()> {
     let file = &version.files[0];
 
     let hash = Hash {
-        function: HashAlgorithm::Sha1,
-        hash: file.hashes.sha1.to_owned(),
+        function: HashAlgorithm::Sha512,
+        hash: file.hashes.sha512.to_owned(),
     };
 
     download_file(&DownloadItem {
@@ -89,8 +88,8 @@ pub fn install_version(version: &Version, dest_dir: &Path) -> Result<()> {
 
         for file in index {
             let hash = Hash {
-                function: HashAlgorithm::Sha1,
-                hash: file.hashes.sha1.to_owned(),
+                function: HashAlgorithm::Sha512,
+                hash: file.hashes.sha512.to_owned(),
             };
 
             download_file(&DownloadItem {
