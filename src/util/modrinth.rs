@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{path::Path, fs};
+use std::{path::Path, fs, io::BufReader};
 
 use anyhow::Result;
 use serde::Deserialize;
@@ -74,10 +74,36 @@ pub fn install_version(version: &Version, dest_dir: &Path) -> Result<()> {
         extract: true,
     })?;
 
-    // TODO: parse modrinth.index.json
+    // parse modrinth.index.json
+    {
+        #[derive(Deserialize)]
+        struct File {
+            path: String,
+            hashes: Hashes,
+            downloads: Vec<String>,
+        }
+
+        let index = tmp_dir.path().join("modrinth.index.json");
+        let index = BufReader::new(fs::File::open(index)?);
+        let index  = serde_json::from_reader::<_, Vec<File>>(index)?;
+
+        for file in index {
+            let hash = Hash {
+                function: HashAlgorithm::Sha1,
+                hash: file.hashes.sha1.to_owned(),
+            };
+
+            download_file(&DownloadItem {
+                url: file.downloads[0].to_owned(),
+                path: dest_dir.join(file.path),
+                hash: Some(hash),
+                extract: false,
+            })?;
+        }
+    }
 
     // copy overrides to dest_dir
-    for r#override in tmp_dir.into_path().join("overrides").read_dir()? {
+    for r#override in tmp_dir.path().join("overrides").read_dir()? {
         let r#override = r#override?;
         let dest = dest_dir.join(r#override.file_name());
         fs::copy(r#override.path(), dest)?;
