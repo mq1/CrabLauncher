@@ -69,6 +69,7 @@ pub enum View {
     About,
     Accounts,
     Download,
+    ModrinthModpacks,
 }
 
 struct App {
@@ -79,6 +80,7 @@ struct App {
     settings: util::settings::Settings,
     accounts_page: pages::accounts::AccountsPage,
     vanilla_installer: pages::vanilla_installer::VanillaInstaller,
+    modrinth_modpacks_page: pages::modrinth_modpacks::ModrinthModpacksPage,
     download: pages::download::Download,
 }
 
@@ -96,6 +98,7 @@ pub enum Message {
     LaunchInstance(util::instances::Instance),
     DeleteInstance(String),
     DownloadMessage(pages::download::Message),
+    ModrinthModpacksMessage(pages::modrinth_modpacks::Message),
 }
 
 impl Application for App {
@@ -135,6 +138,7 @@ impl Application for App {
                 settings,
                 accounts_page: pages::accounts::AccountsPage::new(accounts),
                 vanilla_installer: pages::vanilla_installer::VanillaInstaller::new(),
+                modrinth_modpacks_page: pages::modrinth_modpacks::ModrinthModpacksPage::new(),
                 download: pages::download::Download::new(),
             },
             command,
@@ -154,16 +158,23 @@ impl Application for App {
 
         match message {
             Message::ChangeView(view) => {
-                if view == View::VanillaInstaller {
-                    ret = self
-                        .vanilla_installer
-                        .update(pages::vanilla_installer::Message::GetVersions)
-                        .map(Message::VanillaInstallerMessage);
-
-                    self.view = view;
-                } else {
-                    self.view = view;
+                match view {
+                    View::VanillaInstaller => {
+                        ret = self
+                            .vanilla_installer
+                            .update(pages::vanilla_installer::Message::GetVersions)
+                            .map(Message::VanillaInstallerMessage);
+                    }
+                    View::ModrinthModpacks => {
+                        ret = self
+                            .modrinth_modpacks_page
+                            .update(pages::modrinth_modpacks::Message::GetModpacks)
+                            .map(Message::ModrinthModpacksMessage);
+                    }
+                    _ => {}
                 }
+
+                self.view = view;
             }
             Message::GotUpdate(result) => match result {
                 Ok(update) => {
@@ -302,6 +313,12 @@ impl Application for App {
 
                 ret = self.download.update(message).map(Message::DownloadMessage);
             }
+            Message::ModrinthModpacksMessage(message) => {
+                ret = self
+                    .modrinth_modpacks_page
+                    .update(message)
+                    .map(Message::ModrinthModpacksMessage);
+            }
         }
 
         ret
@@ -331,6 +348,10 @@ impl Application for App {
             View::About => About.view(),
             View::Accounts => self.accounts_page.view().map(Message::AccountsMessage),
             View::Download => self.download.view().map(Message::DownloadMessage),
+            View::ModrinthModpacks => self
+                .modrinth_modpacks_page
+                .view()
+                .map(Message::ModrinthModpacksMessage),
         };
 
         if self.show_navbar {

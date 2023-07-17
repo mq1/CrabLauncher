@@ -51,6 +51,14 @@ impl Page for NewInstance {
         );
         wrap = wrap.push(vanilla_btn);
 
+        // Modrinth
+        let modrinth_btn = btn(
+            "Modrinth",
+            View::ModrinthModpacks,
+            icons::view_custom(icons::MODRINTH, 64),
+        );
+        wrap = wrap.push(modrinth_btn);
+
         column![title, wrap].spacing(10).padding(10).into()
     }
 }
