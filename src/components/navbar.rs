@@ -37,42 +37,42 @@ pub fn view<'a>(
     let account_icon = if let Some(account) = active_account {
         if let Some(cached_head) = &account.cached_head {
             let head_handle = image::Handle::from_memory(cached_head.clone());
-            let head = Image::new(head_handle).width(24).height(24);
+            let head = Image::new(head_handle).width(32).height(32);
 
             head.into()
         } else {
             Spinner::new().into()
         }
     } else {
-        icons::view(icons::USER_FORBID_LINE)
+        icons::view_custom(icons::USER_FORBID_LINE, 32)
     };
 
     let col = column![
         change_view_button(
             View::Instance(latest_instance),
-            icons::view(icons::INSTANCE_LINE),
+            icons::view_custom(icons::INSTANCE_LINE, 32),
             "Latest Instance"
         ),
         change_view_button(
             View::NewInstance,
-            icons::view(icons::ARCHIVE_2_LINE),
+            icons::view_custom(icons::ARCHIVE_2_LINE, 32),
             "New Instance"
         ),
         change_view_button(
             View::Instances,
-            icons::view(icons::ARCHIVE_DRAWER),
+            icons::view_custom(icons::ARCHIVE_DRAWER_LINE, 32),
             "Instances"
         ),
         vertical_space(Length::Fill),
         change_view_button(View::Accounts, account_icon, "Accounts"),
         change_view_button(
             View::Settings,
-            icons::view(icons::SETTINGS_LINE),
+            icons::view_custom(icons::SETTINGS_LINE, 32),
             "Settings"
         ),
         change_view_button(
             View::About,
-            icons::view(icons::INFORMATION_LINE),
+            icons::view_custom(icons::INFORMATION_LINE, 32),
             "About Icy Launcher"
         ),
     ]
