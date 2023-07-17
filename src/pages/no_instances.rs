@@ -21,7 +21,7 @@ impl Page for NoInstances {
         column![
             vertical_space(55),
             row![
-                icons::view(icons::ARROW_LEFT_LINE),
+                icons::view(icons::ARROW_LEFT),
                 text("You don't have any instances yet. Create one!").size(25)
             ]
             .align_items(Alignment::Center)

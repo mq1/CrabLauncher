@@ -33,7 +33,7 @@ impl Page for About {
         let logo = Image::new(logo_handle).height(200);
 
         let repo_button = button(
-            row![" Repository ", icons::view(icons::GITHUB_LINE)]
+            row![" Repository ", icons::view(icons::GITHUB)]
                 .align_items(Alignment::Center)
                 .padding(5),
         )

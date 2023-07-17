@@ -50,7 +50,7 @@ impl Page for Settings {
         }
 
         let save_button = button(
-            row![text(" Save "), icons::view(icons::SAVE_LINE)]
+            row![text(" Save "), icons::view(icons::CONTENT_SAVE_OUTLINE)]
                 .padding(5)
                 .align_items(Alignment::Center),
         )

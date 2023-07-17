@@ -44,35 +44,35 @@ pub fn view<'a>(
             Spinner::new().into()
         }
     } else {
-        icons::view_custom(icons::USER_FORBID_LINE, 32)
+        icons::view_custom(icons::ACCOUNT_ALERT_OUTLINE, 32)
     };
 
     let col = column![
         change_view_button(
             View::Instance(latest_instance),
-            icons::view_custom(icons::INSTANCE_LINE, 32),
+            icons::view_custom(icons::PACKAGE_VARIANT, 32),
             "Latest Instance"
         ),
         change_view_button(
             View::NewInstance,
-            icons::view_custom(icons::ARCHIVE_2_LINE, 32),
+            icons::view_custom(icons::VIEW_GRID_PLUS_OUTLINE, 32),
             "New Instance"
         ),
         change_view_button(
             View::Instances,
-            icons::view_custom(icons::ARCHIVE_DRAWER_LINE, 32),
+            icons::view_custom(icons::VIEW_GRID_OUTLINE, 32),
             "Instances"
         ),
         vertical_space(Length::Fill),
         change_view_button(View::Accounts, account_icon, "Accounts"),
         change_view_button(
             View::Settings,
-            icons::view_custom(icons::SETTINGS_LINE, 32),
+            icons::view_custom(icons::COG_OUTLINE, 32),
             "Settings"
         ),
         change_view_button(
             View::About,
-            icons::view_custom(icons::INFORMATION_LINE, 32),
+            icons::view_custom(icons::INFORMATION_OUTLINE, 32),
             "About Icy Launcher"
         ),
     ]

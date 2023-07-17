@@ -180,7 +180,7 @@ impl Page for AccountsPage {
             let row = row![
                 text(&active_account.mc_username),
                 horizontal_space(Length::Fill),
-                button(icons::view(icons::DELETE_BIN_LINE))
+                button(icons::view(icons::DELETE_OUTLINE))
                     .on_press(Message::RemoveAccount(active_account.clone()))
                     .style(style::circle_button(theme::Button::Destructive)),
             ]
@@ -201,10 +201,10 @@ impl Page for AccountsPage {
                 let row = row![
                     text(&account.mc_username),
                     horizontal_space(Length::Fill),
-                    button(icons::view(icons::USER_FOLLOW_LINE))
+                    button(icons::view(icons::ACCOUNT_CHECK_OUTLINE))
                         .on_press(Message::SelectAccount(account.clone()))
                         .style(style::circle_button(theme::Button::Positive)),
-                    button(icons::view(icons::DELETE_BIN_LINE))
+                    button(icons::view(icons::DELETE_OUTLINE))
                         .on_press(Message::RemoveAccount(account.clone()))
                         .style(style::circle_button(theme::Button::Destructive)),
                 ]
@@ -226,7 +226,7 @@ impl Page for AccountsPage {
                 button(
                     row![
                         text(" Add offline account "),
-                        icons::view(icons::USER_ADD_LINE)
+                        icons::view(icons::ACCOUNT_PLUS_OUTLINE)
                     ]
                     .align_items(Alignment::Center)
                     .padding(5)
@@ -234,7 +234,7 @@ impl Page for AccountsPage {
                 .on_press(Message::AddOfflineAccount)
                 .style(style::circle_button(theme::Button::Secondary)),
                 button(
-                    row![text(" Add account "), icons::view(icons::USER_ADD_LINE)]
+                    row![text(" Add account "), icons::view(icons::ACCOUNT_PLUS_OUTLINE)]
                         .align_items(Alignment::Center)
                         .padding(5)
                 )
@@ -251,7 +251,7 @@ impl Page for AccountsPage {
         let content = FloatingElement::new(content, || {
             container(
                 button(
-                    row![text(" Add account "), icons::view(icons::USER_ADD_LINE)]
+                    row![text(" Add account "), icons::view(icons::ACCOUNT_PLUS_OUTLINE)]
                         .align_items(Alignment::Center)
                         .padding(5),
                 )

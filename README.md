@@ -52,7 +52,7 @@ However, you can build the launcher from source with the `offline-accounts` feat
 
 - Aru for the logo
 - Héctor Ramón for [iced](https://github.com/iced-rs/iced)
-- [Remix Icon](https://remixicon.com)
+- [Pictogrammers](https://pictogrammers.com) for Material Design Icons
 - [Crafatar](https://crafatar.com/)
 
 ## License
