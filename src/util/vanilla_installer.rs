@@ -8,10 +8,10 @@ use std::{
     path::PathBuf,
 };
 
-use anyhow::Result;
 use serde::Deserialize;
 
 use crate::{
+    types::generic_error::GenericError,
     util::{adoptium, DownloadItem, DownloadQueue, Hash, HashAlgorithm},
     ASSETS_DIR, LIBRARIES_DIR, META_DIR,
 };
@@ -43,7 +43,7 @@ pub struct Version {
     sha1: String,
 }
 
-pub fn get_versions() -> Result<Vec<String>> {
+pub async fn get_versions() -> Result<Vec<String>, GenericError> {
     let resp = DownloadItem {
         url: "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json".to_string(),
         path: META_DIR.join("version_manifest_v2.json.new"),
@@ -162,7 +162,7 @@ pub struct VersionMeta {
 }
 
 impl VersionMeta {
-    pub fn load(id: &str) -> Result<Self> {
+    pub fn load(id: &str) -> Result<Self, GenericError> {
         let path = META_DIR.join("versions").join(format!("{}.json", id));
         let file = File::open(path)?;
         let reader = BufReader::new(file);
@@ -180,7 +180,7 @@ impl VersionMeta {
             .join(format!("minecraft-{}-client.jar", self.id))
     }
 
-    pub fn get_classpath(&self) -> Result<String> {
+    pub fn get_classpath(&self) -> Result<String, GenericError> {
         let mut paths = vec![self.get_client_path()];
 
         for library in &self.libraries {
@@ -211,7 +211,7 @@ struct AssetIndex {
     objects: HashMap<String, Object>,
 }
 
-pub fn download_version(id: &str) -> Result<DownloadQueue> {
+pub fn download_version(id: &str) -> Result<DownloadQueue, GenericError> {
     let version_manifest = {
         let path = META_DIR.join("version_manifest_v2.json");
         let contents = fs::read_to_string(path)?;

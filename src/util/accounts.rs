@@ -3,10 +3,9 @@
 
 use std::{fs, io, path::PathBuf, thread};
 
-use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
 use oauth2::{
-    basic::BasicClient, devicecode::StandardDeviceAuthorizationResponse, ureq::http_client,
+    basic::BasicClient, devicecode::StandardDeviceAuthorizationResponse, ureq::http_client, url,
     AuthUrl, ClientId, DeviceAuthorizationUrl, ExtraTokenFields, RefreshToken, Scope,
     StandardTokenResponse, TokenResponse, TokenType, TokenUrl,
 };
@@ -15,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_with::{base64::Base64, serde_as};
 
-use crate::{util::AGENT, BASE_DIR};
+use crate::{types::generic_error::GenericError, util::AGENT, BASE_DIR};
 
 pub const MSA_DEVICE_AUTH_ENDPOINT: &str =
     "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode";
@@ -49,7 +48,7 @@ pub struct Account {
 }
 
 impl Account {
-    pub fn get_head(&self) -> Result<Self> {
+    pub async fn get_head(&self) -> Result<Self, GenericError> {
         let mut account = self.clone();
 
         if let Some(time) = &self.cached_head_time {
@@ -101,7 +100,7 @@ pub struct Accounts {
 }
 
 impl Accounts {
-    pub fn load() -> Result<Self> {
+    pub fn load() -> Result<Self, GenericError> {
         if ACCOUNTS_PATH.exists() {
             let content = fs::read_to_string(&*ACCOUNTS_PATH)?;
             let doc = toml::from_str(&content)?;
@@ -115,14 +114,14 @@ impl Accounts {
         }
     }
 
-    fn save(&self) -> Result<()> {
+    fn save(&self) -> Result<(), GenericError> {
         let content = toml::to_string_pretty(self)?;
         fs::write(&*ACCOUNTS_PATH, content)?;
 
         Ok(())
     }
 
-    pub fn remove_account(&mut self, id: &str) -> Result<()> {
+    pub fn remove_account(&mut self, id: &str) -> Result<(), GenericError> {
         if let Some(account) = &self.active {
             if account.mc_id == id {
                 self.active = None;
@@ -136,7 +135,7 @@ impl Accounts {
         Ok(())
     }
 
-    pub fn add_account(&mut self, account: Account) -> Result<()> {
+    pub fn add_account(&mut self, account: Account) -> Result<(), GenericError> {
         if self.active.is_none() {
             self.active = Some(account);
         } else {
@@ -148,7 +147,7 @@ impl Accounts {
         Ok(())
     }
 
-    pub fn set_active_account(&mut self, account: Account) -> Result<()> {
+    pub fn set_active_account(&mut self, account: Account) -> Result<(), GenericError> {
         if let Some(account) = &self.active {
             self.others.push(account.clone());
         }
@@ -163,7 +162,7 @@ impl Accounts {
         Ok(())
     }
 
-    pub fn get_client() -> Result<BasicClient> {
+    pub fn get_client() -> Result<BasicClient, url::ParseError> {
         let client_id = ClientId::new(CLIENT_ID.to_owned());
         let auth_url = AuthUrl::new(MSA_AUTHORIZATION_ENDPOINT.to_owned())?;
         let token_url = TokenUrl::new(MSA_TOKEN_ENDPOINT.to_owned())?;
@@ -175,7 +174,9 @@ impl Accounts {
         Ok(client)
     }
 
-    pub fn get_details(client: &BasicClient) -> Result<StandardDeviceAuthorizationResponse> {
+    pub fn get_details(
+        client: &BasicClient,
+    ) -> Result<StandardDeviceAuthorizationResponse, GenericError> {
         let scopes = SCOPES
             .iter()
             .map(|s| Scope::new(s.to_string()))
@@ -189,10 +190,10 @@ impl Accounts {
         Ok(details)
     }
 
-    pub fn get_account(
+    pub async fn get_account(
         client: BasicClient,
         details: StandardDeviceAuthorizationResponse,
-    ) -> Result<Account> {
+    ) -> Result<Account, GenericError> {
         let token = client.exchange_device_access_token(&details).request(
             http_client,
             thread::sleep,
@@ -204,7 +205,7 @@ impl Accounts {
         Ok(account)
     }
 
-    pub fn update_account(&mut self, account: &Account) -> Result<()> {
+    pub fn update_account(&mut self, account: &Account) -> Result<(), GenericError> {
         if let Some(active) = &mut self.active {
             if active.mc_id == account.mc_id {
                 *active = account.to_owned();
@@ -224,7 +225,7 @@ impl Accounts {
         Ok(())
     }
 
-    pub fn refresh_account(&mut self, account: Account) -> Result<Account> {
+    pub fn refresh_account(&mut self, account: Account) -> Result<Account, GenericError> {
         if let Some(token_time) = account.token_time {
             if Utc::now() < token_time + Duration::minutes(30) {
                 return Ok(account);

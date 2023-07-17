@@ -3,12 +3,12 @@
 
 use std::{fs, path::PathBuf, process};
 
-use anyhow::Result;
 use chrono::{DateTime, Utc};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    types::generic_error::GenericError,
     util::{accounts::Account, adoptium, vanilla_installer},
     ASSETS_DIR, BASE_DIR,
 };
@@ -39,7 +39,7 @@ pub struct Instance {
 }
 
 impl Instance {
-    pub fn launch(&self, account: Account) -> Result<()> {
+    pub fn launch(&self, account: Account) -> Result<(), GenericError> {
         let dir = INSTANCES_DIR.join(&self.name);
         let path = dir.join("instance.toml");
         let info = fs::read_to_string(path)?;
@@ -131,7 +131,7 @@ impl Instances {
         });
     }
 
-    pub fn load() -> Result<Self> {
+    pub fn load() -> Result<Self, GenericError> {
         if !INSTANCES_DIR.exists() {
             fs::create_dir(&*INSTANCES_DIR)?;
 
@@ -173,7 +173,7 @@ impl Instances {
         fabric_version: Option<String>,
         optimize_jvm: bool,
         memory: String,
-    ) -> Result<()> {
+    ) -> Result<(), GenericError> {
         let path = INSTANCES_DIR.join(&name);
         fs::create_dir(&path)?;
 
@@ -192,7 +192,7 @@ impl Instances {
         Ok(())
     }
 
-    pub fn delete(&mut self, name: &str) -> Result<()> {
+    pub fn delete(&mut self, name: &str) -> Result<(), GenericError> {
         let path = INSTANCES_DIR.join(name);
         fs::remove_dir_all(path)?;
 

@@ -7,18 +7,19 @@ mod components;
 mod pages;
 mod style;
 pub mod subscriptions;
+mod types;
 mod util;
 
 use std::{fs, path::PathBuf};
 
-use anyhow::Result;
 use directories::ProjectDirs;
-use iced::{executor, widget::row, Application, Command, Element, Settings, Theme, Subscription};
+use iced::{executor, widget::row, Application, Command, Element, Settings, Subscription, Theme};
 use once_cell::sync::Lazy;
 use pages::{
     about::About, new_instance::NewInstance, no_instances::NoInstances, status::Status, Page,
 };
 use rfd::{MessageButtons, MessageDialog, MessageLevel};
+use types::generic_error::GenericError;
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     let dir = ProjectDirs::from("eu", "mq1", "icy-launcher")
@@ -84,13 +85,13 @@ struct App {
 #[derive(Debug, Clone)]
 pub enum Message {
     ChangeView(View),
-    GotUpdate(Result<Option<(String, String)>, String>),
+    GotUpdate(Result<Option<(String, String)>, GenericError>),
     SettingsMessage(pages::settings::Message),
     OpenURL(String),
     AccountsMessage(pages::accounts::Message),
-    GotAccountHead(Result<util::accounts::Account, String>),
+    GotAccountHead(Result<util::accounts::Account, GenericError>),
     VanillaInstallerMessage(pages::vanilla_installer::Message),
-    CreatedInstance(Result<util::instances::Instances, String>),
+    CreatedInstance(Result<util::instances::Instances, GenericError>),
     OpenInstance(util::instances::Instance),
     LaunchInstance(util::instances::Instance),
     DeleteInstance(String),
@@ -113,14 +114,14 @@ impl Application for App {
         #[cfg(feature = "updater")]
         if settings.check_for_updates {
             updates_command = Command::perform(
-                async move { util::updater::check_for_updates().map_err(|e| e.to_string()) },
+                util::updater::check_for_updates(),
                 Message::GotUpdate,
             );
         }
 
         let head_command = match accounts.active.clone() {
             Some(account) => Command::perform(
-                async move { account.get_head().map_err(|e| e.to_string()) },
+                account.get_head(),
                 Message::GotAccountHead,
             ),
             None => Command::none(),

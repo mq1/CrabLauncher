@@ -3,11 +3,10 @@
 
 use std::{fs, path::PathBuf};
 
-use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use crate::BASE_DIR;
+use crate::{types::generic_error::GenericError, BASE_DIR};
 
 pub static PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("settings.toml"));
 
@@ -25,7 +24,7 @@ impl Default for Settings {
 }
 
 impl Settings {
-    pub fn load() -> Result<Self> {
+    pub fn load() -> Result<Self, GenericError> {
         if !PATH.exists() {
             return Ok(Self::default());
         }
@@ -35,7 +34,7 @@ impl Settings {
         Ok(settings)
     }
 
-    pub fn save(&self) -> Result<()> {
+    pub fn save(&self) -> Result<(), GenericError> {
         let settings = toml::to_string_pretty(self)?;
         fs::write(&*PATH, settings)?;
         Ok(())

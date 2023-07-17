@@ -3,12 +3,14 @@
 
 use std::{fs, io::BufReader, path::Path};
 
-use anyhow::Result;
 use serde::Deserialize;
 
-use crate::util::{DownloadItem, Hash, HashAlgorithm, AGENT};
+use crate::{
+    types::generic_error::GenericError,
+    util::{DownloadItem, Hash, HashAlgorithm, AGENT},
+};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Project {
     pub project_id: String,
     pub title: String,
@@ -20,7 +22,7 @@ pub struct Projects {
     pub hits: Vec<Project>,
 }
 
-pub fn search_modpacks(query: &str) -> Result<Projects> {
+pub async fn search_modpacks(query: &str) -> Result<Projects, GenericError> {
     let url = format!(
         "https://api.modrinth.com/v2/search?query={query}&facets=[[\"project_type:modpack\"]]",
     );
@@ -48,7 +50,7 @@ pub struct Version {
     pub files: Vec<File>,
 }
 
-pub fn get_versions(modpack_id: &str) -> Result<Vec<Version>> {
+pub async fn get_versions(modpack_id: &str) -> Result<Vec<Version>, GenericError> {
     let url = format!("https://api.modrinth.com/v2/project/{modpack_id}/version");
 
     let resp = AGENT.get(&url).call()?.into_json()?;
@@ -56,7 +58,10 @@ pub fn get_versions(modpack_id: &str) -> Result<Vec<Version>> {
     Ok(resp)
 }
 
-pub fn install_version(version: &Version, dest_dir: &Path) -> Result<Vec<DownloadItem>> {
+pub fn install_version(
+    version: &Version,
+    dest_dir: &Path,
+) -> Result<Vec<DownloadItem>, GenericError> {
     let tmp_dir = tempfile::tempdir()?;
 
     let file = &version.files[0];

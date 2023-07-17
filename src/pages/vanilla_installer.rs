@@ -10,12 +10,12 @@ use iced::{
     Command, Element, Length,
 };
 
-use crate::{pages::Page, style, util};
+use crate::{pages::Page, style, util, types::generic_error::GenericError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
     GetVersions,
-    GotVersions(Result<Vec<String>, String>),
+    GotVersions(Result<Vec<String>, GenericError>),
     ChangeName(String),
     SetOptimizeJvm(bool),
     SetMemory(String),
@@ -52,7 +52,7 @@ impl Page for VanillaInstaller {
         match message {
             Message::GetVersions => {
                 ret = Command::perform(
-                    async move { util::vanilla_installer::get_versions().map_err(|e| e.to_string()) },
+                    util::vanilla_installer::get_versions(),
                     Message::GotVersions,
                 );
             }

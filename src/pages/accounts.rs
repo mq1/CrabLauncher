@@ -19,13 +19,14 @@ use crate::{
     components::icons,
     pages::Page,
     style,
+    types::generic_error::GenericError,
     util::accounts::{Account, Accounts},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
     AddAccount,
-    AddingAccount(Result<Account, String>),
+    AddingAccount(Result<Account, GenericError>),
     SelectAccount(Account),
     RemoveAccount(Account),
     Login,
@@ -78,7 +79,7 @@ impl Page for AccountsPage {
                 self.code = Some(details.user_code().secret().to_string());
 
                 ret = Command::perform(
-                    async move { Accounts::get_account(client, details).map_err(|e| e.to_string()) },
+                    Accounts::get_account(client, details),
                     Message::AddingAccount,
                 )
             }
@@ -234,9 +235,12 @@ impl Page for AccountsPage {
                 .on_press(Message::AddOfflineAccount)
                 .style(style::circle_button(theme::Button::Secondary)),
                 button(
-                    row![text(" Add account "), icons::view(icons::ACCOUNT_PLUS_OUTLINE)]
-                        .align_items(Alignment::Center)
-                        .padding(5)
+                    row![
+                        text(" Add account "),
+                        icons::view(icons::ACCOUNT_PLUS_OUTLINE)
+                    ]
+                    .align_items(Alignment::Center)
+                    .padding(5)
                 )
                 .on_press(Message::AddAccount)
                 .style(style::circle_button(theme::Button::Primary))
@@ -251,9 +255,12 @@ impl Page for AccountsPage {
         let content = FloatingElement::new(content, || {
             container(
                 button(
-                    row![text(" Add account "), icons::view(icons::ACCOUNT_PLUS_OUTLINE)]
-                        .align_items(Alignment::Center)
-                        .padding(5),
+                    row![
+                        text(" Add account "),
+                        icons::view(icons::ACCOUNT_PLUS_OUTLINE)
+                    ]
+                    .align_items(Alignment::Center)
+                    .padding(5),
                 )
                 .on_press(Message::AddAccount)
                 .style(style::circle_button(theme::Button::Primary)),
