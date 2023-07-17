@@ -5,6 +5,7 @@ use iced::{Command, Element};
 
 pub mod about;
 pub mod accounts;
+pub mod download;
 pub mod instance;
 pub mod instances;
 pub mod new_instance;

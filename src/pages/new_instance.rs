@@ -24,8 +24,8 @@ fn btn(
     .spacing(5);
 
     button(content)
-        .height(100)
-        .width(100)
+        .height(128)
+        .width(128)
         .on_press(Message::ChangeView(installer_view))
 }
 
@@ -44,7 +44,11 @@ impl Page for NewInstance {
         let mut wrap = Wrap::new().spacing(10.);
 
         // Vanilla
-        let vanilla_btn = btn("Vanilla", View::VanillaInstaller, icons::minecraft());
+        let vanilla_btn = btn(
+            "Vanilla",
+            View::VanillaInstaller,
+            icons::view_png(icons::GRASS_PNG),
+        );
         wrap = wrap.push(vanilla_btn);
 
         column![title, wrap].spacing(10).padding(10).into()

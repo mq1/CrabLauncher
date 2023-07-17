@@ -19,7 +19,7 @@ impl Page for Instance {
     fn view(&self) -> Element<Self::Message> {
         let name = text(self.name.clone()).size(50);
         let play_button = button(
-            row![text("Launch").size(30), icons::rocket()]
+            row![text("Launch").size(30), icons::view(icons::ROCKET_LINE)]
                 .padding(20)
                 .spacing(10)
                 .align_items(Alignment::Center),
@@ -28,15 +28,18 @@ impl Page for Instance {
         .style(style::circle_button(theme::Button::Primary));
 
         let delete_button = button(
-            row![text(" Delete instance "), icons::delete()]
-                .padding(5)
-                .align_items(Alignment::Center),
+            row![
+                text(" Delete instance "),
+                icons::view(icons::DELETE_BIN_LINE)
+            ]
+            .padding(5)
+            .align_items(Alignment::Center),
         )
         .style(style::circle_button(theme::Button::Destructive))
         .on_press(Message::DeleteInstance(self.name.clone()));
 
         let edit_button = button(
-            row![text(" Edit instance "), icons::cog(20.)]
+            row![text(" Edit instance "), icons::view(icons::SETTINGS_LINE)]
                 .padding(5)
                 .align_items(Alignment::Center),
         )

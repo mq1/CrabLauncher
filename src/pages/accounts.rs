@@ -180,7 +180,7 @@ impl Page for AccountsPage {
             let row = row![
                 text(&active_account.mc_username),
                 horizontal_space(Length::Fill),
-                button(icons::delete())
+                button(icons::view(icons::DELETE_BIN_LINE))
                     .on_press(Message::RemoveAccount(active_account.clone()))
                     .style(style::circle_button(theme::Button::Destructive)),
             ]
@@ -201,10 +201,10 @@ impl Page for AccountsPage {
                 let row = row![
                     text(&account.mc_username),
                     horizontal_space(Length::Fill),
-                    button(icons::account_check())
+                    button(icons::view(icons::USER_FOLLOW_LINE))
                         .on_press(Message::SelectAccount(account.clone()))
                         .style(style::circle_button(theme::Button::Positive)),
-                    button(icons::delete())
+                    button(icons::view(icons::DELETE_BIN_LINE))
                         .on_press(Message::RemoveAccount(account.clone()))
                         .style(style::circle_button(theme::Button::Destructive)),
                 ]
@@ -224,14 +224,22 @@ impl Page for AccountsPage {
         let content = FloatingElement::new(content, || {
             row![
                 button(
-                    row![text(" Add offline account "), icons::plus()]
-                        .align_items(Alignment::Center)
+                    row![
+                        text(" Add offline account "),
+                        icons::view(icons::USER_ADD_LINE)
+                    ]
+                    .align_items(Alignment::Center)
+                    .padding(5)
                 )
                 .on_press(Message::AddOfflineAccount)
                 .style(style::circle_button(theme::Button::Secondary)),
-                button(row![text(" Add account "), icons::plus()].align_items(Alignment::Center))
-                    .on_press(Message::AddAccount)
-                    .style(style::circle_button(theme::Button::Primary))
+                button(
+                    row![text(" Add account "), icons::view(icons::USER_ADD_LINE)]
+                        .align_items(Alignment::Center)
+                        .padding(5)
+                )
+                .on_press(Message::AddAccount)
+                .style(style::circle_button(theme::Button::Primary))
             ]
             .spacing(10)
             .align_items(Alignment::Center)
@@ -242,9 +250,13 @@ impl Page for AccountsPage {
         #[cfg(not(feature = "offline-accounts"))]
         let content = FloatingElement::new(content, || {
             container(
-                button(row![text(" Add account "), icons::plus()].align_items(Alignment::Center))
-                    .on_press(Message::AddAccount)
-                    .style(style::circle_button(theme::Button::Primary)),
+                button(
+                    row![text(" Add account "), icons::view(icons::USER_ADD_LINE)]
+                        .align_items(Alignment::Center)
+                        .padding(5),
+                )
+                .on_press(Message::AddAccount)
+                .style(style::circle_button(theme::Button::Primary)),
             )
             .padding([0, 20, 20, 0])
             .into()

@@ -2,22 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{column, progress_bar, text, vertical_space},
+    widget::{column, text, vertical_space},
     Alignment, Element, Length,
 };
 
 use crate::{pages::Page, Message};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
-pub struct Progress {
-    pub current: usize,
-    pub total: usize,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct Status {
     pub text: String,
-    pub progress: Option<Progress>,
 }
 
 impl Status {
@@ -34,19 +27,13 @@ impl Page for Status {
     }
 
     fn view(&self) -> Element<Message> {
-        let mut col = column![vertical_space(Length::Fill), text(&self.text).size(30)]
-            .padding(10)
-            .spacing(10)
-            .align_items(Alignment::Center)
-            .width(Length::Fill);
-
-        if let Some(progress) = &self.progress {
-            let bar = progress_bar(0.0..=progress.total as f32, progress.current as f32)
-                .width(Length::Fill);
-
-            col = col.push(bar);
-        }
-
-        col.push(vertical_space(Length::Fill)).into()
+        column![
+            vertical_space(Length::Fill),
+            text(&self.text).size(30),
+            vertical_space(Length::Fill)
+        ]
+        .align_items(Alignment::Center)
+        .width(Length::Fill)
+        .into()
     }
 }

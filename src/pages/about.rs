@@ -33,9 +33,7 @@ impl Page for About {
         let logo = Image::new(logo_handle).height(200);
 
         let repo_button = button(
-            row!["Repository ", icons::github()]
-                .align_items(Alignment::Center)
-                .padding([0, 0, 0, 5]),
+            row![" Repository ", icons::view(icons::GITHUB_LINE)].align_items(Alignment::Center),
         )
         .style(style::circle_button(theme::Button::Primary))
         .on_press(Message::OpenURL(REPOSITORY.to_string()));

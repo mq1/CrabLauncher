@@ -32,8 +32,6 @@ md-5 = { version = "0.10", optional = true }
 digest = "0.10"
 base16ct = { version = "0.2", features = ["alloc"] }
 tempfile = "3.6"
-strum = "0.25"
-strum_macros = "0.25"
 serde_with = { version = "3.0", features = ["base64"] }
 
 [features]

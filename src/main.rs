@@ -6,6 +6,7 @@
 mod components;
 mod pages;
 mod style;
+pub mod subscriptions;
 mod util;
 
 use std::{fs, path::PathBuf};
@@ -15,11 +16,7 @@ use directories::ProjectDirs;
 use iced::{executor, widget::row, Application, Command, Element, Settings, Theme};
 use once_cell::sync::Lazy;
 use pages::{
-    about::About,
-    new_instance::NewInstance,
-    no_instances::NoInstances,
-    status::{Progress, Status},
-    Page,
+    about::About, new_instance::NewInstance, no_instances::NoInstances, status::Status, Page,
 };
 use rfd::{MessageButtons, MessageDialog, MessageLevel};
 
@@ -70,6 +67,7 @@ pub enum View {
     Settings,
     About,
     Accounts,
+    Download,
 }
 
 struct App {
@@ -80,6 +78,7 @@ struct App {
     settings: util::settings::Settings,
     accounts_page: pages::accounts::AccountsPage,
     vanilla_installer: pages::vanilla_installer::VanillaInstaller,
+    download: pages::download::Download,
 }
 
 #[derive(Debug, Clone)]
@@ -93,9 +92,9 @@ pub enum Message {
     VanillaInstallerMessage(pages::vanilla_installer::Message),
     CreatedInstance(Result<util::instances::Instances, String>),
     OpenInstance(util::instances::Instance),
-    Downloading(Result<(Vec<util::DownloadItem>, usize), String>),
     LaunchInstance(util::instances::Instance),
     DeleteInstance(String),
+    DownloadMessage(pages::download::Message),
 }
 
 impl Application for App {
@@ -138,6 +137,7 @@ impl Application for App {
                 settings,
                 accounts_page: pages::accounts::AccountsPage::new(accounts),
                 vanilla_installer: pages::vanilla_installer::VanillaInstaller::new(),
+                download: pages::download::Download::new(),
             },
             command,
         )
@@ -253,36 +253,37 @@ impl Application for App {
             Message::OpenInstance(instance) => {
                 self.view = View::Instance(Some(instance));
             }
-            Message::Downloading(result) => match result {
-                Ok((mut items, total)) => {
-                    if let Some(item) = items.pop() {
-                        let current = total - items.len();
+            Message::LaunchInstance(instance) => {
+                self.show_navbar = false;
+                self.view = View::Download;
+                self.current_instance = Some(instance.clone());
 
-                        self.view = View::Status(Status {
-                            text: format!("Downloading... {}%", 100 * current / total),
-                            progress: Some(Progress { current, total }),
-                        });
+                let items =
+                    util::vanilla_installer::download_version(&instance.info.minecraft).unwrap();
+                self.download.start(items);
+            }
+            Message::DeleteInstance(name) => {
+                let yes = MessageDialog::new()
+                    .set_level(MessageLevel::Warning)
+                    .set_title("Delete instance")
+                    .set_description(&format!("Are you sure you want to delete {}?", name))
+                    .set_buttons(MessageButtons::YesNo)
+                    .show();
 
-                        ret = Command::perform(
-                            async move {
-                                let res = util::download_file(&item);
-
-                                if let Err(e) = &res {
-                                    return Err(e.to_string());
-                                } else {
-                                    return Ok((items, total));
-                                }
-                            },
-                            Message::Downloading,
-                        );
-                    } else {
+                if yes {
+                    self.instances.delete(&name).unwrap();
+                    self.view = View::Instances;
+                }
+            }
+            Message::DownloadMessage(message) => {
+                if let pages::download::Message::DownloadProgressed(progress) = &message {
+                    if progress == &subscriptions::download::Progress::Finished {
                         println!("Done downloading");
                         println!("Launching instance");
 
                         if let Some(instance) = self.current_instance.as_ref() {
                             self.view = View::Status(Status {
                                 text: "Launching...".to_string(),
-                                progress: None,
                             });
 
                             let account = self.accounts_page.accounts.active.clone().unwrap();
@@ -300,40 +301,8 @@ impl Application for App {
                         }
                     }
                 }
-                Err(e) => {
-                    eprintln!("Error downloading items: {e}");
-                }
-            },
-            Message::LaunchInstance(instance) => {
-                self.show_navbar = false;
 
-                self.view = View::Status(Status {
-                    text: "Launching...".to_string(),
-                    progress: None,
-                });
-
-                self.current_instance = Some(instance.clone());
-
-                ret = Command::perform(
-                    async move {
-                        util::vanilla_installer::download_version(&instance.info.minecraft)
-                            .map_err(|e| e.to_string())
-                    },
-                    Message::Downloading,
-                );
-            }
-            Message::DeleteInstance(name) => {
-                let yes = MessageDialog::new()
-                    .set_level(MessageLevel::Warning)
-                    .set_title("Delete instance")
-                    .set_description(&format!("Are you sure you want to delete {}?", name))
-                    .set_buttons(MessageButtons::YesNo)
-                    .show();
-
-                if yes {
-                    self.instances.delete(&name).unwrap();
-                    self.view = View::Instances;
-                }
+                ret = self.download.update(message).map(Message::DownloadMessage);
             }
         }
 
@@ -359,6 +328,7 @@ impl Application for App {
             View::Settings => self.settings.view().map(Message::SettingsMessage),
             View::About => About.view(),
             View::Accounts => self.accounts_page.view().map(Message::AccountsMessage),
+            View::Download => self.download.view().map(Message::DownloadMessage),
         };
 
         if self.show_navbar {

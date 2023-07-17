@@ -210,7 +210,7 @@ struct AssetIndex {
     objects: HashMap<String, Object>,
 }
 
-pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
+pub fn download_version(id: &str) -> Result<Vec<DownloadItem>> {
     let version_manifest = {
         let path = META_DIR.join("version_manifest_v2.json");
         let contents = fs::read_to_string(path)?;
@@ -237,17 +237,15 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
     let mut download_items = vec![];
 
     // download client
-    if !version_meta.get_client_path().exists() {
-        download_items.push(DownloadItem {
-            url: version_meta.downloads.client.url.clone(),
-            path: version_meta.get_client_path(),
-            hash: Some(Hash {
-                hash: version_meta.downloads.client.sha1,
-                function: HashAlgorithm::Sha1,
-            }),
-            extract: false,
-        });
-    }
+    download_items.push(DownloadItem {
+        url: version_meta.downloads.client.url.clone(),
+        path: version_meta.get_client_path(),
+        hash: Some(Hash {
+            hash: version_meta.downloads.client.sha1,
+            function: HashAlgorithm::Sha1,
+        }),
+        extract: false,
+    });
 
     download_items.extend_from_slice(&adoptium::install("17")?);
 
@@ -271,17 +269,15 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
 
         let path = ASSETS_DIR.join("objects").join(&hash.get_path());
 
-        if !path.exists() {
-            download_items.push(DownloadItem {
-                url: format!(
-                    "https://resources.download.minecraft.net/{}",
-                    hash.get_path()
-                ),
-                path,
-                hash: Some(hash),
-                extract: false,
-            });
-        }
+        download_items.push(DownloadItem {
+            url: format!(
+                "https://resources.download.minecraft.net/{}",
+                hash.get_path()
+            ),
+            path,
+            hash: Some(hash),
+            extract: false,
+        });
     }
 
     for library in version_meta.libraries {
@@ -293,18 +289,14 @@ pub fn download_version(id: &str) -> Result<(Vec<DownloadItem>, usize)> {
 
             let path = LIBRARIES_DIR.join(library.downloads.artifact.path);
 
-            if !path.exists() {
-                download_items.push(DownloadItem {
-                    url: library.downloads.artifact.url,
-                    path,
-                    hash: Some(hash),
-                    extract: false,
-                });
-            }
+            download_items.push(DownloadItem {
+                url: library.downloads.artifact.url,
+                path,
+                hash: Some(hash),
+                extract: false,
+            });
         }
     }
 
-    let len = download_items.len();
-
-    Ok((download_items, len))
+    Ok(download_items)
 }

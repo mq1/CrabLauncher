@@ -13,7 +13,6 @@ use flate2::bufread::GzDecoder;
 use once_cell::sync::Lazy;
 use sha1::Sha1;
 use sha2::{Sha256, Sha512};
-use strum_macros::Display;
 use tar::Archive;
 use tempfile::NamedTempFile;
 use ureq::{Agent, AgentBuilder};
@@ -21,6 +20,7 @@ use zip::ZipArchive;
 
 pub mod accounts;
 mod adoptium;
+mod fabric;
 pub mod instances;
 pub mod modrinth;
 pub mod settings;
@@ -30,7 +30,7 @@ pub mod vanilla_installer;
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 pub static AGENT: Lazy<Agent> = Lazy::new(|| AgentBuilder::new().user_agent(USER_AGENT).build());
 
-#[derive(Debug, Clone, Display, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HashAlgorithm {
     Sha1,
     Sha256,
@@ -80,7 +80,7 @@ fn calc_hash<D: Digest>(mut reader: impl Read + Seek) -> Result<String> {
 }
 
 fn check_hash(reader: impl Read + Seek, hash: &Hash) -> Result<()> {
-    println!("checking hash: {} {}", hash.function, hash.hash);
+    println!("checking hash: {:?} {}", hash.function, hash.hash);
 
     let digest = match hash.function {
         HashAlgorithm::Sha1 => calc_hash::<Sha1>(reader)?,

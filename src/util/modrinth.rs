@@ -56,7 +56,7 @@ pub fn get_versions(modpack_id: &str) -> Result<Vec<Version>> {
     Ok(resp)
 }
 
-pub fn install_version(version: &Version, dest_dir: &Path) -> Result<()> {
+pub fn install_version(version: &Version, dest_dir: &Path) -> Result<Vec<DownloadItem>> {
     let tmp_dir = tempfile::tempdir()?;
 
     let file = &version.files[0];
@@ -73,6 +73,8 @@ pub fn install_version(version: &Version, dest_dir: &Path) -> Result<()> {
         extract: true,
     })?;
 
+    let mut items = Vec::new();
+
     // parse modrinth.index.json
     {
         #[derive(Deserialize)]
@@ -80,6 +82,19 @@ pub fn install_version(version: &Version, dest_dir: &Path) -> Result<()> {
             path: String,
             hashes: Hashes,
             downloads: Vec<String>,
+        }
+
+        #[derive(Deserialize)]
+        struct Dependencies {
+            minecraft: String,
+            #[serde(rename = "fabric-loader")]
+            fabric_loader: Option<String>,
+        }
+
+        #[derive(Deserialize)]
+        struct Index {
+            files: Vec<File>,
+            dependencies: Dependencies,
         }
 
         let index = tmp_dir.path().join("modrinth.index.json");
@@ -92,12 +107,12 @@ pub fn install_version(version: &Version, dest_dir: &Path) -> Result<()> {
                 hash: file.hashes.sha512.to_owned(),
             };
 
-            download_file(&DownloadItem {
+            items.push(DownloadItem {
                 url: file.downloads[0].to_owned(),
                 path: dest_dir.join(file.path),
                 hash: Some(hash),
                 extract: false,
-            })?;
+            });
         }
     }
 
@@ -108,5 +123,5 @@ pub fn install_version(version: &Version, dest_dir: &Path) -> Result<()> {
         fs::copy(r#override.path(), dest)?;
     }
 
-    Ok(())
+    Ok(items)
 }

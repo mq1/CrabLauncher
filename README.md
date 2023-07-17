@@ -1,7 +1,7 @@
 <br>
 
 <p align="center">
-<img src="assets/icy-launcher.png" alt="Icy Launcher Logo" height="150">
+<img src="icy-launcher.png" alt="Icy Launcher Logo" height="150">
 </p>
 
 <h1 align="center">Icy Launcher</h1>
@@ -52,7 +52,7 @@ However, you can build the launcher from source with the `offline-accounts` feat
 
 - Aru for the logo
 - Héctor Ramón for [iced](https://github.com/iced-rs/iced)
-- The [Material Design Icons](https://github.com/Templarian/MaterialDesign) community
+- [Remix Icon](https://remixicon.com)
 - [Crafatar](https://crafatar.com/)
 
 ## License
