@@ -13,7 +13,7 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Result;
 use directories::ProjectDirs;
-use iced::{executor, widget::row, Application, Command, Element, Settings, Theme};
+use iced::{executor, widget::row, Application, Command, Element, Settings, Theme, Subscription};
 use once_cell::sync::Lazy;
 use pages::{
     about::About, new_instance::NewInstance, no_instances::NoInstances, status::Status, Page,
@@ -307,6 +307,10 @@ impl Application for App {
         }
 
         ret
+    }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        self.download.subscription().map(Message::DownloadMessage)
     }
 
     fn view(&self) -> Element<Message> {
