@@ -4,7 +4,7 @@
 use iced::{
     color, theme,
     widget::{image, svg},
-    Element, Length,
+    Element,
 };
 
 pub use crate::components::assets::{GRASS_PNG, LOGO_PNG};
@@ -44,8 +44,5 @@ pub fn view<M>(bytes: &'static [u8]) -> Element<'static, M> {
 pub fn view_png<M>(bytes: &'static [u8]) -> Element<'static, M> {
     let handle = image::Handle::from_memory(bytes);
 
-    image(handle)
-        .width(64)
-        .height(64)
-        .into()
+    image(handle).width(64).height(64).into()
 }
