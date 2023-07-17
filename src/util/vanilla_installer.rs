@@ -12,7 +12,7 @@ use anyhow::Result;
 use serde::Deserialize;
 
 use crate::{
-    util::{adoptium, download_json, DownloadItem, Hash, HashAlgorithm},
+    util::{adoptium, DownloadItem, DownloadQueue, Hash, HashAlgorithm},
     ASSETS_DIR, LIBRARIES_DIR, META_DIR,
 };
 
@@ -44,12 +44,13 @@ pub struct Version {
 }
 
 pub fn get_versions() -> Result<Vec<String>> {
-    let resp = download_json::<VersionManifest>(&DownloadItem {
+    let resp = DownloadItem {
         url: "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json".to_string(),
         path: META_DIR.join("version_manifest_v2.json.new"),
         hash: None,
         extract: false,
-    })?;
+    }
+    .download_json::<VersionManifest>()?;
 
     fs::rename(
         META_DIR.join("version_manifest_v2.json.new"),
@@ -210,7 +211,7 @@ struct AssetIndex {
     objects: HashMap<String, Object>,
 }
 
-pub fn download_version(id: &str) -> Result<Vec<DownloadItem>> {
+pub fn download_version(id: &str) -> Result<DownloadQueue> {
     let version_manifest = {
         let path = META_DIR.join("version_manifest_v2.json");
         let contents = fs::read_to_string(path)?;
@@ -224,7 +225,7 @@ pub fn download_version(id: &str) -> Result<Vec<DownloadItem>> {
         .unwrap();
 
     // download version meta
-    let version_meta = download_json::<VersionMeta>(&DownloadItem {
+    let version_meta = DownloadItem {
         url: version.url,
         path: META_DIR.join("versions").join(format!("{}.json", id)),
         hash: Some(Hash {
@@ -232,7 +233,8 @@ pub fn download_version(id: &str) -> Result<Vec<DownloadItem>> {
             function: HashAlgorithm::Sha1,
         }),
         extract: false,
-    })?;
+    }
+    .download_json::<VersionMeta>()?;
 
     let mut download_items = vec![];
 
@@ -249,7 +251,7 @@ pub fn download_version(id: &str) -> Result<Vec<DownloadItem>> {
 
     download_items.extend_from_slice(&adoptium::install("17")?);
 
-    let asset_index = download_json::<AssetIndex>(&DownloadItem {
+    let asset_index = DownloadItem {
         url: version_meta.asset_index.url,
         path: ASSETS_DIR
             .join("indexes")
@@ -259,7 +261,8 @@ pub fn download_version(id: &str) -> Result<Vec<DownloadItem>> {
             function: HashAlgorithm::Sha1,
         }),
         extract: false,
-    })?;
+    }
+    .download_json::<AssetIndex>()?;
 
     for value in asset_index.objects.into_values() {
         let hash = Hash {
@@ -298,5 +301,5 @@ pub fn download_version(id: &str) -> Result<Vec<DownloadItem>> {
         }
     }
 
-    Ok(download_items)
+    Ok(DownloadQueue::new(download_items))
 }

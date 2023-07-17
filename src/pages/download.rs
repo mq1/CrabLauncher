@@ -6,7 +6,7 @@ use iced::{
     Alignment, Command, Element, Subscription,
 };
 
-use crate::{pages::Page, subscriptions::download, util::DownloadItem};
+use crate::{pages::Page, subscriptions::download, util::DownloadQueue};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -21,10 +21,7 @@ pub struct Download {
 #[derive(Debug)]
 enum State {
     Idle,
-    Downloading {
-        progress: f32,
-        items: Vec<DownloadItem>,
-    },
+    Downloading { progress: f32, queue: DownloadQueue },
     Finished,
     Errored,
 }
@@ -34,12 +31,12 @@ impl Download {
         Download { state: State::Idle }
     }
 
-    pub fn start(&mut self, items: Vec<DownloadItem>) {
+    pub fn start(&mut self, queue: DownloadQueue) {
         match self.state {
             State::Idle { .. } | State::Finished { .. } | State::Errored { .. } => {
                 self.state = State::Downloading {
                     progress: 0.0,
-                    items,
+                    queue,
                 };
             }
             _ => {}
@@ -48,8 +45,8 @@ impl Download {
 
     pub fn subscription(&self) -> Subscription<Message> {
         match &self.state {
-            State::Downloading { progress: _, items } => {
-                download::files(items.to_owned()).map(Message::DownloadProgressed)
+            State::Downloading { progress: _, queue } => {
+                download::files(queue.clone()).map(Message::DownloadProgressed)
             }
             _ => Subscription::none(),
         }
@@ -62,7 +59,7 @@ impl Page for Download {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::DownloadProgressed(new_progress) => {
-                if let State::Downloading { progress, items: _ } = &mut self.state {
+                if let State::Downloading { progress, queue: _ } = &mut self.state {
                     match new_progress {
                         download::Progress::Started => {
                             *progress = 0.0;
@@ -87,7 +84,7 @@ impl Page for Download {
     fn view(&self) -> Element<Message> {
         let current_progress = match &self.state {
             State::Idle { .. } => 0.0,
-            State::Downloading { progress, items: _ } => *progress,
+            State::Downloading { progress, queue: _ } => *progress,
             State::Finished { .. } => 100.0,
             State::Errored { .. } => 0.0,
         };

@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use crate::util::{download_file, DownloadItem};
+use crate::util::DownloadQueue;
 use iced::{subscription, Subscription};
 
 enum State {
-    Ready(Vec<DownloadItem>),
+    Ready(DownloadQueue),
     Downloading {
-        items: Vec<DownloadItem>,
+        queue: DownloadQueue,
         total: usize,
         downloaded: usize,
     },
@@ -22,48 +22,46 @@ pub enum Progress {
     Errored,
 }
 
-pub fn files(mut items: Vec<DownloadItem>) -> Subscription<Progress> {
+pub fn files(queue: DownloadQueue) -> Subscription<Progress> {
     struct DownloadFiles;
 
     subscription::unfold(
         std::any::TypeId::of::<DownloadFiles>(),
-        State::Ready(items),
+        State::Ready(queue),
         move |state| download(state),
     )
 }
 
 async fn download(state: State) -> (Progress, State) {
     match state {
-        State::Ready(items) => (
+        State::Ready(queue) => (
             Progress::Advanced(0.0),
             State::Downloading {
-                total: items.len(),
-                items,
+                total: queue.len(),
+                queue,
                 downloaded: 0,
             },
         ),
         State::Downloading {
-            mut items,
+            mut queue,
             total,
             downloaded,
-        } => match items.pop() {
-            Some(item) => {
+        } => match queue.download_next() {
+            Ok(true) => {
                 let downloaded = downloaded + 1;
                 let percentage = (downloaded as f32 / total as f32) * 100.0;
 
-                match download_file(&item) {
-                    Ok(_) => (
-                        Progress::Advanced(percentage),
-                        State::Downloading {
-                            items,
-                            total,
-                            downloaded,
-                        },
-                    ),
-                    Err(_) => (Progress::Errored, State::Finished),
-                }
+                (
+                    Progress::Advanced(percentage),
+                    State::Downloading {
+                        queue,
+                        total,
+                        downloaded,
+                    },
+                )
             }
-            None => (Progress::Finished, State::Finished),
+            Ok(false) => (Progress::Finished, State::Finished),
+            Err(_) => (Progress::Errored, State::Finished),
         },
         State::Finished => iced::futures::future::pending().await,
     }

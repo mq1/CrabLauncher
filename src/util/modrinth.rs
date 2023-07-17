@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{path::Path, fs, io::BufReader};
+use std::{fs, io::BufReader, path::Path};
 
 use anyhow::Result;
 use serde::Deserialize;
 
-use crate::util::{AGENT, download_file, DownloadItem, Hash, HashAlgorithm};
+use crate::util::{DownloadItem, Hash, HashAlgorithm, AGENT};
 
 #[derive(Deserialize)]
 pub struct Project {
@@ -66,12 +66,13 @@ pub fn install_version(version: &Version, dest_dir: &Path) -> Result<Vec<Downloa
         hash: file.hashes.sha512.to_owned(),
     };
 
-    download_file(&DownloadItem {
+    DownloadItem {
         url: file.url.to_owned(),
         path: tmp_dir.path().to_path_buf(),
         hash: Some(hash),
         extract: true,
-    })?;
+    }
+    .download_file()?;
 
     let mut items = Vec::new();
 
@@ -99,7 +100,7 @@ pub fn install_version(version: &Version, dest_dir: &Path) -> Result<Vec<Downloa
 
         let index = tmp_dir.path().join("modrinth.index.json");
         let index = BufReader::new(fs::File::open(index)?);
-        let index  = serde_json::from_reader::<_, Vec<File>>(index)?;
+        let index = serde_json::from_reader::<_, Vec<File>>(index)?;
 
         for file in index {
             let hash = Hash {
