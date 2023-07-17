@@ -10,14 +10,14 @@ use crate::{
     util::{DownloadItem, Hash, HashAlgorithm, AGENT},
 };
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Project {
     pub project_id: String,
     pub title: String,
     pub icon_url: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Projects {
     pub hits: Vec<Project>,
 }

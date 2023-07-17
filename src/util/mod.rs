@@ -76,7 +76,7 @@ impl DownloadItem {
             let parent = self
                 .path
                 .parent()
-                .ok_or_else(|| GenericError::PathError(self.path))?;
+                .ok_or_else(|| GenericError::PathError(self.path.to_owned()))?;
             fs::create_dir_all(parent)?;
         }
 
@@ -143,7 +143,7 @@ impl DownloadItem {
             let parent = self
                 .path
                 .parent()
-                .ok_or_else(|| GenericError::PathError(self.path))?;
+                .ok_or_else(|| GenericError::PathError(self.path.to_owned()))?;
             fs::create_dir_all(parent)?;
         }
 

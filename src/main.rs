@@ -113,17 +113,14 @@ impl Application for App {
 
         #[cfg(feature = "updater")]
         if settings.check_for_updates {
-            updates_command = Command::perform(
-                util::updater::check_for_updates(),
-                Message::GotUpdate,
-            );
+            updates_command =
+                Command::perform(util::updater::check_for_updates(), Message::GotUpdate);
         }
 
         let head_command = match accounts.active.clone() {
-            Some(account) => Command::perform(
-                account.get_head(),
-                Message::GotAccountHead,
-            ),
+            Some(account) => {
+                Command::perform(util::accounts::get_head(account), Message::GotAccountHead)
+            }
             None => Command::none(),
         };
 

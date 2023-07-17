@@ -48,29 +48,6 @@ pub struct Account {
 }
 
 impl Account {
-    pub async fn get_head(&self) -> Result<Self, GenericError> {
-        let mut account = self.clone();
-
-        if let Some(time) = &self.cached_head_time {
-            if Utc::now() < *time + Duration::minutes(5) {
-                return Ok(account);
-            }
-        }
-
-        let resp = AGENT
-            .get(&format!("https://crafatar.com/avatars/{}", self.mc_id))
-            .call()?;
-
-        let mut bytes =
-            Vec::with_capacity(resp.header("Content-Length").unwrap().parse::<usize>()?);
-        io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
-
-        account.cached_head = Some(bytes);
-        account.cached_head_time = Some(Utc::now());
-
-        Ok(account)
-    }
-
     #[cfg(feature = "offline-accounts")]
     pub fn new_offline(username: String) -> Self {
         use md5::{Digest, Md5};
@@ -91,6 +68,26 @@ impl Account {
             cached_head_time: None,
         }
     }
+}
+
+pub async fn get_head(mut account: Account) -> Result<Account, GenericError> {
+    if let Some(time) = &account.cached_head_time {
+        if Utc::now() < *time + Duration::minutes(5) {
+            return Ok(account);
+        }
+    }
+
+    let resp = AGENT
+        .get(&format!("https://crafatar.com/avatars/{}", account.mc_id))
+        .call()?;
+
+    let mut bytes = Vec::with_capacity(resp.header("Content-Length").unwrap().parse::<usize>()?);
+    io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
+
+    account.cached_head = Some(bytes);
+    account.cached_head_time = Some(Utc::now());
+
+    Ok(account)
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]

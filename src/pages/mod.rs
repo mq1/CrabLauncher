@@ -8,6 +8,7 @@ pub mod accounts;
 pub mod download;
 pub mod instance;
 pub mod instances;
+pub mod modrinth_modpacks;
 pub mod new_instance;
 pub mod no_instances;
 pub mod settings;
