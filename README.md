@@ -1,7 +1,7 @@
 <br>
 
 <p align="center">
-<img src="icy-launcher.png" alt="Icy Launcher Logo" height="150">
+<img src="assets/icy-launcher.png" alt="Icy Launcher Logo" height="150">
 </p>
 
 <h1 align="center">Icy Launcher</h1>
