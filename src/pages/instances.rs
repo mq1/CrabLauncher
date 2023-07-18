@@ -8,7 +8,7 @@ use iced::{
 use iced_aw::Wrap;
 
 use crate::{
-    components::assets, pages::no_instances::NoInstances, pages::Page, util::instances::Instances,
+    components::icons, pages::no_instances::NoInstances, pages::Page, util::instances::Instances,
     Message, View,
 };
 
@@ -26,8 +26,7 @@ impl Page for Instances {
 
         let mut wrap = Wrap::new();
         for instance in &self.list {
-            let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
-            let logo = Image::new(logo_handle).height(100);
+            let logo = icons::view_png(icons::LOGO_PNG, 64);
 
             let c = button(
                 column![logo, text(&instance.name).size(20)]
