@@ -28,7 +28,7 @@ impl Page for About {
     }
 
     fn view(&self) -> Element<'static, Message> {
-        let logo = icons::view_png(assets::LOGO_PNG, 256);
+        let logo = icons::view_png(assets::LOGO_PNG, 128);
 
         let repo_button = button(
             row![" Repository ", icons::view(icons::GITHUB)]

@@ -23,7 +23,7 @@
   <key>CFBundleVersion</key>
   <string>1</string>
   <key>CFBundleIconFile</key>
-  <string>logo-256x256.icns</string>
+  <string>logo-128x128.icns</string>
   <key>NSHighResolutionCapable</key>
   <true/>
   <key>NSRequiresAquaSystemAppearance</key>

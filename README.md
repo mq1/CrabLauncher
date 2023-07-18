@@ -1,7 +1,7 @@
 <br>
 
 <p align="center">
-<img src="assets/logo-256x256.png" alt="CrabLauncher Logo">
+<img src="assets/logo-128x128.png" alt="CrabLauncher Logo">
 </p>
 
 <h1 align="center">CrabLauncher</h1>
