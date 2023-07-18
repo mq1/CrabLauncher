@@ -8,7 +8,7 @@ use directories::ProjectDirs;
 use once_cell::sync::Lazy;
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    let dir = ProjectDirs::from("eu", "mq1", "icy-launcher")
+    let dir = ProjectDirs::from("eu", "mq1", "CrabLauncher")
         .unwrap()
         .data_dir()
         .to_path_buf();

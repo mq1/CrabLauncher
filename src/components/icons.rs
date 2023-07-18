@@ -45,8 +45,11 @@ pub fn view<M>(bytes: &'static [u8]) -> Element<'static, M> {
     view_custom(bytes, 24)
 }
 
-pub fn view_png<M>(bytes: &'static [u8]) -> Element<'static, M> {
+pub fn view_png<M>(bytes: &'static [u8], dimensions: u16) -> Element<'static, M> {
     let handle = image::Handle::from_memory(bytes);
 
-    image(handle).width(64).height(64).into()
+    image(handle)
+        .width(dimensions)
+        .height(dimensions)
+        .into()
 }

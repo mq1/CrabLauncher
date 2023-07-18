@@ -47,7 +47,7 @@ impl Page for NewInstance {
         let vanilla_btn = btn(
             "Vanilla",
             View::VanillaInstaller,
-            icons::view_png(icons::GRASS_PNG),
+            icons::view_png(icons::GRASS_PNG, 64),
         );
         wrap = wrap.push(vanilla_btn);
 

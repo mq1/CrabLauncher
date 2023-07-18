@@ -8,7 +8,7 @@ use iced::{
 };
 use iced_aw::Spinner;
 
-use crate::{components::icons, style, util, Message, View};
+use crate::{components::icons, style, util, Message, View, APP_NAME};
 
 pub fn view<'a>(
     current_view: &'a View,
@@ -73,7 +73,7 @@ pub fn view<'a>(
         change_view_button(
             View::About,
             icons::view_custom(icons::INFORMATION_OUTLINE, 32),
-            "About Icy Launcher"
+            format!("About {}", APP_NAME).as_str()
         ),
     ]
     .align_items(Alignment::Center);

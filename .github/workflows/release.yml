@@ -29,11 +29,11 @@ jobs:
           command: build
           args: --target aarch64-apple-darwin --release
       - run: |
-          lipo target/x86_64-apple-darwin/release/icy-launcher target/aarch64-apple-darwin/release/icy-launcher -create -output "macos/Icy Launcher.app/Contents/MacOS/icy-launcher"
-          hdiutil create IcyLauncher-${{github.ref_name}}-macos-universal.dmg -volname "Icy Launcher" -fs HFS+ -srcfolder macos -format UDZO
+          lipo target/x86_64-apple-darwin/release/crab-launcher target/aarch64-apple-darwin/release/crab-launcher -create -output "macos/CrabLauncher.app/Contents/MacOS/crab-launcher"
+          hdiutil create CrabLauncher-${{github.ref_name}}-macos-universal.dmg -volname CrabLauncher -fs HFS+ -srcfolder macos -format UDZO
       - uses: softprops/action-gh-release@v1
         with:
-          files: IcyLauncher-${{github.ref_name}}-macos-universal.dmg
+          files: CrabLauncher-${{github.ref_name}}-macos-universal.dmg
   build-ubuntu:
     runs-on: ubuntu-20.04
     steps:
@@ -46,10 +46,10 @@ jobs:
         with:
           command: build
           args: --release
-      - run: tar czf IcyLauncher-${{github.ref_name}}-linux-x86_64.tar.gz --directory=target/release icy-launcher
+      - run: tar czf CrabLauncher-${{github.ref_name}}-linux-x86_64.tar.gz --directory=target/release crab-launcher
       - uses: softprops/action-gh-release@v1
         with:
-          files: IcyLauncher-${{github.ref_name}}-linux-x86_64.tar.gz
+          files: CrabLauncher-${{github.ref_name}}-linux-x86_64.tar.gz
   build-windows:
     runs-on: windows-latest
     steps:
@@ -61,7 +61,7 @@ jobs:
         with:
           command: build
           args: --release
-      - run: Compress-Archive ./target/release/icy-launcher.exe ./IcyLauncher-${{github.ref_name}}-windows-x86_64.zip
+      - run: Compress-Archive ./target/release/crab-launcher.exe ./CrabLauncher-${{github.ref_name}}-windows-x86_64.zip
       - uses: softprops/action-gh-release@v1
         with:
-          files: IcyLauncher-${{github.ref_name}}-windows-x86_64.zip
+          files: CrabLauncher-${{github.ref_name}}-windows-x86_64.zip

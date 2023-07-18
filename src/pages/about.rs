@@ -10,10 +10,9 @@ use iced::{
 use crate::{
     components::{assets, icons},
     pages::Page,
-    style, Message,
+    style, Message, APP_NAME,
 };
 
-const APP_NAME: &str = env!("CARGO_PKG_NAME");
 const APP_VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 const LICENSE: &str = concat!(env!("CARGO_PKG_LICENSE"), " Licensed");
 const COPYRIGHT: &str = concat!("Copyright © 2023 ", env!("CARGO_PKG_AUTHORS"));
@@ -29,8 +28,7 @@ impl Page for About {
     }
 
     fn view(&self) -> Element<'static, Message> {
-        let logo_handle = image::Handle::from_memory(assets::LOGO_PNG);
-        let logo = Image::new(logo_handle).height(200);
+        let logo = icons::view_png(assets::LOGO_PNG, 256);
 
         let repo_button = button(
             row![" Repository ", icons::view(icons::GITHUB)]

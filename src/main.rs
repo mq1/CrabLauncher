@@ -21,6 +21,8 @@ use pages::{
 use rfd::{MessageButtons, MessageDialog, MessageLevel};
 use types::generic_error::GenericError;
 
+const APP_NAME: &str = "CrabLauncher";
+
 pub fn main() -> iced::Result {
     App::run(Settings::default())
 }
@@ -114,7 +116,7 @@ impl Application for App {
     }
 
     fn title(&self) -> String {
-        String::from("Icy Launcher")
+        APP_NAME.to_owned()
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
