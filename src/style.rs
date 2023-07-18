@@ -83,13 +83,6 @@ impl button::StyleSheet for CircleButtonStyle {
         appearance
     }
 
-    fn disabled(&self, style: &Self::Style) -> button::Appearance {
-        let mut appearance = style.disabled(&self.theme);
-        appearance.border_radius = 200.0;
-
-        appearance
-    }
-
     fn hovered(&self, style: &Self::Style) -> button::Appearance {
         let mut appearance = style.hovered(&self.theme);
         appearance.border_radius = 200.0;
@@ -99,6 +92,13 @@ impl button::StyleSheet for CircleButtonStyle {
 
     fn pressed(&self, style: &Self::Style) -> button::Appearance {
         let mut appearance = style.pressed(&self.theme);
+        appearance.border_radius = 200.0;
+
+        appearance
+    }
+
+    fn disabled(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.disabled(&self.theme);
         appearance.border_radius = 200.0;
 
         appearance
@@ -129,13 +129,6 @@ impl button::StyleSheet for SelectedButtonStyle {
         appearance
     }
 
-    fn disabled(&self, style: &Self::Style) -> button::Appearance {
-        let mut appearance = style.disabled(&self.theme);
-        appearance.background = Some(Background::Color(color!(0x3f3f46)));
-
-        appearance
-    }
-
     fn hovered(&self, style: &Self::Style) -> button::Appearance {
         let mut appearance = style.hovered(&self.theme);
         appearance.background = Some(Background::Color(color!(0x3f3f46)));
@@ -145,6 +138,13 @@ impl button::StyleSheet for SelectedButtonStyle {
 
     fn pressed(&self, style: &Self::Style) -> button::Appearance {
         let mut appearance = style.pressed(&self.theme);
+        appearance.background = Some(Background::Color(color!(0x3f3f46)));
+
+        appearance
+    }
+
+    fn disabled(&self, style: &Self::Style) -> button::Appearance {
+        let mut appearance = style.disabled(&self.theme);
         appearance.background = Some(Background::Color(color!(0x3f3f46)));
 
         appearance

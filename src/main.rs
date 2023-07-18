@@ -13,7 +13,7 @@ mod util;
 use std::{fs, path::PathBuf};
 
 use directories::ProjectDirs;
-use iced::{executor, widget::row, Application, Command, Element, Settings, Subscription, Theme};
+use iced::{executor, widget::row, Application, Command, Element, Settings, Subscription, Theme, theme, Color};
 use once_cell::sync::Lazy;
 use pages::{
     about::About, new_instance::NewInstance, no_instances::NoInstances, status::Status, Page,
@@ -330,7 +330,10 @@ impl Application for App {
     }
 
     fn theme(&self) -> Self::Theme {
-        Theme::Dark
+        Theme::custom(theme::Palette {
+            primary: Color::from_rgb8(192, 101, 33),
+            ..Theme::Dark.palette()
+        })
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
