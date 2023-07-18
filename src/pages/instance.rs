@@ -1,11 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::{
-    theme,
-    widget::{button, column, horizontal_space, row, text, vertical_space},
-    Alignment, Command, Element, Length,
-};
+use iced::{theme, widget::{button, column, horizontal_space, row, text, vertical_space}, Alignment, Command, Element, Length, Color};
 
 use crate::{components::icons, pages::Page, style, util::instances::Instance, Message};
 
@@ -18,6 +14,8 @@ impl Page for Instance {
 
     fn view(&self) -> Element<Self::Message> {
         let image = icons::view_png(icons::GRASS_PNG, 128);
+        let minecraft_version = text(format!("Minecraft {}", self.info.minecraft))
+            .style(theme::Text::Color(Color::from_rgb8(175, 175, 175)));
 
         let name = text(self.name.clone()).size(50);
 
@@ -54,7 +52,8 @@ impl Page for Instance {
         column![
             vertical_space(Length::Fill),
             row![
-                image, column![name, play_button].spacing(20).align_items(Alignment::Center)
+                column![image, minecraft_version].spacing(10).align_items(Alignment::Center),
+                column![name, play_button].spacing(20).align_items(Alignment::Center)
             ].spacing(50).align_items(Alignment::Center),
             vertical_space(Length::Fill),
             row![horizontal_space(Length::Fill), delete_button, edit_button]
