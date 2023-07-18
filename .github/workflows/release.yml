@@ -29,7 +29,7 @@ jobs:
           command: build
           args: --target aarch64-apple-darwin --release
       - run: |
-          lipo target/x86_64-apple-darwin/release/crab-launcher target/aarch64-apple-darwin/release/crab-launcher -create -output "macos/CrabLauncher.app/Contents/MacOS/crab-launcher"
+          lipo target/x86_64-apple-darwin/release/crab-launcher target/aarch64-apple-darwin/release/crab-launcher -create -output "macos/CrabLauncher.app/Contents/MacOS/CrabLauncher"
           ln -s /Applications macos/Applications
           hdiutil create CrabLauncher-${{github.ref_name}}-macos-universal.dmg -volname CrabLauncher -fs HFS+ -srcfolder macos -format UDZO
       - uses: softprops/action-gh-release@v1
@@ -47,7 +47,9 @@ jobs:
         with:
           command: build
           args: --release
-      - run: tar czf CrabLauncher-${{github.ref_name}}-linux-x86_64.tar.gz --directory=target/release crab-launcher
+      - run: |
+          mv target/release/crab-launcher CrabLauncher
+          tar czf CrabLauncher-${{github.ref_name}}-linux-x86_64.tar.gz CrabLauncher
       - uses: softprops/action-gh-release@v1
         with:
           files: CrabLauncher-${{github.ref_name}}-linux-x86_64.tar.gz
@@ -62,7 +64,9 @@ jobs:
         with:
           command: build
           args: --release
-      - run: Compress-Archive ./target/release/crab-launcher.exe ./CrabLauncher-${{github.ref_name}}-windows-x86_64.zip
+      - run: |
+          Move-Item ./target/release/crab-launcher.exe ./CrabLauncher.exe
+          Compress-Archive ./CrabLauncher.exe ./CrabLauncher-${{github.ref_name}}-windows-x86_64.zip
       - uses: softprops/action-gh-release@v1
         with:
           files: CrabLauncher-${{github.ref_name}}-windows-x86_64.zip

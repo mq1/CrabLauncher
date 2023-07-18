@@ -5,13 +5,13 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleExecutable</key>
-  <string>icy-launcher</string>
+  <string>CrabLauncher</string>
   <key>CFBundleIdentifier</key>
-  <string>eu.mq1.icy-launcher</string>
+  <string>eu.mq1.CrabLauncher</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>Ice Launcher</string>
+  <string>CrabLauncher</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
