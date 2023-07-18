@@ -17,13 +17,16 @@ impl Page for Instance {
     }
 
     fn view(&self) -> Element<Self::Message> {
+        let image = icons::view_png(icons::GRASS_PNG, 128);
+
         let name = text(self.name.clone()).size(50);
+
         let play_button = button(
             row![
                 text("Launch").size(30),
                 icons::view(icons::ROCKET_LAUNCH_OUTLINE)
             ]
-            .padding(20)
+            .padding(10)
             .spacing(10)
             .align_items(Alignment::Center),
         )
@@ -50,8 +53,9 @@ impl Page for Instance {
 
         column![
             vertical_space(Length::Fill),
-            name,
-            play_button,
+            row![
+                image, column![name, play_button].spacing(20).align_items(Alignment::Center)
+            ].spacing(50).align_items(Alignment::Center),
             vertical_space(Length::Fill),
             row![horizontal_space(Length::Fill), delete_button, edit_button]
                 .spacing(10)
@@ -59,7 +63,7 @@ impl Page for Instance {
         ]
         .align_items(Alignment::Center)
         .width(Length::Fill)
-        .spacing(20)
+        .spacing(50)
         .into()
     }
 }

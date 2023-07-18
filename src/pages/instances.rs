@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{button, column, container, image, scrollable, text, Image},
+    widget::{button, column, container, image, scrollable, text, Image, vertical_space},
     Alignment, Command, Element, Length,
 };
 use iced_aw::Wrap;
@@ -24,20 +24,26 @@ impl Page for Instances {
             return NoInstances.view();
         }
 
-        let mut wrap = Wrap::new();
+        let mut wrap = Wrap::new().spacing(10.);
         for instance in &self.list {
-            let logo = icons::view_png(icons::LOGO_PNG, 64);
+            let logo = icons::view_png(icons::GRASS_PNG, 64);
 
             let c = button(
-                column![logo, text(&instance.name).size(20)]
-                    .align_items(Alignment::Center)
-                    .spacing(10)
-                    .padding(10),
+                column![
+                    vertical_space(Length::Fill),
+                    logo,
+                    text(&instance.name).size(20),
+                    vertical_space(Length::Fill),
+                ]
+                .align_items(Alignment::Center)
+                .spacing(5),
             )
+                .width(128)
+                .height(128)
             .on_press(Message::ChangeView(View::Instance(Some(
                 instance.to_owned(),
             ))));
-            wrap = wrap.push(container(c).padding(5));
+            wrap = wrap.push(container(c));
         }
 
         let content = scrollable(wrap).width(Length::Fill).height(Length::Fill);
