@@ -6,9 +6,8 @@ use std::{fs, path::PathBuf};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use crate::{types::generic_error::GenericError, BASE_DIR};
-
-pub static PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("settings.toml"));
+use crate::{types::generic_error::GenericError};
+use crate::util::paths::SETTINGS_PATH;
 
 #[derive(Serialize, Deserialize)]
 pub struct Settings {
@@ -25,18 +24,18 @@ impl Default for Settings {
 
 impl Settings {
     pub fn load() -> Result<Self, GenericError> {
-        if !PATH.exists() {
+        if !SETTINGS_PATH.exists() {
             return Ok(Self::default());
         }
 
-        let settings = fs::read_to_string(&*PATH)?;
+        let settings = fs::read_to_string(&*SETTINGS_PATH)?;
         let settings: Self = toml::from_str(&settings)?;
         Ok(settings)
     }
 
     pub fn save(&self) -> Result<(), GenericError> {
         let settings = toml::to_string_pretty(self)?;
-        fs::write(&*PATH, settings)?;
+        fs::write(&*SETTINGS_PATH, settings)?;
         Ok(())
     }
 }

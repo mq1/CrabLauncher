@@ -10,18 +10,11 @@ use serde::{Deserialize, Serialize};
 use crate::{
     types::generic_error::GenericError,
     util::{accounts::Account, adoptium, vanilla_installer},
-    ASSETS_DIR, BASE_DIR,
 };
+use crate::util::paths::{ASSETS_DIR, INSTANCES_DIR};
 
 // https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks
 const OPTIMIZED_FLAGS: &str = " -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions -XX:+AlwaysActAsServerClassMachine -XX:+AlwaysPreTouch -XX:+DisableExplicitGC -XX:+UseNUMA -XX:NmethodSweepActivity=1 -XX:ReservedCodeCacheSize=400M -XX:NonNMethodCodeHeapSize=12M -XX:ProfiledCodeHeapSize=194M -XX:NonProfiledCodeHeapSize=194M -XX:-DontCompileHugeMethods -XX:MaxNodeLimit=240000 -XX:NodeLimitFudgeFactor=8000 -XX:+UseVectorCmov -XX:+PerfDisableSharedMem -XX:+UseFastUnorderedTimeStamps -XX:+UseCriticalJavaThreadPriority -XX:ThreadPriorityPolicy=1 -XX:AllocatePrefetchStyle=3 -XX:+UseShenandoahGC -XX:ShenandoahGCMode=iu -XX:ShenandoahGuaranteedGCInterval=1000000 -XX:AllocatePrefetchStyle=1";
-
-pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    let dir = BASE_DIR.join("instances");
-    fs::create_dir_all(&dir).unwrap();
-
-    dir
-});
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct InstanceInfo {

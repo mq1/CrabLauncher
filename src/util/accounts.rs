@@ -14,7 +14,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_with::{base64::Base64, serde_as};
 
-use crate::{types::generic_error::GenericError, util::AGENT, BASE_DIR};
+use crate::{types::generic_error::GenericError, util::AGENT};
+use crate::util::paths::ACCOUNTS_PATH;
 
 pub const MSA_DEVICE_AUTH_ENDPOINT: &str =
     "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode";
@@ -29,8 +30,6 @@ const MINECRAFT_AUTH_ENDPOINT: &str =
 const MINECRAFT_PROFILE_ENDPOINT: &str = "https://api.minecraftservices.com/minecraft/profile";
 pub const CLIENT_ID: &str = "1fd7f6fe-f715-41a3-a8d7-895027071ba2";
 pub const SCOPES: &'static [&str] = &["XboxLive.signin", "offline_access"];
-
-static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"));
 
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]

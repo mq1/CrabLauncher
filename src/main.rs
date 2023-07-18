@@ -6,7 +6,7 @@
 mod components;
 mod pages;
 mod style;
-pub mod subscriptions;
+mod subscriptions;
 mod types;
 mod util;
 
@@ -20,38 +20,6 @@ use pages::{
 };
 use rfd::{MessageButtons, MessageDialog, MessageLevel};
 use types::generic_error::GenericError;
-
-pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    let dir = ProjectDirs::from("eu", "mq1", "icy-launcher")
-        .unwrap()
-        .data_dir()
-        .to_path_buf();
-
-    fs::create_dir_all(&dir).unwrap();
-
-    dir
-});
-
-pub static META_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    let dir = BASE_DIR.join("meta");
-    fs::create_dir_all(&dir).unwrap();
-
-    dir
-});
-
-pub static ASSETS_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    let dir = BASE_DIR.join("assets");
-    fs::create_dir_all(&dir).unwrap();
-
-    dir
-});
-
-pub static LIBRARIES_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    let dir = BASE_DIR.join("libraries");
-    fs::create_dir_all(&dir).unwrap();
-
-    dir
-});
 
 pub fn main() -> iced::Result {
     App::run(Settings::default())

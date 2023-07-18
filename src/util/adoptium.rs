@@ -9,10 +9,8 @@ use serde::Deserialize;
 use crate::{
     types::generic_error::GenericError,
     util::{DownloadItem, Hash, HashAlgorithm, AGENT},
-    BASE_DIR,
 };
-
-static RUNTIMES_DIR: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("runtimes"));
+use crate::util::paths::RUNTIMES_DIR;
 
 #[cfg(target_os = "windows")]
 const OS: &str = "windows";

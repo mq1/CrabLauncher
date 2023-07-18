@@ -13,8 +13,8 @@ use serde::Deserialize;
 use crate::{
     types::generic_error::GenericError,
     util::{adoptium, DownloadItem, DownloadQueue, Hash, HashAlgorithm},
-    ASSETS_DIR, LIBRARIES_DIR, META_DIR,
 };
+use crate::util::paths::{ASSETS_DIR, LIBRARIES_DIR, META_DIR};
 
 #[cfg(target_os = "windows")]
 const OS: &str = "windows";

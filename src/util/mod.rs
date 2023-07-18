@@ -27,6 +27,7 @@ pub mod modrinth;
 pub mod settings;
 pub mod updater;
 pub mod vanilla_installer;
+pub mod paths;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 pub static AGENT: Lazy<Agent> = Lazy::new(|| AgentBuilder::new().user_agent(USER_AGENT).build());
