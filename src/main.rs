@@ -70,9 +70,9 @@ pub enum Message {
 }
 
 impl Application for App {
+    type Executor = executor::Default;
     type Message = Message;
     type Theme = Theme;
-    type Executor = executor::Default;
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
@@ -115,10 +115,6 @@ impl Application for App {
 
     fn title(&self) -> String {
         String::from("Icy Launcher")
-    }
-
-    fn theme(&self) -> Self::Theme {
-        Theme::Dark
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -292,10 +288,6 @@ impl Application for App {
         ret
     }
 
-    fn subscription(&self) -> Subscription<Self::Message> {
-        self.download.subscription().map(Message::DownloadMessage)
-    }
-
     fn view(&self) -> Element<Message> {
         let view = match &self.view {
             View::Status(status) => status.view(),
@@ -333,5 +325,13 @@ impl Application for App {
         } else {
             view.into()
         }
+    }
+
+    fn theme(&self) -> Self::Theme {
+        Theme::Dark
+    }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        self.download.subscription().map(Message::DownloadMessage)
     }
 }
