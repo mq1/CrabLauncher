@@ -7,8 +7,8 @@
 <h1 align="center">CrabLauncher</h1>
 
 <p align="center">
-<a href="https://github.com/mq1/crab-launcher/releases/latest"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/mq1/crab-launcher"></a>
-<a href="https://github.com/mq1/crab-launcher/blob/main/LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/github/license/mq1/crab-launcher"></a>
+<a href="https://github.com/mq1/CrabLauncher/releases/latest"><img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/mq1/CrabLauncher"></a>
+<a href="https://github.com/mq1/CrabLauncher/blob/main/LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/github/license/mq1/CrabLauncher"></a>
 </p>
 
 <img alt="screenshot" src="screenshot.png">
@@ -30,13 +30,13 @@ As of now, this launcher is considered a technical preview and every release bre
 
 ### Package (recommended)
 
-Just grab the [latest release](https://github.com/mq1/crab-launcher/releases/latest) for your platform
+Just grab the [latest release](https://github.com/mq1/CrabLauncher/releases/latest) for your platform
 
 ### From source
 
 ```sh
-git clone https://github.com/mq1/crab-launcher.git
-cd crab-launcher
+git clone https://github.com/mq1/CrabLauncher.git
+cd CrabLauncher
 cargo build --release
 ```
 

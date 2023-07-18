@@ -6,8 +6,8 @@ use version_compare::Version;
 
 use crate::{types::generic_error::GenericError, util::AGENT};
 
-const LATEST_RELEASE_URL: &str = "https://api.github.com/repos/mq1/crab-launcher/releases/latest";
-const RELEASES_BASE_URL: &str = "https://github.com/mq1/crab-launcher/releases/tag/";
+const LATEST_RELEASE_URL: &str = "https://api.github.com/repos/mq1/CrabLauncher/releases/latest";
+const RELEASES_BASE_URL: &str = "https://github.com/mq1/CrabLauncher/releases/tag/";
 
 #[derive(Deserialize)]
 struct Release {

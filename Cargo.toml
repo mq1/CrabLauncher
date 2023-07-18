@@ -3,7 +3,7 @@ name = "crab-launcher"
 version = "0.3.3"
 edition = "2021"
 authors = ["Manuel Quarneti <manuq01@pm.me>"]
-repository = "https://github.com/mq1/crab-launcher"
+repository = "https://github.com/mq1/CrabLauncher"
 license = "GPL-3.0-only"
 description = "An unofficial launcher for Minecraft: Java Edition"
 

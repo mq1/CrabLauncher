@@ -30,6 +30,7 @@ jobs:
           args: --target aarch64-apple-darwin --release
       - run: |
           lipo target/x86_64-apple-darwin/release/crab-launcher target/aarch64-apple-darwin/release/crab-launcher -create -output "macos/CrabLauncher.app/Contents/MacOS/crab-launcher"
+          ln -s /Applications macos/Applications
           hdiutil create CrabLauncher-${{github.ref_name}}-macos-universal.dmg -volname CrabLauncher -fs HFS+ -srcfolder macos -format UDZO
       - uses: softprops/action-gh-release@v1
         with:
