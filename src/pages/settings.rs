@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    theme,
-    widget::{
-        button, column, container, horizontal_space, row, text, toggler, vertical_space, Column,
+    Alignment,
+    Command,
+    Element, Length, theme, widget::{
+        button, Column, container, horizontal_space, Row, text, toggler, vertical_space,
     },
-    Alignment, Command, Element, Length,
 };
 
 use crate::{components::icons, pages::Page, style, util::settings::Settings};
@@ -50,21 +50,20 @@ impl Page for Settings {
         }
 
         let save_button = button(
-            row![text(" Save "), icons::view(icons::CONTENT_SAVE_OUTLINE)]
+            Row::new().push(text(" Save ")).push(icons::view(icons::CONTENT_SAVE_OUTLINE))
                 .padding(5)
                 .align_items(Alignment::Center),
         )
-        .style(style::circle_button(theme::Button::Positive))
-        .on_press(Message::SaveSettings);
+            .style(style::circle_button(theme::Button::Positive))
+            .on_press(Message::SaveSettings);
 
-        column![
-            text("Settings").size(30),
-            container(settings).style(style::card()),
-            vertical_space(Length::Fill),
-            row![horizontal_space(Length::Fill), save_button]
-        ]
-        .spacing(10)
-        .padding(10)
-        .into()
+        Column::new()
+            .push(text("Settings").size(30))
+            .push(container(settings).style(style::card()))
+            .push(vertical_space(Length::Fill))
+            .push(Row::new().push(horizontal_space(Length::Fill)).push(save_button))
+            .spacing(10)
+            .padding(10)
+            .into()
     }
 }

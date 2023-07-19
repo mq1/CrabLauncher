@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    color, theme,
+    color, Element,
+    theme,
     widget::{image, svg},
-    Element,
 };
 
-pub use crate::components::assets::{GRASS_PNG, LOGO_PNG};
+pub use crate::components::assets::GRASS_PNG;
 
 // Material Design Icons
 // https://github.com/Templarian/MaterialDesign/blob/master/LICENSE

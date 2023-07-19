@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{column, container, text},
-    Command, Element, Length,
+    Command,
+    Element, Length, widget::{Column, container, text},
 };
 
 use crate::{
@@ -58,7 +58,7 @@ impl Page for ModrinthModpacksPage {
     fn view(&self) -> Element<Message> {
         let title = text("Modrinth Modpacks").size(30);
 
-        let mut list = column![].spacing(10);
+        let mut list = Column::new().spacing(10);
         for project in &self.projects {
             let title = text(project.title.to_owned());
             let card = container(title)
@@ -68,6 +68,6 @@ impl Page for ModrinthModpacksPage {
             list = list.push(card);
         }
 
-        column![title, list].spacing(10).padding(10).into()
+        Column::new().push(title).push(list).spacing(10).padding(10).into()
     }
 }

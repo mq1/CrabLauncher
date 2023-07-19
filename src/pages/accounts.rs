@@ -2,18 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
+    Alignment,
     clipboard,
-    theme,
-    widget::{button, column, container, horizontal_space, row, scrollable, text, vertical_space},
-    Alignment, Command, Element, Length,
+    Command,
+    Element, Length, theme, widget::{button, Column, container, horizontal_space, Row, scrollable, text, text_input, vertical_space},
 };
-use iced_aw::FloatingElement;
-use rfd::MessageDialog;
-
-#[cfg(feature = "offline-accounts")]
-use iced::widget::text_input;
 #[cfg(feature = "offline-accounts")]
 use iced_aw::{Card, Modal};
+use iced_aw::FloatingElement;
+use rfd::MessageDialog;
 
 use crate::{
     components::icons,
@@ -153,39 +150,39 @@ impl Page for AccountsPage {
                 "Please open up {} in a browser and put in the code {} to proceed with login",
                 url, code
             ))
-            .size(20);
+                .size(20);
 
             let open_button = button("Open page and copy code")
                 .style(style::circle_button(theme::Button::Primary))
                 .on_press(Message::Login);
 
-            return column![
-                vertical_space(Length::Fill),
-                message,
-                open_button,
-                vertical_space(Length::Fill),
-            ]
-            .width(Length::Fill)
-            .spacing(10)
-            .align_items(Alignment::Center)
-            .into();
+            return Column::new()
+                .push(vertical_space(Length::Fill))
+                .push(message)
+                .push(open_button)
+                .push(vertical_space(Length::Fill))
+                .width(Length::Fill)
+                .spacing(10)
+                .align_items(Alignment::Center)
+                .into();
         }
 
-        let mut content = column![]
+        let mut content = Column::new()
             .width(Length::Fill)
             .height(Length::Fill)
             .spacing(10);
 
         if let Some(active_account) = &self.accounts.active {
-            let row = row![
-                text(&active_account.mc_username),
-                horizontal_space(Length::Fill),
-                button(icons::view(icons::DELETE_OUTLINE))
-                    .on_press(Message::RemoveAccount(active_account.clone()))
-                    .style(style::circle_button(theme::Button::Destructive)),
-            ]
-            .align_items(Alignment::Center)
-            .padding(10);
+            let row = Row::new()
+                .push(text(&active_account.mc_username))
+                .push(horizontal_space(Length::Fill))
+                .push(
+                    button(icons::view(icons::DELETE_OUTLINE))
+                        .on_press(Message::RemoveAccount(active_account.clone()))
+                        .style(style::circle_button(theme::Button::Destructive)),
+                )
+                .align_items(Alignment::Center)
+                .padding(10);
 
             let active = container(row).style(style::card());
             content = content
@@ -195,22 +192,23 @@ impl Page for AccountsPage {
         }
 
         if !self.accounts.others.is_empty() {
-            let mut others = column![].spacing(10);
+            let mut others = Column::new().spacing(10);
 
             for account in &self.accounts.others {
-                let row = row![
-                    text(&account.mc_username),
-                    horizontal_space(Length::Fill),
-                    button(icons::view(icons::ACCOUNT_CHECK_OUTLINE))
+                let row = Row::new()
+                    .push(text(&account.mc_username))
+                    .push(horizontal_space(Length::Fill))
+                    .push(button(icons::view(icons::ACCOUNT_CHECK_OUTLINE))
                         .on_press(Message::SelectAccount(account.clone()))
-                        .style(style::circle_button(theme::Button::Positive)),
-                    button(icons::view(icons::DELETE_OUTLINE))
-                        .on_press(Message::RemoveAccount(account.clone()))
-                        .style(style::circle_button(theme::Button::Destructive)),
-                ]
-                .align_items(Alignment::Center)
-                .padding(10)
-                .spacing(5);
+                        .style(style::circle_button(theme::Button::Positive)))
+                    .push(
+                        button(icons::view(icons::DELETE_OUTLINE))
+                            .on_press(Message::RemoveAccount(account.clone()))
+                            .style(style::circle_button(theme::Button::Destructive)),
+                    )
+                    .align_items(Alignment::Center)
+                    .padding(10)
+                    .spacing(5);
 
                 others = others.push(container(row).style(style::card()));
             }
@@ -221,81 +219,82 @@ impl Page for AccountsPage {
         }
 
         #[cfg(feature = "offline-accounts")]
-        let content = FloatingElement::new(content, || {
-            row![
-                button(
-                    row![
-                        text(" Add offline account "),
-                        icons::view(icons::ACCOUNT_PLUS_OUTLINE)
-                    ]
+            let content = FloatingElement::new(content, || {
+            let add_offline_account_button = button(
+                Row::new()
+                    .push(text(" Add offline account "))
+                    .push(icons::view(icons::ACCOUNT_PLUS_OUTLINE))
                     .align_items(Alignment::Center)
                     .padding(5)
-                )
+            )
                 .on_press(Message::AddOfflineAccount)
-                .style(style::circle_button(theme::Button::Secondary)),
-                button(
-                    row![
-                        text(" Add account "),
-                        icons::view(icons::ACCOUNT_PLUS_OUTLINE)
-                    ]
+                .style(style::circle_button(theme::Button::Secondary));
+
+            let add_account_button = button(
+                Row::new()
+                    .push(text(" Add account "))
+                    .push(icons::view(icons::ACCOUNT_PLUS_OUTLINE))
                     .align_items(Alignment::Center)
-                    .padding(5)
-                )
+                    .padding(5))
                 .on_press(Message::AddAccount)
-                .style(style::circle_button(theme::Button::Primary))
-            ]
-            .spacing(10)
-            .align_items(Alignment::Center)
-            .padding([0, 20, 20, 0])
-            .into()
+                .style(style::circle_button(theme::Button::Primary));
+
+            Row::new()
+                .push(add_offline_account_button)
+                .push(add_account_button)
+                .spacing(10)
+                .align_items(Alignment::Center)
+                .padding([0, 20, 20, 0])
+                .into()
         });
 
         #[cfg(not(feature = "offline-accounts"))]
-        let content = FloatingElement::new(content, || {
-            container(
-                button(
-                    row![
-                        text(" Add account "),
-                        icons::view(icons::ACCOUNT_PLUS_OUTLINE)
-                    ]
+            let content = FloatingElement::new(content, || {
+            let add_account_button = button(
+                Row::new()
+                    .push(text(" Add account "))
+                    .push(icons::view(icons::ACCOUNT_PLUS_OUTLINE))
                     .align_items(Alignment::Center)
-                    .padding(5),
-                )
+                    .padding(5))
                 .on_press(Message::AddAccount)
-                .style(style::circle_button(theme::Button::Primary)),
-            )
-            .padding([0, 20, 20, 0])
-            .into()
+                .style(style::circle_button(theme::Button::Primary));
+
+            container(add_account_button)
+                .padding([0, 20, 20, 0])
+                .into()
         });
 
-        let content = column![text("Accounts").size(30), content]
+        let content = Column::new()
+            .push(text("Accounts").size(30))
+            .push(content)
             .spacing(10)
             .padding(10);
 
         #[cfg(feature = "offline-accounts")]
-        let content = Modal::new(self.adding_offline_account, content, || {
-            Card::new(
-                text("Add offline account"),
-                column![
-                    text("Enter your username"),
-                    text_input("", &self.offline_account_username)
-                        .width(Length::Fixed(300.))
-                        .on_input(Message::ChangeOfflineAccountUsername)
-                ]
-                .spacing(10)
-                .padding(10),
-            )
-            .foot(row![
-                horizontal_space(Length::Fill),
-                button("Add")
+            let content = Modal::new(self.adding_offline_account, content, || {
+            let foot = Row::new()
+                .push(horizontal_space(Length::Fill))
+                .push(button("Add")
                     .on_press(Message::AddingOfflineAccount)
                     .style(style::circle_button(theme::Button::Primary))
                     .width(Length::Shrink)
+                    .padding(10));
+
+            Card::new(
+                text("Add offline account"),
+                Column::new()
+                    .push(text("Enter your username"))
+                    .push(text_input("", &self.offline_account_username)
+                        .width(Length::Fixed(300.))
+                        .on_input(Message::ChangeOfflineAccountUsername))
+
+                    .spacing(10)
                     .padding(10),
-            ])
-            .width(Length::Fixed(320.))
-            .on_close(Message::CloseAddOfflineAccount)
-            .into()
+            )
+                .foot(foot)
+                .width(Length::Fixed(320.))
+                .on_close(Message::CloseAddOfflineAccount)
+                .into()
         });
 
         content.into()

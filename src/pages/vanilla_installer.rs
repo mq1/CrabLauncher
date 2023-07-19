@@ -2,15 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    theme,
-    widget::{
-        button, column, container, horizontal_space, radio, row, scrollable, text, text_input,
-        toggler, Column,
+    Command,
+    Element,
+    Length, theme, widget::{
+        button, Column, container, horizontal_space, radio, Row, scrollable, text,
+        text_input, toggler,
     },
-    Command, Element, Length,
 };
 
-use crate::{pages::Page, style, util, types::generic_error::GenericError};
+use crate::{pages::Page, style, types::generic_error::GenericError, util};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
@@ -88,14 +88,14 @@ impl Page for VanillaInstaller {
 
         let name_text = text("Instance name");
         let name = text_input("", &self.name).on_input(Message::ChangeName);
-        let choose_name = column![name_text, name].spacing(10).padding(10);
+        let choose_name = Column::new().push(name_text).push(name).spacing(10).padding(10);
         let choose_name = container(choose_name)
             .width(Length::Fill)
             .style(style::card());
 
         let memory_text = text("Memory");
         let memory = text_input("", &self.memory).on_input(Message::SetMemory);
-        let choose_memory = column![memory_text, memory].spacing(10).padding(10);
+        let choose_memory = Column::new().push(memory_text).push(memory).spacing(10).padding(10);
         let choose_memory = container(choose_memory)
             .width(Length::Fill)
             .style(style::card());
@@ -123,7 +123,7 @@ impl Page for VanillaInstaller {
 
         let version_picker = scrollable(version_picker).width(Length::Fill);
 
-        let select_version = column![version_text, version_picker]
+        let select_version = Column::new().push(version_text).push(version_picker)
             .spacing(10)
             .padding(10);
         let select_version = container(select_version)
@@ -134,18 +134,17 @@ impl Page for VanillaInstaller {
             .style(style::circle_button(theme::Button::Primary))
             .padding(10)
             .on_press(Message::Create);
-        let footer = row![horizontal_space(Length::Fill), create_button];
+        let footer = Row::new().push(horizontal_space(Length::Fill)).push(create_button);
 
-        column![
-            title,
-            choose_name,
-            choose_memory,
-            optimize_jvm,
-            select_version,
-            footer,
-        ]
-        .spacing(10)
-        .padding(10)
-        .into()
+        Column::new()
+            .push(title)
+            .push(choose_name)
+            .push(choose_memory)
+            .push(optimize_jvm)
+            .push(select_version)
+            .push(footer)
+            .spacing(10)
+            .padding(10)
+            .into()
     }
 }

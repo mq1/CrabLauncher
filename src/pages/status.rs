@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{column, text, vertical_space},
-    Alignment, Element, Length,
+    Alignment,
+    Element, Length, widget::{Column, text, vertical_space},
 };
 
-use crate::{pages::Page, Message};
+use crate::{Message, pages::Page};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct Status {
@@ -27,13 +27,12 @@ impl Page for Status {
     }
 
     fn view(&self) -> Element<Message> {
-        column![
-            vertical_space(Length::Fill),
-            text(&self.text).size(30),
-            vertical_space(Length::Fill)
-        ]
-        .align_items(Alignment::Center)
-        .width(Length::Fill)
-        .into()
+        Column::new()
+            .push(vertical_space(Length::Fill))
+            .push(text(&self.text).size(30))
+            .push(vertical_space(Length::Fill))
+            .align_items(Alignment::Center)
+            .width(Length::Fill)
+            .into()
     }
 }

@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::{theme, widget::{button, column, horizontal_space, row, text, vertical_space}, Alignment, Command, Element, Length, Color};
+use iced::{Alignment, Color, Command, Element, Length, theme, widget::{button, Column, horizontal_space, Row, text, vertical_space}};
 
-use crate::{components::icons, pages::Page, style, util::instances::Instance, Message};
+use crate::{components::icons, Message, pages::Page, style, util::instances::Instance};
 
 impl Page for Instance {
     type Message = Message;
@@ -20,49 +20,64 @@ impl Page for Instance {
         let name = text(self.name.clone()).size(50);
 
         let play_button = button(
-            row![
-                text("Launch").size(30),
-                icons::view(icons::ROCKET_LAUNCH_OUTLINE)
-            ]
-            .padding(10)
-            .spacing(10)
-            .align_items(Alignment::Center),
+            Row::new()
+                .push(text("Launch").size(30))
+                .push(icons::view(icons::ROCKET_LAUNCH_OUTLINE))
+                .padding(10)
+                .spacing(10)
+                .align_items(Alignment::Center)
         )
-        .on_press(Message::LaunchInstance(self.to_owned()))
-        .style(style::circle_button(theme::Button::Primary));
+            .on_press(Message::LaunchInstance(self.to_owned()))
+            .style(style::circle_button(theme::Button::Primary));
 
         let delete_button = button(
-            row![
-                text(" Delete instance "),
-                icons::view(icons::DELETE_OUTLINE)
-            ]
-            .padding(5)
-            .align_items(Alignment::Center),
+            Row::new()
+                .push(text(" Delete instance "))
+                .push(icons::view(icons::DELETE_OUTLINE))
+                .padding(5)
+                .align_items(Alignment::Center)
         )
-        .style(style::circle_button(theme::Button::Destructive))
-        .on_press(Message::DeleteInstance(self.name.clone()));
+            .style(style::circle_button(theme::Button::Destructive))
+            .on_press(Message::DeleteInstance(self.name.clone()));
 
         let edit_button = button(
-            row![text(" Edit instance "), icons::view(icons::COG_OUTLINE)]
+            Row::new().push(text(" Edit instance ")).push(icons::view(icons::COG_OUTLINE))
                 .padding(5)
                 .align_items(Alignment::Center),
         )
-        .style(style::circle_button(theme::Button::Primary));
+            .style(style::circle_button(theme::Button::Primary));
 
-        column![
-            vertical_space(Length::Fill),
-            row![
-                column![image, minecraft_version].spacing(10).align_items(Alignment::Center),
-                column![name, play_button].spacing(20).align_items(Alignment::Center)
-            ].spacing(50).align_items(Alignment::Center),
-            vertical_space(Length::Fill),
-            row![horizontal_space(Length::Fill), delete_button, edit_button]
-                .spacing(10)
-                .padding(10),
-        ]
-        .align_items(Alignment::Center)
-        .width(Length::Fill)
-        .spacing(50)
-        .into()
+        let footer = Row::new()
+            .push(horizontal_space(Length::Fill))
+            .push(delete_button)
+            .push(edit_button)
+            .spacing(10)
+            .padding(10);
+
+        Column::new()
+            .push(vertical_space(Length::Fill))
+            .push(Row::new()
+                .push(Column::new()
+                    .push(image)
+                    .push(minecraft_version)
+                    .spacing(10)
+                    .align_items(Alignment::Center)
+                )
+                .push(Column::new()
+                    .push(name)
+                    .push(play_button)
+                    .spacing(20)
+                    .align_items(Alignment::Center)
+                )
+                .spacing(50)
+                .align_items(Alignment::Center)
+            )
+            .push(vertical_space(Length::Fill))
+            .push(footer)
+            .align_items(Alignment::Center)
+            .width(Length::Fill)
+
+            .spacing(50)
+            .into()
     }
 }

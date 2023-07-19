@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{button, column, container, image, scrollable, text, Image, vertical_space},
-    Alignment, Command, Element, Length,
+    Alignment,
+    Command, Element, Length, widget::{button, Column, container, scrollable, text, vertical_space},
 };
 use iced_aw::Wrap;
 
 use crate::{
-    components::icons, pages::no_instances::NoInstances, pages::Page, util::instances::Instances,
-    Message, View,
+    components::icons, Message, pages::no_instances::NoInstances, pages::Page,
+    util::instances::Instances, View,
 };
 
 impl Page for Instances {
@@ -29,26 +29,25 @@ impl Page for Instances {
             let logo = icons::view_png(icons::GRASS_PNG, 64);
 
             let c = button(
-                column![
-                    vertical_space(Length::Fill),
-                    logo,
-                    text(&instance.name).size(20),
-                    vertical_space(Length::Fill),
-                ]
-                .align_items(Alignment::Center)
-                .spacing(5),
+                Column::new()
+                    .push(vertical_space(Length::Fill))
+                    .push(logo)
+                    .push(text(&instance.name).size(20))
+                    .push(vertical_space(Length::Fill))
+                    .align_items(Alignment::Center)
+                    .spacing(5)
             )
                 .width(128)
                 .height(128)
-            .on_press(Message::ChangeView(View::Instance(Some(
-                instance.to_owned(),
-            ))));
+                .on_press(Message::ChangeView(View::Instance(Some(
+                    instance.to_owned(),
+                ))));
             wrap = wrap.push(container(c));
         }
 
         let content = scrollable(wrap).width(Length::Fill).height(Length::Fill);
 
-        column![text("Instances").size(30), content]
+        Column::new().push(text("Instances").size(30)).push(content)
             .spacing(10)
             .padding(10)
             .into()

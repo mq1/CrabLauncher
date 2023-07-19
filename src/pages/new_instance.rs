@@ -2,26 +2,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{button, column, text, vertical_space, Button},
-    Alignment, Element, Length,
+    Alignment,
+    Element, Length, widget::{button, Button, Column, text, vertical_space},
 };
 use iced_aw::Wrap;
 
-use crate::{components::icons, pages::Page, Message, View};
+use crate::{components::icons, Message, pages::Page, View};
 
 fn btn(
     name: &str,
     installer_view: View,
     icon: Element<'static, Message>,
 ) -> Button<'static, Message> {
-    let content = column![
-        vertical_space(Length::Fill),
-        icon,
-        text(name),
-        vertical_space(Length::Fill),
-    ]
-    .align_items(Alignment::Center)
-    .spacing(5);
+    let content = Column::new()
+        .push(vertical_space(Length::Fill))
+        .push(icon)
+        .push(text(name))
+        .push(vertical_space(Length::Fill))
+        .align_items(Alignment::Center)
+        .spacing(5);
 
     button(content)
         .height(128)
@@ -59,6 +58,11 @@ impl Page for NewInstance {
         );
         wrap = wrap.push(modrinth_btn);
 
-        column![title, wrap].spacing(10).padding(10).into()
+        Column::new()
+            .push(title)
+            .push(wrap)
+            .spacing(10)
+            .padding(10)
+            .into()
     }
 }

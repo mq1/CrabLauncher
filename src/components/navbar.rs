@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    theme,
-    widget::{button, column, container, image, tooltip, vertical_space, Image},
-    Alignment, Element, Length,
+    Alignment,
+    Element,
+    Length, theme, widget::{button, Column, container, image, Image, tooltip, vertical_space},
 };
 use iced_aw::Spinner;
 
-use crate::{components::icons, style, util, Message, View, APP_NAME};
+use crate::{APP_NAME, components::icons, Message, style, util, View};
 
 pub fn view<'a>(
     current_view: &'a View,
@@ -29,9 +29,9 @@ pub fn view<'a>(
                 tooltip_text,
                 tooltip::Position::Right,
             )
-            .gap(10)
-            .style(theme::Container::Box)
-            .into()
+                .gap(10)
+                .style(theme::Container::Box)
+                .into()
         };
 
     let account_icon = if let Some(account) = active_account {
@@ -47,36 +47,39 @@ pub fn view<'a>(
         icons::view_custom(icons::ACCOUNT_ALERT_OUTLINE, 32)
     };
 
-    let col = column![
-        change_view_button(
+    let col = Column::new()
+        .push(change_view_button(
             View::Instance(latest_instance),
             icons::view_custom(icons::PACKAGE_VARIANT, 32),
-            "Latest Instance"
-        ),
-        change_view_button(
+            "Latest Instance",
+        ))
+        .push(change_view_button(
             View::NewInstance,
             icons::view_custom(icons::VIEW_GRID_PLUS_OUTLINE, 32),
-            "New Instance"
-        ),
-        change_view_button(
+            "New Instance",
+        ))
+        .push(change_view_button(
             View::Instances,
             icons::view_custom(icons::VIEW_GRID_OUTLINE, 32),
-            "Instances"
-        ),
-        vertical_space(Length::Fill),
-        change_view_button(View::Accounts, account_icon, "Accounts"),
-        change_view_button(
+            "Instances",
+        ))
+        .push(vertical_space(Length::Fill))
+        .push(change_view_button(
+            View::Accounts,
+            account_icon,
+            "Accounts",
+        ))
+        .push(change_view_button(
             View::Settings,
             icons::view_custom(icons::COG_OUTLINE, 32),
-            "Settings"
-        ),
-        change_view_button(
+            "Settings",
+        ))
+        .push(change_view_button(
             View::About,
             icons::view_custom(icons::INFORMATION_OUTLINE, 32),
-            format!("About {}", APP_NAME).as_str()
-        ),
-    ]
-    .align_items(Alignment::Center);
+            format!("About {}", APP_NAME).as_str(),
+        ))
+        .align_items(Alignment::Center);
 
     container(col).style(style::dark()).into()
 }

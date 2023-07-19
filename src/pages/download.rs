@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    widget::{column, progress_bar, text, vertical_space, Column},
-    Alignment, Command, Element, Length, Subscription,
+    Alignment,
+    Command, Element, Length, Subscription, widget::{Column, progress_bar, text, vertical_space},
 };
 
 use crate::{pages::Page, subscriptions::download, util::DownloadQueue};
@@ -99,15 +99,14 @@ impl Page for Download {
             State::Errored => "Something went wrong :(",
         });
 
-        column![
-            vertical_space(Length::Fill),
-            text,
-            progress_bar,
-            vertical_space(Length::Fill)
-        ]
-        .spacing(10)
-        .padding(10)
-        .align_items(Alignment::Center)
-        .into()
+        Column::new()
+            .push(vertical_space(Length::Fill))
+            .push(text)
+            .push(progress_bar)
+            .push(vertical_space(Length::Fill))
+            .spacing(10)
+            .padding(10)
+            .align_items(Alignment::Center)
+            .into()
     }
 }

@@ -2,15 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    theme,
-    widget::{button, column, horizontal_space, image, row, text, vertical_space, Image},
-    Alignment, Element, Length,
+    Alignment,
+    Element,
+    Length, theme, widget::{button, Column, horizontal_space, row, Row, text, vertical_space},
 };
 
 use crate::{
+    APP_NAME,
     components::{assets, icons},
-    pages::Page,
-    style, Message, APP_NAME,
+    Message, pages::Page, style,
 };
 
 const APP_VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
@@ -35,22 +35,25 @@ impl Page for About {
                 .align_items(Alignment::Center)
                 .padding(5),
         )
-        .style(style::circle_button(theme::Button::Primary))
-        .on_press(Message::OpenURL(REPOSITORY.to_string()));
+            .style(style::circle_button(theme::Button::Primary))
+            .on_press(Message::OpenURL(REPOSITORY.to_string()));
 
-        column![
-            vertical_space(Length::Fill),
-            logo,
-            text(APP_NAME).size(50),
-            text(APP_VERSION),
-            text(LICENSE),
-            text(COPYRIGHT),
-            vertical_space(Length::Fill),
-            row![horizontal_space(Length::Fill), repo_button],
-        ]
-        .spacing(10)
-        .padding(10)
-        .align_items(Alignment::Center)
-        .into()
+        let footer = Row::new()
+            .push(horizontal_space(Length::Fill))
+            .push(repo_button);
+
+        Column::new()
+            .push(vertical_space(Length::Fill))
+            .push(logo)
+            .push(text(APP_NAME).size(50))
+            .push(text(APP_VERSION))
+            .push(text(LICENSE))
+            .push(text(COPYRIGHT))
+            .push(vertical_space(Length::Fill))
+            .push(footer)
+            .spacing(10)
+            .padding(10)
+            .align_items(Alignment::Center)
+            .into()
     }
 }

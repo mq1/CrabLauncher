@@ -10,11 +10,7 @@ mod subscriptions;
 mod types;
 mod util;
 
-use std::{fs, path::PathBuf};
-
-use directories::ProjectDirs;
-use iced::{executor, widget::row, Application, Command, Element, Settings, Subscription, Theme, theme, Color};
-use once_cell::sync::Lazy;
+use iced::{executor, widget::Row, Application, Command, Element, Settings, Subscription, Theme, theme, Color};
 use pages::{
     about::About, new_instance::NewInstance, no_instances::NoInstances, status::Status, Page,
 };
@@ -323,7 +319,10 @@ impl Application for App {
                 self.instances.list.get(0).cloned(),
             );
 
-            row![navbar, view].into()
+            Row::new()
+                .push(navbar)
+                .push(view)
+                .into()
         } else {
             view.into()
         }
