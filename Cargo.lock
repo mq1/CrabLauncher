@@ -507,7 +507,7 @@ dependencies = [
 
 [[package]]
 name = "crab-launcher"
-version = "0.3.3"
+version = "1.0.0-alpha"
 dependencies = [
  "base16ct",
  "chrono",

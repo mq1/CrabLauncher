@@ -1,6 +1,6 @@
 [package]
 name = "crab-launcher"
-version = "0.3.3"
+version = "1.0.0-alpha"
 edition = "2021"
 authors = ["Manuel Quarneti <manuq01@pm.me>"]
 repository = "https://github.com/mq1/CrabLauncher"
@@ -36,6 +36,13 @@ serde_with = { version = "3.0", features = ["base64"] }
 default = ["updater"]
 updater = []
 offline-accounts = ["dep:md-5"]
+
+[package.metadata.bundle]
+name = "CrabLauncher"
+identifier = "eu.mq1.CrabLauncher"
+icon = ["assets/logo-128x128.png"]
+copyright = "Copyright (c) 2023 Manuel Quarneti"
+category = "Games"
 
 [profile.release]
 opt-level = "z"
