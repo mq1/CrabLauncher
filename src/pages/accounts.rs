@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use copypasta::{ClipboardContext, ClipboardProvider};
 use iced::{
+    clipboard,
     theme,
     widget::{button, column, container, horizontal_space, row, scrollable, text, vertical_space},
     Alignment, Command, Element, Length,
@@ -125,8 +125,7 @@ impl Page for AccountsPage {
                     open::that(url).unwrap();
 
                     // copy code to clipboard
-                    let mut ctx = ClipboardContext::new().unwrap();
-                    ctx.set_contents(code.to_owned()).unwrap();
+                    ret = clipboard::write(code.to_owned());
                 }
             }
             Message::RemoveAccount(account) => {
