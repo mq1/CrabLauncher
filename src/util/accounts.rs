@@ -29,7 +29,7 @@ const MINECRAFT_AUTH_ENDPOINT: &str =
     "https://api.minecraftservices.com/authentication/login_with_xbox";
 const MINECRAFT_PROFILE_ENDPOINT: &str = "https://api.minecraftservices.com/minecraft/profile";
 pub const CLIENT_ID: &str = "543a897a-0694-435b-a147-11de17aacd1f";
-pub const SCOPES: &'static [&str] = &["XboxLive.signin", "offline_access"];
+pub const SCOPES: &[&str] = &["XboxLive.signin", "offline_access"];
 
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
