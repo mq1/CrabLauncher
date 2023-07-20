@@ -59,7 +59,7 @@ pub fn install(java_version: &str) -> Result<Vec<DownloadItem>, GenericError> {
         .join(format!("{}-jre", assets.release_name));
 
     if !path.exists() {
-        fs::remove_dir_all(RUNTIMES_DIR.join(java_version))?;
+        let _ = fs::remove_dir_all(RUNTIMES_DIR.join(java_version));
 
         let url = assets.binary.package.link.to_owned();
         let hash = Some(Hash {
