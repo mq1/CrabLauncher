@@ -15,6 +15,8 @@ pub struct Project {
     pub project_id: String,
     pub title: String,
     pub icon_url: String,
+    pub downloads: usize,
+    pub display_categories: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -24,7 +26,7 @@ pub struct Projects {
 
 pub async fn search_modpacks(query: &str) -> Result<Projects, GenericError> {
     let url = format!(
-        "https://api.modrinth.com/v2/search?query={query}&facets=[[\"project_type:modpack\"]]",
+        "https://api.modrinth.com/v2/search?query={query}&facets=[[\"categories:fabric\"],[\"project_type:modpack\"]]&limit=20",
     );
 
     let resp = AGENT.get(&url).call()?.into_json()?;
