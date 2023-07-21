@@ -1,15 +1,14 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs, io, path::PathBuf, thread};
+use std::{fs, io, thread};
 
 use chrono::{DateTime, Duration, Utc};
 use oauth2::{
-    basic::BasicClient, devicecode::StandardDeviceAuthorizationResponse, ureq::http_client, url,
-    AuthUrl, ClientId, DeviceAuthorizationUrl, ExtraTokenFields, RefreshToken, Scope,
-    StandardTokenResponse, TokenResponse, TokenType, TokenUrl,
+    AuthUrl, basic::BasicClient, ClientId, DeviceAuthorizationUrl,
+    devicecode::StandardDeviceAuthorizationResponse, ExtraTokenFields, RefreshToken, Scope, StandardTokenResponse, TokenResponse,
+    TokenType, TokenUrl, ureq::http_client, url,
 };
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_with::{base64::Base64, serde_as};

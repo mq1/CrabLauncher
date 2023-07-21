@@ -28,7 +28,7 @@ pub fn files(queue: DownloadQueue) -> Subscription<Progress> {
     subscription::unfold(
         std::any::TypeId::of::<DownloadFiles>(),
         State::Ready(queue),
-        move |state| download(state),
+        download,
     )
 }
 
