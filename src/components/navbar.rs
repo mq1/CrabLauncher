@@ -11,7 +11,6 @@ use iced_aw::Spinner;
 
 use crate::{components::icons, Message, style};
 use crate::pages::Page;
-use crate::types::generic_error::GenericError;
 use crate::util::accounts::Accounts;
 
 fn change_view_button<'a>(
@@ -42,23 +41,19 @@ fn change_view_button<'a>(
 pub fn view<'a>(
     launcher_name: &'a str,
     current_page: &'a Page,
-    accounts: &'a Result<Accounts, GenericError>,
+    accounts: &'a Accounts,
 ) -> Element<'a, Message> {
     let account_icon = {
-        if let Ok(accounts) = accounts {
-            if let Some(account) = &accounts.active {
-                if let Some(cached_head) = account.cached_head.to_owned() {
-                    let handle = image::Handle::from_memory(cached_head);
+        if let Some(account) = &accounts.active {
+            if let Some(cached_head) = account.cached_head.to_owned() {
+                let handle = image::Handle::from_memory(cached_head);
 
-                    image(handle)
-                        .width(32)
-                        .height(32)
-                        .into()
-                } else {
-                    Spinner::new().into()
-                }
+                image(handle)
+                    .width(32)
+                    .height(32)
+                    .into()
             } else {
-                icons::view_custom(icons::ACCOUNT_ALERT_OUTLINE, 32)
+                Spinner::new().into()
             }
         } else {
             icons::view_custom(icons::ACCOUNT_ALERT_OUTLINE, 32)

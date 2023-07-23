@@ -15,6 +15,7 @@ pub enum Message {
     OpenURL(String),
     GotUpdate(Result<Option<(String, String)>, GenericError>),
     GotAccountHead(Result<Account, GenericError>),
+    UpdateInstances,
     CreatedInstance(Result<(), GenericError>),
     LaunchInstance(Instance),
     DeleteInstance(Instance),

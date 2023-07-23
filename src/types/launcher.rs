@@ -20,9 +20,9 @@ use crate::util::settings::Settings;
 pub struct Launcher {
     pub name: &'static str,
     pub page: Page,
-    pub instances: Result<Vec<Instance>, GenericError>,
-    pub settings: Result<Settings, GenericError>,
-    pub accounts: Result<Accounts, GenericError>,
+    pub instances: Vec<Instance>,
+    pub settings: Settings,
+    pub accounts: Accounts,
     pub login: Login,
     pub offline_account_username: String,
     pub vanilla_installer: VanillaInstaller,
@@ -30,14 +30,47 @@ pub struct Launcher {
     pub download: Download,
 }
 
+fn bail(error: impl Into<GenericError>) {
+    MessageDialog::new()
+        .set_level(MessageLevel::Error)
+        .set_title("Error")
+        .set_description(&format!("{}", error.into()))
+        .set_buttons(MessageButtons::Ok)
+        .show();
+}
+
 impl Default for Launcher {
     fn default() -> Self {
+        let instances = match instances::list() {
+            Ok(instances) => instances,
+            Err(error) => {
+                bail(error);
+                panic!();
+            }
+        };
+
+        let settings = match Settings::load() {
+            Ok(settings) => settings,
+            Err(error) => {
+                bail(error);
+                panic!();
+            }
+        };
+
+        let accounts = match Accounts::load() {
+            Ok(accounts) => accounts,
+            Err(error) => {
+                bail(error);
+                panic!();
+            }
+        };
+
         Self {
             name: "CrabLauncher",
             page: Page::LatestInstance,
-            instances: instances::list(),
-            settings: Settings::load(),
-            accounts: Accounts::load(),
+            instances,
+            settings,
+            accounts,
             login: Login::default(),
             offline_account_username: String::new(),
             vanilla_installer: VanillaInstaller::default(),
@@ -63,22 +96,16 @@ impl Launcher {
     }
 
     fn check_for_updates_command(&self) -> Command<Message> {
-        if cfg!(feature = "updater") {
-            if let Ok(settings) = &self.settings {
-                if settings.check_for_updates {
-                    return Command::perform(util::updater::check_for_updates(), Message::GotUpdate);
-                }
-            }
+        if cfg!(feature = "updater") && self.settings.check_for_updates {
+            return Command::perform(util::updater::check_for_updates(), Message::GotUpdate);
         }
 
         Command::none()
     }
 
     fn fetch_account_head_command(&self) -> Command<Message> {
-        if let Ok(accounts) = &self.accounts {
-            if let Some(account) = &accounts.active {
-                return Command::perform(util::accounts::get_head(account.to_owned()), Message::GotAccountHead);
-            }
+        if let Some(account) = &self.accounts.active {
+            return Command::perform(util::accounts::get_head(account.to_owned()), Message::GotAccountHead);
         }
 
         Command::none()
@@ -142,10 +169,8 @@ impl Launcher {
                 self.update(Message::Error(error, false))
             }
             Message::GotAccountHead(Ok(account)) => {
-                if let Ok(accounts) = &mut self.accounts {
-                    if let Err(error) = accounts.update_account(&account) {
-                        return self.update(Message::Error(error, false));
-                    }
+                if let Err(error) = self.accounts.update_account(&account) {
+                    return self.update(Message::Error(error, false));
                 }
 
                 Command::none()
@@ -153,35 +178,40 @@ impl Launcher {
             Message::GotAccountHead(Err(error)) => {
                 self.update(Message::Error(error, false))
             }
+            Message::UpdateInstances => {
+                match instances::list() {
+                    Ok(instances) => {
+                        self.instances = instances;
+                        Command::none()
+                    }
+                    Err(error) => self.update(Message::Error(error, false))
+                }
+            }
             Message::CreatedInstance(Ok(())) => {
-                self.instances = instances::list();
                 self.page = Page::LatestInstance;
-                Command::none()
+                self.update(Message::UpdateInstances)
             }
             Message::CreatedInstance(Err(error)) => {
                 self.page = Page::Error(error);
                 Command::none()
             }
             Message::LaunchInstance(instance) => {
-                if let Ok(accounts) = &self.accounts {
-                    if let Some(account) = &accounts.active {
-                        if let Err(error) = instance.launch(account) {
-                            return self.update(Message::Error(error, true));
-                        }
+                if let Some(account) = &self.accounts.active {
+                    if let Err(error) = instance.launch(account) {
+                        self.update(Message::Error(error, true))
                     } else {
-                        let error = GenericError::Generic("No account selected".to_string());
-                        return self.update(Message::Error(error, false));
+                        Command::none()
                     }
+                } else {
+                    let error = GenericError::Generic("No account selected".to_string());
+                    self.update(Message::Error(error, false))
                 }
-
-                Command::none()
             }
             Message::DeleteInstance(instance) => {
                 if let Err(error) = instance.delete() {
                     self.update(Message::Error(error, true))
                 } else {
-                    self.instances = instances::list();
-                    Command::none()
+                    self.update(Message::UpdateInstances)
                 }
             }
             Message::GetVersions => {
@@ -220,10 +250,9 @@ impl Launcher {
                 if let Err(error) = instances::new(name, version, None, optimize_jvm, memory) {
                     self.update(Message::Error(error, true))
                 } else {
-                    self.instances = instances::list();
                     self.page = Page::LatestInstance;
                     self.vanilla_installer = VanillaInstaller::default();
-                    Command::none()
+                    self.update(Message::UpdateInstances)
                 }
             }
             Message::AddAccount => {
@@ -242,13 +271,11 @@ impl Launcher {
             Message::LoggedIn(Ok(account)) => {
                 self.login = Login::default();
 
-                if let Ok(accounts) = &mut self.accounts {
-                    if let Err(error) = accounts.add_account(account) {
-                        return self.update(Message::Error(error, false));
-                    }
-
-                    self.page = Page::Accounts;
+                if let Err(error) = self.accounts.add_account(account) {
+                    return self.update(Message::Error(error, false));
                 }
+
+                self.page = Page::Accounts;
 
                 Command::none()
             }
@@ -267,21 +294,17 @@ impl Launcher {
             Message::AddOfflineAccount => {
                 let account = Account::new_offline(self.offline_account_username.clone());
 
-                if let Ok(accounts) = &mut self.accounts {
-                    if let Err(error) = accounts.add_account(account) {
-                        return self.update(Message::Error(error, false));
-                    }
-
-                    self.page = Page::Accounts;
+                if let Err(error) = self.accounts.add_account(account) {
+                    return self.update(Message::Error(error, false));
                 }
+
+                self.page = Page::Accounts;
 
                 Command::none()
             }
             Message::SelectAccount(account) => {
-                if let Ok(accounts) = &mut self.accounts {
-                    if let Err(error) = accounts.set_active_account(account) {
-                        return self.update(Message::Error(error, false));
-                    }
+                if let Err(error) = self.accounts.set_active_account(account) {
+                    return self.update(Message::Error(error, false));
                 }
 
                 Command::none()
@@ -294,37 +317,31 @@ impl Launcher {
                 }
             }
             Message::RemoveAccount(account) => {
-                if let Ok(accounts) = &mut self.accounts {
-                    let yes = MessageDialog::new()
-                        .set_title("Remove account")
-                        .set_description(&format!(
-                            "Are you sure you want to remove {}?",
-                            account.mc_username
-                        ))
-                        .set_buttons(rfd::MessageButtons::YesNo)
-                        .show();
+                let yes = MessageDialog::new()
+                    .set_title("Remove account")
+                    .set_description(&format!(
+                        "Are you sure you want to remove {}?",
+                        account.mc_username
+                    ))
+                    .set_buttons(rfd::MessageButtons::YesNo)
+                    .show();
 
-                    if yes {
-                        if let Err(error) = accounts.remove_account(&account.mc_id) {
-                            return self.update(Message::Error(error, false));
-                        }
+                if yes {
+                    if let Err(error) = self.accounts.remove_account(&account.mc_id) {
+                        return self.update(Message::Error(error, false));
                     }
                 }
 
                 Command::none()
             }
             Message::SetCheckForUpdates(check_for_updates) => {
-                if let Ok(settings) = &mut self.settings {
-                    settings.check_for_updates = check_for_updates;
-                }
+                self.settings.check_for_updates = check_for_updates;
 
                 Command::none()
             }
             Message::SaveSettings => {
-                if let Ok(settings) = &self.settings {
-                    if let Err(error) = settings.save() {
-                        return self.update(Message::Error(error, false));
-                    }
+                if let Err(error) = self.settings.save() {
+                    return self.update(Message::Error(error, false));
                 }
 
                 Command::none()
