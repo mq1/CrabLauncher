@@ -87,7 +87,7 @@ impl Launcher {
     pub fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ChangePage(page) => {
-                if page == Page::NewInstance {
+                if page == Page::VanillaInstaller {
                     self.vanilla_installer = VanillaInstaller::default();
                     self.page = page;
                     return Command::perform(util::vanilla_installer::get_versions(), Message::GotVersions);
