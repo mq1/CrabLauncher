@@ -3,7 +3,7 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use iced::{Application, Color, Command, Element, executor, Settings, Theme, theme};
+use iced::{Application, Color, Command, Element, executor, Settings, Subscription, Theme, theme};
 
 use crate::types::launcher::Launcher;
 use crate::types::messages::Message;
@@ -57,5 +57,9 @@ impl Application for Launcher {
             primary: Color::from_rgb8(192, 101, 33),
             ..Theme::Dark.palette()
         })
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        self.subscription()
     }
 }

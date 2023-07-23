@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::{clipboard, Command};
+use iced::{clipboard, Command, Subscription};
 use rfd::{MessageButtons, MessageDialog, MessageLevel};
 
 use crate::pages::Page;
@@ -338,5 +338,9 @@ impl Launcher {
                 Command::none()
             }
         }
+    }
+
+    pub fn subscription(&self) -> Subscription<Message> {
+        self.download.subscription()
     }
 }
