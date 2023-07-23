@@ -3,53 +3,45 @@
 
 use iced::{
     Alignment,
-    Command, Element, Length, widget::{button, Column, container, scrollable, text, vertical_space},
+    Element, Length, widget::{button, Column, container, scrollable, text, vertical_space},
 };
 use iced_aw::Wrap;
 
 use crate::{
-    components::icons, Message, pages::no_instances::NoInstances, pages::Page,
-    util::instances::Instances, View,
+    components::icons, Message, pages::no_instances,
+    util::instances::Instance,
 };
+use crate::pages::Page;
 
-impl Page for Instances {
-    type Message = Message;
-
-    fn update(&mut self, _message: Self::Message) -> Command<Self::Message> {
-        Command::none()
+pub fn view(instances: &Vec<Instance>) -> Element<Message> {
+    if instances.is_empty() {
+        return no_instances::view();
     }
 
-    fn view(&self) -> Element<Self::Message> {
-        if self.list.is_empty() {
-            return NoInstances.view();
-        }
+    let mut wrap = Wrap::new().spacing(10.);
+    for (i, instance) in instances.iter().enumerate() {
+        let logo = icons::view_png(icons::GRASS_PNG, 64);
 
-        let mut wrap = Wrap::new().spacing(10.);
-        for instance in &self.list {
-            let logo = icons::view_png(icons::GRASS_PNG, 64);
+        let open_instance = button(
+            Column::new()
+                .push(vertical_space(Length::Fill))
+                .push(logo)
+                .push(text(&instance.name).size(20))
+                .push(vertical_space(Length::Fill))
+                .align_items(Alignment::Center)
+                .spacing(5)
+        )
+            .width(128)
+            .height(128)
+            .on_press(Message::ChangePage(Page::Instance(i)));
 
-            let c = button(
-                Column::new()
-                    .push(vertical_space(Length::Fill))
-                    .push(logo)
-                    .push(text(&instance.name).size(20))
-                    .push(vertical_space(Length::Fill))
-                    .align_items(Alignment::Center)
-                    .spacing(5)
-            )
-                .width(128)
-                .height(128)
-                .on_press(Message::ChangeView(View::Instance(Some(
-                    instance.to_owned(),
-                ))));
-            wrap = wrap.push(container(c));
-        }
-
-        let content = scrollable(wrap).width(Length::Fill).height(Length::Fill);
-
-        Column::new().push(text("Instances").size(30)).push(content)
-            .spacing(10)
-            .padding(10)
-            .into()
+        wrap = wrap.push(container(open_instance));
     }
+
+    let content = scrollable(wrap).width(Length::Fill).height(Length::Fill);
+
+    Column::new().push(text("Instances").size(30)).push(content)
+        .spacing(10)
+        .padding(10)
+        .into()
 }

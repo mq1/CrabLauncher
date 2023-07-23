@@ -4,80 +4,104 @@
 use iced::{
     Alignment,
     Element,
-    Length, theme, widget::{button, Column, container, image, Image, tooltip, vertical_space},
+    Length, theme, widget::{button, Column, container, tooltip, vertical_space},
 };
+use iced::widget::image;
 use iced_aw::Spinner;
 
-use crate::{APP_NAME, components::icons, Message, style, util, View};
+use crate::{components::icons, Message, style};
+use crate::pages::Page;
+use crate::types::generic_error::GenericError;
+use crate::util::accounts::Accounts;
+
+fn change_view_button<'a>(
+    page: Page,
+    current_page: &Page,
+    icon: Element<'static, Message>,
+    tooltip_text: &str,
+) -> Element<'a, Message> {
+    let style = if page == *current_page {
+        style::selected_button()
+    } else {
+        theme::Button::Text
+    };
+
+    tooltip(
+        button(icon)
+            .padding(10)
+            .style(style)
+            .on_press(Message::ChangePage(page)),
+        tooltip_text,
+        tooltip::Position::Right,
+    )
+        .gap(10)
+        .style(theme::Container::Box)
+        .into()
+}
 
 pub fn view<'a>(
-    current_view: &'a View,
-    active_account: &'a Option<util::accounts::Account>,
-    latest_instance: Option<util::instances::Instance>,
+    launcher_name: &'a str,
+    current_page: &'a Page,
+    accounts: &'a Result<Accounts, GenericError>,
 ) -> Element<'a, Message> {
-    let change_view_button =
-        |view: View, icon: Element<'static, Message>, tooltip_text| -> Element<Message> {
-            tooltip(
-                button(icon)
-                    .padding(10)
-                    .style(if &view == current_view {
-                        style::selected_button()
-                    } else {
-                        theme::Button::Text
-                    })
-                    .on_press(Message::ChangeView(view)),
-                tooltip_text,
-                tooltip::Position::Right,
-            )
-                .gap(10)
-                .style(theme::Container::Box)
-                .into()
-        };
+    let account_icon = {
+        if let Ok(accounts) = accounts {
+            if let Some(account) = &accounts.active {
+                if let Some(cached_head) = account.cached_head.to_owned() {
+                    let handle = image::Handle::from_memory(cached_head);
 
-    let account_icon = if let Some(account) = active_account {
-        if let Some(cached_head) = &account.cached_head {
-            let head_handle = image::Handle::from_memory(cached_head.clone());
-            let head = Image::new(head_handle).width(32).height(32);
-
-            head.into()
+                    image(handle)
+                        .width(32)
+                        .height(32)
+                        .into()
+                } else {
+                    Spinner::new().into()
+                }
+            } else {
+                icons::view_custom(icons::ACCOUNT_ALERT_OUTLINE, 32)
+            }
         } else {
-            Spinner::new().into()
+            icons::view_custom(icons::ACCOUNT_ALERT_OUTLINE, 32)
         }
-    } else {
-        icons::view_custom(icons::ACCOUNT_ALERT_OUTLINE, 32)
     };
 
     let col = Column::new()
         .push(change_view_button(
-            View::Instance(latest_instance),
+            Page::LatestInstance,
+            current_page,
             icons::view_custom(icons::PACKAGE_VARIANT, 32),
             "Latest Instance",
         ))
         .push(change_view_button(
-            View::NewInstance,
+            Page::NewInstance,
+            current_page,
             icons::view_custom(icons::VIEW_GRID_PLUS_OUTLINE, 32),
             "New Instance",
         ))
         .push(change_view_button(
-            View::Instances,
+            Page::Instances,
+            current_page,
             icons::view_custom(icons::VIEW_GRID_OUTLINE, 32),
             "Instances",
         ))
         .push(vertical_space(Length::Fill))
         .push(change_view_button(
-            View::Accounts,
+            Page::Accounts,
+            current_page,
             account_icon,
             "Accounts",
         ))
         .push(change_view_button(
-            View::Settings,
+            Page::Settings,
+            current_page,
             icons::view_custom(icons::COG_OUTLINE, 32),
             "Settings",
         ))
         .push(change_view_button(
-            View::About,
+            Page::About,
+            current_page,
             icons::view_custom(icons::INFORMATION_OUTLINE, 32),
-            format!("About {}", APP_NAME).as_str(),
+            &format!("About {}", launcher_name),
         ))
         .align_items(Alignment::Center);
 

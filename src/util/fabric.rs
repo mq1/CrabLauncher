@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use serde::Deserialize;
 
 use crate::{types::generic_error::GenericError, util::{AGENT, DownloadItem, paths::LIBRARIES_DIR}};
+use crate::util::instances::Instance;
 
 #[derive(Deserialize)]
 struct FabricLibrary {
@@ -50,7 +51,7 @@ struct FabricMeta {
     main_class: String,
 }
 
-pub fn download_version(
+fn download(
     minecraft_version: &str,
     fabric_version: &str,
 ) -> Result<Vec<DownloadItem>, GenericError> {
@@ -76,4 +77,15 @@ pub fn download_version(
             })
         })
         .collect()
+}
+
+pub fn install(instance: &mut Instance, fabric_version: &str) -> Result<Vec<DownloadItem>, GenericError> {
+    let minecraft_version = &instance.info.minecraft;
+
+    let downloads = download(minecraft_version, fabric_version)?;
+
+    instance.info.fabric = Some(fabric_version.to_string());
+    instance.save_info()?;
+
+    Ok(downloads)
 }

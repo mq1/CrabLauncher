@@ -3,67 +3,42 @@
 
 use iced::{
     Alignment,
-    Command,
     Element, Length, theme, widget::{
         button, Column, container, horizontal_space, Row, text, toggler, vertical_space,
     },
 };
 
-use crate::{components::icons, pages::Page, style, util::settings::Settings};
+use crate::{components::icons, style, util::settings::Settings};
+use crate::types::messages::Message;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Message {
-    SetCheckForUpdates(bool),
-    SaveSettings,
-}
+pub fn view(settings: &Settings) -> Element<Message> {
+    let mut col = Column::new().padding(10);
 
-impl Page for Settings {
-    type Message = Message;
+    #[cfg(feature = "updater")]
+    {
+        let check_for_updates = toggler(
+            "Automatically check for updates".to_owned(),
+            settings.check_for_updates,
+            Message::SetCheckForUpdates,
+        );
 
-    fn update(&mut self, message: Message) -> Command<Message> {
-        let ret = Command::none();
-
-        match message {
-            Message::SetCheckForUpdates(value) => {
-                self.check_for_updates = value;
-            }
-            Message::SaveSettings => {
-                self.save().unwrap();
-            }
-        }
-
-        ret
+        col = col.push(check_for_updates);
     }
 
-    fn view(&self) -> Element<Message> {
-        let mut settings = Column::new().padding(10);
+    let save_button = button(
+        Row::new().push(text(" Save ")).push(icons::view(icons::CONTENT_SAVE_OUTLINE))
+            .padding(5)
+            .align_items(Alignment::Center),
+    )
+        .style(style::circle_button(theme::Button::Positive))
+        .on_press(Message::SaveSettings);
 
-        #[cfg(feature = "updater")]
-        {
-            let check_for_updates = toggler(
-                "Automatically check for updates".to_owned(),
-                self.check_for_updates,
-                Message::SetCheckForUpdates,
-            );
-
-            settings = settings.push(check_for_updates);
-        }
-
-        let save_button = button(
-            Row::new().push(text(" Save ")).push(icons::view(icons::CONTENT_SAVE_OUTLINE))
-                .padding(5)
-                .align_items(Alignment::Center),
-        )
-            .style(style::circle_button(theme::Button::Positive))
-            .on_press(Message::SaveSettings);
-
-        Column::new()
-            .push(text("Settings").size(30))
-            .push(container(settings).style(style::card()))
-            .push(vertical_space(Length::Fill))
-            .push(Row::new().push(horizontal_space(Length::Fill)).push(save_button))
-            .spacing(10)
-            .padding(10)
-            .into()
-    }
+    Column::new()
+        .push(text("Settings").size(30))
+        .push(container(col).style(style::card()))
+        .push(vertical_space(Length::Fill))
+        .push(Row::new().push(horizontal_space(Length::Fill)).push(save_button))
+        .spacing(10)
+        .padding(10)
+        .into()
 }
