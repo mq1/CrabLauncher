@@ -12,11 +12,8 @@ use crate::{
     style,
     util::accounts::Accounts,
 };
-
+use crate::pages::Page;
 use crate::types::messages::Message;
-
-#[cfg(feature = "offline-accounts")]
-use crate::pages::Page::AddingOfflineAccount;
 
 pub fn view(accounts: &Accounts) -> Element<Message> {
     let mut content = Column::new()
@@ -85,7 +82,7 @@ pub fn view(accounts: &Accounts) -> Element<Message> {
                     .align_items(Alignment::Center)
                     .padding(5)
             )
-                .on_press(Message::ChangePage(AddingOfflineAccount))
+                .on_press(Message::ChangePage(Page::AddingOfflineAccount))
                 .style(style::circle_button(theme::Button::Secondary));
 
             row = row.push(add_offline_account_button);
