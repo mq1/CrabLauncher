@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::sync::Arc;
 use anyhow::{anyhow, Error};
 use iced::{clipboard, Command, Subscription};
 use iced::futures::TryFutureExt;
@@ -244,7 +243,7 @@ impl Launcher {
             }
             Message::CreateInstance => {
                 let name = self.vanilla_installer.name.clone();
-                let version = self.vanilla_installer.selected_version.clone().unwrap();
+                let version = self.vanilla_installer.selected_version.unwrap();
                 let version = self.vanilla_installer.versions[version].clone();
                 let optimize_jvm = self.vanilla_installer.optimize_jvm;
                 let memory = self.vanilla_installer.memory.clone();
@@ -326,7 +325,7 @@ impl Launcher {
                         "Are you sure you want to remove {}?",
                         account.mc_username
                     ))
-                    .set_buttons(rfd::MessageButtons::YesNo)
+                    .set_buttons(MessageButtons::YesNo)
                     .show();
 
                 if yes {
@@ -344,7 +343,6 @@ impl Launcher {
             }
             Message::SaveSettings => {
                 if let Err(error) = self.settings.save() {
-                    let error: Error = error.into();
                     return self.update(Message::Error(error.into(), false));
                 }
 
