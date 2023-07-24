@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs, path::PathBuf};
+use std::fs;
 
-use once_cell::sync::Lazy;
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::{types::generic_error::GenericError};
 use crate::util::paths::SETTINGS_PATH;
 
 #[derive(Serialize, Deserialize)]
@@ -23,7 +22,7 @@ impl Default for Settings {
 }
 
 impl Settings {
-    pub fn load() -> Result<Self, GenericError> {
+    pub fn load() -> Result<Self> {
         if !SETTINGS_PATH.exists() {
             return Ok(Self::default());
         }
@@ -33,7 +32,7 @@ impl Settings {
         Ok(settings)
     }
 
-    pub fn save(&self) -> Result<(), GenericError> {
+    pub fn save(&self) -> Result<()> {
         let settings = toml::to_string_pretty(self)?;
         fs::write(&*SETTINGS_PATH, settings)?;
         Ok(())

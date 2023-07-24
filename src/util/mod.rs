@@ -8,6 +8,7 @@ use std::{
 };
 use std::sync::Arc;
 
+use anyhow::{anyhow, bail, Result};
 use digest::Digest;
 use flate2::bufread::GzDecoder;
 use native_tls::TlsConnector;
@@ -18,8 +19,6 @@ use tar::Archive;
 use tempfile::NamedTempFile;
 use ureq::{Agent, AgentBuilder};
 use zip::ZipArchive;
-
-use crate::types::generic_error::GenericError;
 
 pub mod accounts;
 mod adoptium;
@@ -72,7 +71,7 @@ pub struct DownloadItem {
 }
 
 impl DownloadItem {
-    pub fn download_file(&self) -> Result<(), GenericError> {
+    pub fn download_file(&self) -> Result<()> {
         if self.path.exists() {
             println!("file already exists: {}", self.path.display());
             return Ok(());
@@ -85,7 +84,7 @@ impl DownloadItem {
             let parent = self
                 .path
                 .parent()
-                .ok_or_else(|| GenericError::PathError(self.path.to_owned()))?;
+                .ok_or_else(|| anyhow!("invalid path: {}", self.path.display()))?;
             fs::create_dir_all(parent)?;
         }
 
@@ -119,10 +118,7 @@ impl DownloadItem {
                 archive.unpack(self.path.parent().unwrap())?;
             } else {
                 fs::remove_file(&self.path)?;
-                return Err(GenericError::Generic(format!(
-                    "unsupported archive format: {}",
-                    self.url
-                )));
+                bail!("unsupported archive format: {}", self.url);
             }
 
             fs::remove_file(&file)?;
@@ -134,7 +130,7 @@ impl DownloadItem {
         Ok(())
     }
 
-    pub fn download_json<T: for<'a> serde::Deserialize<'a>>(&self) -> Result<T, GenericError> {
+    pub fn download_json<T: for<'a> serde::Deserialize<'a>>(&self) -> Result<T> {
         if self.path.exists() {
             println!("json already exists: {}", self.path.display());
 
@@ -152,7 +148,7 @@ impl DownloadItem {
             let parent = self
                 .path
                 .parent()
-                .ok_or_else(|| GenericError::PathError(self.path.to_owned()))?;
+                .ok_or_else(|| anyhow!("invalid path: {}", self.path.display()))?;
             fs::create_dir_all(parent)?;
         }
 
@@ -183,7 +179,7 @@ impl DownloadItem {
     }
 }
 
-fn calc_hash<D: Digest>(mut reader: impl Read + Seek) -> Result<String, GenericError> {
+fn calc_hash<D: Digest>(mut reader: impl Read + Seek) -> Result<String> {
     let mut hasher = D::new();
 
     loop {
@@ -201,7 +197,7 @@ fn calc_hash<D: Digest>(mut reader: impl Read + Seek) -> Result<String, GenericE
     Ok(digest)
 }
 
-fn check_hash(reader: impl Read + Seek, hash: &Hash) -> Result<(), GenericError> {
+fn check_hash(reader: impl Read + Seek, hash: &Hash) -> Result<()> {
     println!("checking hash: {:?} {}", hash.function, hash.hash);
 
     let digest = match hash.function {
@@ -211,7 +207,7 @@ fn check_hash(reader: impl Read + Seek, hash: &Hash) -> Result<(), GenericError>
     };
 
     if digest != hash.hash {
-        return Err(GenericError::HashError(hash.hash.clone(), digest));
+        bail!("invalid hash: {}", hash.hash);
     }
 
     Ok(())
@@ -229,7 +225,7 @@ impl DownloadQueue {
         self.0.len()
     }
 
-    pub fn download_next(&mut self) -> Result<bool, GenericError> {
+    pub fn download_next(&mut self) -> Result<bool> {
         if let Some(item) = self.0.pop() {
             item.download_file()?;
             Ok(true)

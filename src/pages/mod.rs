@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use crate::types::generic_error::GenericError;
-
 pub mod root;
 mod about;
 mod status;
@@ -24,7 +22,7 @@ mod adding_offline_account;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Page {
     Status(String),
-    Error(GenericError),
+    Error(String),
     Instances,
     Instance(usize),
     LatestInstance,

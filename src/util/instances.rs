@@ -1,16 +1,14 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs, io, process};
+use std::{fs, process};
 use std::path::PathBuf;
 
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    types::generic_error::GenericError,
-    util::{accounts::Account, adoptium, vanilla_installer},
-};
+use crate::util::{accounts::Account, adoptium, vanilla_installer};
 use crate::util::paths::{ASSETS_DIR, INSTANCES_DIR};
 
 // https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks
@@ -33,7 +31,7 @@ pub struct Instance {
 }
 
 impl Instance {
-    pub fn launch(&self, account: &Account) -> Result<(), GenericError> {
+    pub fn launch(&self, account: &Account) -> Result<()> {
         let version_meta = vanilla_installer::VersionMeta::load(&self.info.minecraft)?;
 
         let java_path = adoptium::get_path("17")?;
@@ -98,19 +96,19 @@ impl Instance {
         Ok(())
     }
 
-    pub fn save_info(&self) -> Result<(), GenericError> {
+    pub fn save_info(&self) -> Result<()> {
         let info_str = toml::to_string_pretty(&self.info)?;
         fs::write(self.path.join("instance.toml"), info_str)?;
 
         Ok(())
     }
 
-    pub fn delete(&self) -> Result<(), GenericError> {
+    pub fn delete(&self) -> Result<()> {
         fs::remove_dir_all(&self.path).map_err(|e| e.into())
     }
 }
 
-pub fn list() -> Result<Vec<Instance>, GenericError> {
+pub fn list() -> Result<Vec<Instance>> {
     let mut list = Vec::new();
 
     for entry in fs::read_dir(&*INSTANCES_DIR)? {
@@ -149,7 +147,7 @@ pub fn new(
     fabric_version: Option<String>,
     optimize_jvm: bool,
     memory: String,
-) -> Result<(), GenericError> {
+) -> Result<()> {
     let path = INSTANCES_DIR.join(&name);
     fs::create_dir(&path)?;
 

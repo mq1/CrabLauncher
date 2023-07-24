@@ -8,12 +8,10 @@ use std::{
     path::PathBuf,
 };
 
+use anyhow::Result;
 use serde::Deserialize;
 
-use crate::{
-    types::generic_error::GenericError,
-    util::{adoptium, DownloadItem, DownloadQueue, Hash, HashAlgorithm},
-};
+use crate::util::{adoptium, DownloadItem, DownloadQueue, Hash, HashAlgorithm};
 use crate::util::paths::{ASSETS_DIR, LIBRARIES_DIR, META_DIR};
 
 #[cfg(target_os = "windows")]
@@ -43,14 +41,14 @@ pub struct Version {
     sha1: String,
 }
 
-pub async fn get_versions() -> Result<Vec<String>, GenericError> {
+pub async fn get_versions() -> Result<Vec<String>> {
     let resp = DownloadItem {
         url: "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json".to_string(),
         path: META_DIR.join("version_manifest_v2.json.new"),
         hash: None,
         extract: false,
     }
-    .download_json::<VersionManifest>()?;
+        .download_json::<VersionManifest>()?;
 
     fs::rename(
         META_DIR.join("version_manifest_v2.json.new"),
@@ -162,7 +160,7 @@ pub struct VersionMeta {
 }
 
 impl VersionMeta {
-    pub fn load(id: &str) -> Result<Self, GenericError> {
+    pub fn load(id: &str) -> Result<Self> {
         let path = META_DIR.join("versions").join(format!("{}.json", id));
         let file = File::open(path)?;
         let reader = BufReader::new(file);
@@ -180,7 +178,7 @@ impl VersionMeta {
             .join(format!("minecraft-{}-client.jar", self.id))
     }
 
-    pub fn get_classpath(&self) -> Result<String, GenericError> {
+    pub fn get_classpath(&self) -> Result<String> {
         let mut paths = vec![self.get_client_path()];
 
         for library in &self.libraries {
@@ -211,7 +209,7 @@ struct AssetIndex {
     objects: HashMap<String, Object>,
 }
 
-pub fn download_version(id: &str) -> Result<DownloadQueue, GenericError> {
+pub fn download_version(id: &str) -> Result<DownloadQueue> {
     let version_manifest = {
         let path = META_DIR.join("version_manifest_v2.json");
         let contents = fs::read_to_string(path)?;
@@ -234,7 +232,7 @@ pub fn download_version(id: &str) -> Result<DownloadQueue, GenericError> {
         }),
         extract: false,
     }
-    .download_json::<VersionMeta>()?;
+        .download_json::<VersionMeta>()?;
 
     let mut download_items = vec![];
 
@@ -262,7 +260,7 @@ pub fn download_version(id: &str) -> Result<DownloadQueue, GenericError> {
         }),
         extract: false,
     }
-    .download_json::<AssetIndex>()?;
+        .download_json::<AssetIndex>()?;
 
     for value in asset_index.objects.into_values() {
         let hash = Hash {

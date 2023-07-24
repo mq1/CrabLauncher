@@ -3,9 +3,10 @@
 
 use std::path::PathBuf;
 
+use anyhow::Result;
 use serde::Deserialize;
 
-use crate::{types::generic_error::GenericError, util::{AGENT, DownloadItem, paths::LIBRARIES_DIR}};
+use crate::util::{AGENT, DownloadItem, paths::LIBRARIES_DIR};
 use crate::util::instances::Instance;
 
 #[derive(Deserialize)]
@@ -54,7 +55,7 @@ struct FabricMeta {
 fn download(
     minecraft_version: &str,
     fabric_version: &str,
-) -> Result<Vec<DownloadItem>, GenericError> {
+) -> Result<Vec<DownloadItem>> {
     let url = format!(
         "https://meta.fabricmc.net/v2/versions/loader/{}/{}/profile/json",
         minecraft_version,
@@ -79,7 +80,7 @@ fn download(
         .collect()
 }
 
-pub fn install(instance: &mut Instance, fabric_version: &str) -> Result<Vec<DownloadItem>, GenericError> {
+pub fn install(instance: &mut Instance, fabric_version: &str) -> Result<Vec<DownloadItem>> {
     let minecraft_version = &instance.info.minecraft;
 
     let downloads = download(minecraft_version, fabric_version)?;

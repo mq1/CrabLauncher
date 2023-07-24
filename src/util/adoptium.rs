@@ -3,13 +3,10 @@
 
 use std::{fs, path::PathBuf};
 
-use once_cell::sync::Lazy;
+use anyhow::{anyhow, bail, Result};
 use serde::Deserialize;
 
-use crate::{
-    types::generic_error::GenericError,
-    util::{DownloadItem, Hash, HashAlgorithm, AGENT},
-};
+use crate::util::{AGENT, DownloadItem, Hash, HashAlgorithm};
 use crate::util::paths::RUNTIMES_DIR;
 
 #[cfg(target_os = "windows")]
@@ -44,7 +41,7 @@ struct Assets {
     release_name: String,
 }
 
-pub fn install(java_version: &str) -> Result<Vec<DownloadItem>, GenericError> {
+pub fn install(java_version: &str) -> Result<Vec<DownloadItem>> {
     let url = format!(
         "https://api.adoptium.net/v3/assets/latest/{}/hotspot?architecture={}&image_type=jre&os={}&vendor=eclipse",
         java_version, ARCH, OS
@@ -79,15 +76,13 @@ pub fn install(java_version: &str) -> Result<Vec<DownloadItem>, GenericError> {
     Ok(download_items)
 }
 
-pub fn get_path(java_version: &str) -> Result<PathBuf, GenericError> {
+pub fn get_path(java_version: &str) -> Result<PathBuf> {
     let dir = RUNTIMES_DIR.join(java_version);
     let runtime_dir = fs::read_dir(&dir)?
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().unwrap().is_dir())
         .next()
-        .ok_or_else(|| {
-            GenericError::Generic(format!("No runtime found for version {java_version}"))
-        })?;
+        .ok_or_else(|| anyhow!("No runtime found for version {}", java_version))?;
     let runtime_dir = runtime_dir.path();
 
     let runtime_path = if cfg!(target_os = "windows") {
@@ -103,10 +98,7 @@ pub fn get_path(java_version: &str) -> Result<PathBuf, GenericError> {
     };
 
     if !runtime_path.exists() {
-        println!("{:?}", runtime_path);
-        return Err(GenericError::Generic(format!(
-            "No runtime found for version {java_version}"
-        )));
+        bail!("No runtime found for version {}", java_version);
     }
 
     Ok(runtime_path)
