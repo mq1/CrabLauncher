@@ -139,8 +139,7 @@ impl Launcher {
                 Command::none()
             }
             Message::OpenURL(url) => {
-                if let Err(error) = open::that(url) {
-                    let error: Error = error.into();
+                if let Err(error) = open::that(url).map_err(Error::from) {
                     self.update(Message::Error(error.into(), false))
                 } else {
                     Command::none()
@@ -311,8 +310,7 @@ impl Launcher {
                 Command::none()
             }
             Message::OpenLoginUrl => {
-                if let Err(error) = open::that(&self.login.url) {
-                    let error: Error = error.into();
+                if let Err(error) = open::that(&self.login.url).map_err(Error::from) {
                     self.update(Message::Error(error.into(), false))
                 } else {
                     clipboard::write(self.login.code.to_owned())
