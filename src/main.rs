@@ -38,18 +38,7 @@ impl Application for Launcher {
     }
 
     fn view(&self) -> Element<Message> {
-        pages::root::view(
-            &self.page,
-            self.name,
-            &self.instances,
-            &self.login,
-            &self.accounts,
-            &self.offline_account_username,
-            &self.vanilla_installer,
-            &self.settings,
-            &self.download,
-            &self.modrinth_modpacks,
-        )
+        pages::root::view(self)
     }
 
     fn theme(&self) -> Self::Theme {

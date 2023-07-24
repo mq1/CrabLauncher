@@ -6,48 +6,31 @@ use iced::widget::Row;
 
 use crate::{components, pages};
 use crate::pages::Page;
-use crate::types::download::Download;
-use crate::types::login::Login;
+use crate::types::launcher::Launcher;
 use crate::types::messages::Message;
-use crate::types::modrinth_modpacks::ModrinthModpacks;
-use crate::types::vanilla_installer::VanillaInstaller;
-use crate::util::accounts::Accounts;
-use crate::util::instances::Instance;
-use crate::util::settings::Settings;
 
-pub fn view<'a>(
-    page: &'a Page,
-    launcher_name: &'static str,
-    instances: &'a Vec<Instance>,
-    login: &'a Login,
-    accounts: &'a Accounts,
-    offline_account_username: &'a str,
-    vanilla_installer: &'a VanillaInstaller,
-    settings: &'a Settings,
-    download: &'a Download,
-    modrinth_modpacks: &'a ModrinthModpacks,
-) -> Element<'a, Message> {
-    let navbar = components::navbar::view(launcher_name, page, accounts);
+pub fn view(launcher: &Launcher) -> Element<Message> {
+    let navbar = components::navbar::view(launcher.name, &launcher.page, &launcher.accounts);
 
-    let page_view = match page {
+    let page_view = match &launcher.page {
         Page::Status(status) => pages::status::view(status),
         Page::Error(err) => pages::error::view(err),
-        Page::About => pages::about::view(launcher_name),
-        Page::LatestInstance => match instances.first() {
+        Page::About => pages::about::view(&launcher.name),
+        Page::LatestInstance => match &launcher.instances.first() {
             Some(instance) => pages::instance::view(instance),
             None => pages::no_instances::view(),
         },
-        Page::Instance(i) => pages::instance::view(&instances[*i]),
-        Page::Instances => pages::instances::view(instances),
+        Page::Instance(i) => pages::instance::view(&launcher.instances[*i]),
+        Page::Instances => pages::instances::view(&launcher.instances),
         Page::NewInstance => pages::new_instance::view(),
-        Page::Accounts => pages::accounts::view(accounts),
-        Page::AddingAccount => pages::login::view(login),
+        Page::Accounts => pages::accounts::view(&launcher.accounts),
+        Page::AddingAccount => pages::login::view(&launcher.login),
         #[cfg(feature = "offline-accounts")]
-        Page::AddingOfflineAccount => pages::adding_offline_account::view(offline_account_username),
-        Page::VanillaInstaller => pages::vanilla_installer::view(vanilla_installer),
-        Page::Settings => pages::settings::view(settings),
-        Page::Download => pages::download::view(download),
-        Page::ModrinthModpacks => pages::modrinth_modpacks::view(modrinth_modpacks),
+        Page::AddingOfflineAccount => pages::adding_offline_account::view(&launcher.offline_account_username),
+        Page::VanillaInstaller => pages::vanilla_installer::view(&launcher.vanilla_installer),
+        Page::Settings => pages::settings::view(&launcher.settings),
+        Page::Download => pages::download::view(&launcher.download),
+        Page::ModrinthModpacks => pages::modrinth_modpacks::view(&launcher.modrinth_modpacks),
     };
 
     Row::new()
