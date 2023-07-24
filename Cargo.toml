@@ -31,7 +31,6 @@ sha1 = "0.10"
 sha2 = "0.10"
 md-5 = { version = "0.10", optional = true }
 digest = "0.10"
-base16ct = { version = "0.2", features = ["alloc"] }
 tempfile = "3.6"
 serde_with = { version = "3.0", features = ["base64"] }
 

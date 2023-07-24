@@ -192,7 +192,7 @@ fn calc_hash<D: Digest>(mut reader: impl Read + Seek) -> Result<String> {
     }
 
     let digest = hasher.finalize();
-    let digest = base16ct::lower::encode_string(&digest);
+    let digest = format!("{:x?}", digest.as_slice());
 
     Ok(digest)
 }
