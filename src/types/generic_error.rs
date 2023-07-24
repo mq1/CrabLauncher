@@ -3,7 +3,10 @@
 
 use std::{fmt, io, num, path::PathBuf};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use oauth2::http;
+use thiserror::Error;
+
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum GenericError {
     Generic(String),
     NetworkError,
@@ -91,7 +94,7 @@ impl From<oauth2::ConfigurationError> for GenericError {
 }
 
 impl<RE: std::error::Error, T: oauth2::ErrorResponse> From<oauth2::RequestTokenError<RE, T>>
-    for GenericError
+for GenericError
 {
     fn from(error: oauth2::RequestTokenError<RE, T>) -> Self {
         dbg!(error);
@@ -113,5 +116,29 @@ impl From<zip::result::ZipError> for GenericError {
         dbg!(error);
 
         Self::ExtractError
+    }
+}
+
+impl From<http::status::InvalidStatusCode> for GenericError {
+    fn from(error: http::status::InvalidStatusCode) -> Self {
+        dbg!(error);
+
+        Self::NetworkError
+    }
+}
+
+impl From<http::header::InvalidHeaderValue> for GenericError {
+    fn from(error: http::header::InvalidHeaderValue) -> Self {
+        dbg!(error);
+
+        Self::NetworkError
+    }
+}
+
+impl From<http::Error> for GenericError {
+    fn from(error: http::Error) -> Self {
+        dbg!(error);
+
+        Self::NetworkError
     }
 }

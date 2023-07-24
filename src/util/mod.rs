@@ -6,9 +6,11 @@ use std::{
     io::{self, BufReader, BufWriter, Read, Seek},
     path::PathBuf,
 };
+use std::sync::Arc;
 
 use digest::Digest;
 use flate2::bufread::GzDecoder;
+use native_tls::TlsConnector;
 use once_cell::sync::Lazy;
 use sha1::Sha1;
 use sha2::{Sha256, Sha512};
@@ -28,9 +30,15 @@ pub mod settings;
 pub mod updater;
 pub mod vanilla_installer;
 pub mod paths;
+mod oauth2_client;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
-pub static AGENT: Lazy<Agent> = Lazy::new(|| AgentBuilder::new().user_agent(USER_AGENT).build());
+pub static AGENT: Lazy<Agent> = Lazy::new(|| {
+    AgentBuilder::new()
+        .user_agent(USER_AGENT)
+        .tls_connector(Arc::new(TlsConnector::new().unwrap()))
+        .build()
+});
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HashAlgorithm {

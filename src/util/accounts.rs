@@ -7,13 +7,14 @@ use chrono::{DateTime, Duration, Utc};
 use oauth2::{
     AuthUrl, basic::BasicClient, ClientId, DeviceAuthorizationUrl,
     devicecode::StandardDeviceAuthorizationResponse, ExtraTokenFields, RefreshToken, Scope, StandardTokenResponse, TokenResponse,
-    TokenType, TokenUrl, ureq::http_client, url,
+    TokenType, TokenUrl, url,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_with::{base64::Base64, serde_as};
 
 use crate::{types::generic_error::GenericError, util::AGENT};
+use crate::util::oauth2_client::http_client;
 use crate::util::paths::ACCOUNTS_PATH;
 
 pub const MSA_DEVICE_AUTH_ENDPOINT: &str =
