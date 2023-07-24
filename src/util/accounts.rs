@@ -55,7 +55,7 @@ impl Account {
         let mc_id = {
             let text = format!("OfflinePlayer:{}", username);
             let hash = Md5::digest(text.as_bytes());
-            base16ct::lower::encode_string(&hash)
+            format!("{:x?}", hash.as_slice())
         };
 
         Self {
