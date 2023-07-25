@@ -14,8 +14,8 @@ pub fn view(launcher: &Launcher) -> Element<Message> {
 
     let page_view = match &launcher.page {
         Page::Status(status) => pages::status::view(status),
-        Page::Error(err) => pages::error::view(err.as_str()),
-        Page::About => pages::about::view(&launcher.name),
+        Page::Error(err) => pages::error::view(err),
+        Page::About => pages::about::view(launcher.name),
         Page::LatestInstance => match &launcher.instances.first() {
             Some(instance) => pages::instance::view(instance),
             None => pages::no_instances::view(),

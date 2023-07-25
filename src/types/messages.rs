@@ -1,10 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::sync::Arc;
-
-use anyhow::Error;
-
 use crate::pages::Page;
 use crate::subscriptions::download;
 use crate::util::accounts::Account;
@@ -14,19 +10,19 @@ use crate::util::modrinth::Projects;
 #[derive(Debug, Clone)]
 pub enum Message {
     ChangePage(Page),
-    Error(Arc<Error>, bool),
+    Error(String, bool),
     OpenURL(String),
-    GotUpdate(Result<Option<(String, String)>, Arc<Error>>),
-    GotAccountHead(Result<Account, Arc<Error>>),
+    GotUpdate(Result<Option<(String, String)>, String>),
+    GotAccountHead(Result<Account, String>),
     UpdateInstances,
-    CreatedInstance(Result<(), Arc<Error>>),
+    CreatedInstance(Result<(), String>),
     LaunchInstance(Instance),
     DeleteInstance(Instance),
     DownloadProgressed(download::Progress),
 
     // Vanilla installer
     GetVersions,
-    GotVersions(Result<Vec<String>, Arc<Error>>),
+    GotVersions(Result<Vec<String>, String>),
     ChangeName(String),
     SetOptimizeJvm(bool),
     SetMemory(String),
@@ -35,7 +31,7 @@ pub enum Message {
 
     // Accounts
     AddAccount,
-    LoggedIn(Result<Account, Arc<Error>>),
+    LoggedIn(Result<Account, String>),
     SelectAccount(Account),
     RemoveAccount(Account),
     OpenLoginUrl,
@@ -50,5 +46,5 @@ pub enum Message {
 
     // Modrinth
     GetModpacks,
-    GotModpacks(Result<Projects, Arc<Error>>),
+    GotModpacks(Result<Projects, String>),
 }
