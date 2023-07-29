@@ -8,8 +8,8 @@ license = "GPL-3.0-only"
 description = "An unofficial launcher for Minecraft: Java Edition"
 
 [dependencies]
-iced = { version = "0.9", features = ["glow", "image", "svg"] }
-iced_aw = { version = "0.5", features = ["glow", "wrap", "floating_element", "spinner"] }
+iced = { version = "0.10", default-features = false, features = ["image", "svg"] }
+iced_aw = { version = "0.6", default-features = false, features = ["wrap", "floating_element", "spinner"] }
 rfd = "0.11"
 ureq = { version = "2.7", default-features = false, features = ["gzip", "json", "native-tls"] }
 native-tls = "0.2"
@@ -31,8 +31,8 @@ sha1 = "0.10"
 sha2 = "0.10"
 md-5 = { version = "0.10", optional = true }
 digest = "0.10"
-tempfile = "3.6"
-serde_with = { version = "3.0", features = ["base64"] }
+tempfile = "3.7"
+serde_with = { version = "3.1", features = ["base64"] }
 
 [features]
 default = ["updater"]

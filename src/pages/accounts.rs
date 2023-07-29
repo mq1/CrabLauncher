@@ -5,7 +5,7 @@ use iced::{
     Alignment,
     Element, Length, theme, widget::{button, Column, container, horizontal_space, Row, scrollable, text, vertical_space},
 };
-use iced_aw::FloatingElement;
+use iced_aw::floating_element;
 
 use crate::{
     components::icons,
@@ -67,7 +67,7 @@ pub fn view(accounts: &Accounts) -> Element<Message> {
             .push(scrollable(others));
     }
 
-    let content = FloatingElement::new(content, || {
+    let content = floating_element(content, {
         let mut row = Row::new()
             .spacing(10)
             .align_items(Alignment::Center)
@@ -97,9 +97,7 @@ pub fn view(accounts: &Accounts) -> Element<Message> {
             .on_press(Message::AddAccount)
             .style(style::circle_button(theme::Button::Primary));
 
-        row
-            .push(add_account_button)
-            .into()
+        row.push(add_account_button)
     });
 
     Column::new()

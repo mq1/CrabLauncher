@@ -21,7 +21,7 @@ impl container::StyleSheet for CardContainerStyle {
 
     fn appearance(&self, style: &Self::Style) -> container::Appearance {
         let mut appearance = style.appearance(&self.theme);
-        appearance.border_radius = 5.0;
+        appearance.border_radius = 5.0.into();
         appearance.border_width = 1.0;
         appearance.border_color = color!(0x3f3f46);
         appearance.background = Some(Background::Color(color!(0x27272a)));
@@ -78,28 +78,28 @@ impl button::StyleSheet for CircleButtonStyle {
 
     fn active(&self, style: &Self::Style) -> button::Appearance {
         let mut appearance = style.active(&self.theme);
-        appearance.border_radius = 200.0;
+        appearance.border_radius = 200.0.into();
 
         appearance
     }
 
     fn hovered(&self, style: &Self::Style) -> button::Appearance {
         let mut appearance = style.hovered(&self.theme);
-        appearance.border_radius = 200.0;
+        appearance.border_radius = 200.0.into();
 
         appearance
     }
 
     fn pressed(&self, style: &Self::Style) -> button::Appearance {
         let mut appearance = style.pressed(&self.theme);
-        appearance.border_radius = 200.0;
+        appearance.border_radius = 200.0.into();
 
         appearance
     }
 
     fn disabled(&self, style: &Self::Style) -> button::Appearance {
         let mut appearance = style.disabled(&self.theme);
-        appearance.border_radius = 200.0;
+        appearance.border_radius = 200.0.into();
 
         appearance
     }

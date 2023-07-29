@@ -26,13 +26,13 @@ pub fn view(instances: &Vec<Instance>) -> Element<Message> {
             Column::new()
                 .push(vertical_space(Length::Fill))
                 .push(logo)
-                .push(text(&instance.name).size(20))
+                .push(text(&instance.name))
                 .push(vertical_space(Length::Fill))
                 .align_items(Alignment::Center)
                 .spacing(5)
         )
             .width(128)
-            .height(128)
+            .height(160)
             .on_press(Message::ChangePage(Page::Instance(i)));
 
         wrap = wrap.push(container(open_instance));
