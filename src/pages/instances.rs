@@ -7,11 +7,7 @@ use iced::{
 };
 use iced_aw::Wrap;
 
-use crate::{
-    components::icons, Message, pages::no_instances,
-    util::instances::Instance,
-};
-use crate::pages::Page;
+use crate::{assets, components::icons, Message, pages::{no_instances, Page}, util::instances::Instance};
 
 pub fn view(instances: &Vec<Instance>) -> Element<Message> {
     if instances.is_empty() {
@@ -20,7 +16,7 @@ pub fn view(instances: &Vec<Instance>) -> Element<Message> {
 
     let mut wrap = Wrap::new().spacing(10.);
     for (i, instance) in instances.iter().enumerate() {
-        let logo = icons::view_png(icons::GRASS_PNG, 64);
+        let logo = icons::view_png(assets::GRASS_PNG, 64);
 
         let open_instance = button(
             Column::new()

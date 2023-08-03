@@ -14,9 +14,14 @@ mod style;
 mod subscriptions;
 mod types;
 mod util;
+pub mod assets;
 
 pub fn main() -> iced::Result {
-    Launcher::run(Settings::default())
+    let mut settings = Settings::default();
+    let icon = iced::window::icon::from_file_data(assets::LOGO_PNG, None).unwrap();
+    settings.window.icon = Some(icon);
+
+    Launcher::run(settings)
 }
 
 impl Application for Launcher {

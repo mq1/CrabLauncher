@@ -7,7 +7,7 @@ use iced::{
 };
 use iced_aw::Wrap;
 
-use crate::{components::icons, Message, pages::Page};
+use crate::{assets, components::icons, Message, pages::Page};
 
 fn installer_button(
     name: &str,
@@ -37,7 +37,7 @@ pub fn view() -> Element<'static, Message> {
     let vanilla_btn = installer_button(
         "Vanilla",
         Page::VanillaInstaller,
-        icons::view_png(icons::GRASS_PNG, 64),
+        icons::view_png(assets::GRASS_PNG, 64),
     );
     wrap = wrap.push(vanilla_btn);
 

@@ -7,10 +7,7 @@ use iced::{
     Length, theme, widget::{button, Column, horizontal_space, row, Row, text, vertical_space},
 };
 
-use crate::{
-    components::{assets, icons},
-    Message, style,
-};
+use crate::{assets, components::icons, Message, style};
 
 const APP_VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 const LICENSE: &str = concat!(env!("CARGO_PKG_LICENSE"), " Licensed");

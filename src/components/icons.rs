@@ -7,7 +7,6 @@ use iced::{
     widget::{image, svg},
 };
 
-pub use crate::components::assets::GRASS_PNG;
 use crate::types::messages::Message;
 
 // Material Design Icons

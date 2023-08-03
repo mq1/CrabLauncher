@@ -3,10 +3,10 @@
 
 use iced::{Alignment, Color, Element, Length, theme, widget::{button, Column, horizontal_space, Row, text, vertical_space}};
 
-use crate::{components::icons, Message, style, util::instances::Instance};
+use crate::{assets, components::icons, Message, style, util::instances::Instance};
 
 pub fn view(instance: &Instance) -> Element<Message> {
-    let image = icons::view_png(icons::GRASS_PNG, 128);
+    let image = icons::view_png(assets::GRASS_PNG, 128);
     let minecraft_version = text(format!("Minecraft {}", instance.info.minecraft))
         .style(theme::Text::Color(Color::from_rgb8(175, 175, 175)));
 
