@@ -8,36 +8,14 @@ license = "GPL-3.0-only"
 description = "An unofficial launcher for Minecraft: Java Edition"
 
 [dependencies]
-iced = { version = "0.10", default-features = false, features = ["image", "svg"] }
-iced_aw = { version = "0.6", default-features = false, features = ["wrap", "floating_element", "spinner"] }
-rfd = "0.11"
-ureq = { version = "2.7", default-features = false, features = ["gzip", "json", "native-tls"] }
-native-tls = "0.2"
+eframe = "0.23"
+egui_extras = { version = "0.23", features = ["all_loaders"] }
+image = { version = "0.24", features = ["png"] }
 anyhow = "1.0"
-thiserror = "1.0"
-open = "5.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-toml = "0.7"
-directories = "5.0"
 once_cell = "1.18"
-chrono = { version = "0.4.26", features = ["serde"] }
-oauth2 = { version = "4.4", default-features = false }
-version-compare = "0.1"
-flate2 = "1.0"
-tar = "0.4"
-zip = { version = "0.6", default-features = false, features = ["deflate"] }
-sha1 = "0.10"
-sha2 = "0.10"
-md-5 = { version = "0.10", optional = true }
-digest = "0.10"
-tempfile = "3.7"
-serde_with = { version = "3.1", features = ["base64"] }
-
-[features]
-default = ["updater"]
-updater = []
-offline-accounts = ["dep:md-5"]
+directories = "5.0"
+open = "5.0"
+egui-modal = "0.2"
 
 [package.metadata.bundle]
 name = "CrabLauncher"

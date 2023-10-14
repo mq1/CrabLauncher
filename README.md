@@ -44,9 +44,7 @@ cargo build --release
 
 ### Are offline/cracked accounts supported?
 
-No.
-
-However, you can build the launcher from source with the `offline-accounts` feature enabled to add offline account support (ONLY FOR TESTING PURPOSES)
+No
 
 ## Thanks
 

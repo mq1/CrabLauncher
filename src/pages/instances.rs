@@ -1,43 +1,60 @@
-// SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuel.quarneti@proton.me>
+// SPDX-License-Identifier: GPL-2.0-only
 
-use iced::{
-    Alignment,
-    Element, Length, widget::{button, Column, container, scrollable, text, vertical_space},
-};
-use iced_aw::Wrap;
+use eframe::egui;
+use egui_modal::Modal;
+use crate::types::instances::{Instances, INSTANCES_DIR};
 
-use crate::{assets, components::icons, Message, pages::{no_instances, Page}, util::instances::Instance};
+pub fn view(ctx: &egui::Context, instances: &Instances) {
+    egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+        ui.add_space(8.);
+        if ui.button("Open instances folder").clicked() {
+            open::that(&*INSTANCES_DIR).unwrap();
+        }
+        ui.add_space(4.);
+    });
 
-pub fn view(instances: &Vec<Instance>) -> Element<Message> {
-    if instances.is_empty() {
-        return no_instances::view();
-    }
+    egui::CentralPanel::default().show(ctx, |ui| {
+        ui.heading("Instances");
 
-    let mut wrap = Wrap::new().spacing(10.);
-    for (i, instance) in instances.iter().enumerate() {
-        let logo = icons::view_png(assets::GRASS_PNG, 64);
+        ui.add_space(8.);
 
-        let open_instance = button(
-            Column::new()
-                .push(vertical_space(Length::Fill))
-                .push(logo)
-                .push(text(&instance.name))
-                .push(vertical_space(Length::Fill))
-                .align_items(Alignment::Center)
-                .spacing(5)
-        )
-            .width(128)
-            .height(160)
-            .on_press(Message::ChangePage(Page::Instance(i)));
+        for instance in &instances.list {
+            ui.group(|ui| {
+                let img = egui::include_image!("../../assets/grass-128x128.png");
+                let img = egui::Image::new(img).max_width(64.).max_height(64.);
 
-        wrap = wrap.push(container(open_instance));
-    }
+                ui.add(img);
+                ui.label(&instance.name);
 
-    let content = scrollable(wrap).width(Length::Fill).height(Length::Fill);
+                ui.button("▶ Play").clicked();
+                ui.button("⚙ Settings").clicked();
 
-    Column::new().push(text("Instances").size(30)).push(content)
-        .spacing(10)
-        .padding(10)
-        .into()
+                let modal = Modal::new(ctx, "delete_instance_modal");
+                modal.show(|ui| {
+                    modal.frame(ui, |ui| {
+                        ui.heading("Delete instance");
+                        ui.add_space(8.);
+                        ui.label("Are you sure you want to delete this instance?");
+                    });
+                    modal.buttons(ui, |ui| {
+                        if ui.button("Cancel").clicked() {
+                            modal.close();
+                        }
+                        if ui.button("🗑 Delete").clicked() {
+                            instance.delete().unwrap();
+                            modal.close();
+                        }
+                    });
+                });
+                if ui.button("🗑 Delete").clicked() {
+                    modal.open();
+                }
+
+                if ui.button("📂 Open folder").clicked() {
+                    instance.open_dir().unwrap();
+                }
+            });
+        }
+    });
 }

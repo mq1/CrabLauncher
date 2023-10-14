@@ -1,5 +1,4 @@
-// SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuel.quarneti@proton.me>
+// SPDX-License-Identifier: GPL-2.0-only
 
-pub mod icons;
-pub mod navbar;
+pub mod navigation_button;

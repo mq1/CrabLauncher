@@ -1,9 +1,5 @@
-// SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuel.quarneti@proton.me>
+// SPDX-License-Identifier: GPL-2.0-only
 
-pub mod messages;
-pub mod launcher;
-pub mod vanilla_installer;
-pub mod login;
-pub mod modrinth_modpacks;
-pub mod download;
+mod instance;
+pub mod instances;
