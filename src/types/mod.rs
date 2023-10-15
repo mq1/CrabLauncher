@@ -3,3 +3,4 @@
 
 mod instance;
 pub mod instances;
+pub mod vanilla_installer;

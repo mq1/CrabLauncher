@@ -7,10 +7,13 @@ use crate::components::navigation_button::navigation_button;
 use crate::pages;
 use crate::pages::Page;
 use crate::types::instances::Instances;
+use crate::types::vanilla_installer::VanillaInstaller;
 
 pub struct App {
     page: Page,
     instances: Instances,
+    vanilla_installer: VanillaInstaller,
+    selected_version: String,
 }
 
 impl App {
@@ -28,6 +31,8 @@ impl App {
         Self {
             page: Page::Instances,
             instances: Instances::new().unwrap(),
+            vanilla_installer: VanillaInstaller::new(),
+            selected_version: String::new(),
         }
     }
 }
@@ -65,6 +70,7 @@ impl eframe::App for App {
                 self.page == Page::NewInstance,
             )).clicked() {
                 self.page = Page::NewInstance;
+                self.vanilla_installer.fetch_versions();
             }
 
             if ui.add(navigation_button(
@@ -82,7 +88,7 @@ impl eframe::App for App {
 
         match self.page {
             Page::Instances => pages::instances::view(ctx, &self.instances),
-            Page::NewInstance => pages::new_instance::view(ctx),
+            Page::NewInstance => pages::new_instance::view(ctx, &self.vanilla_installer, &mut self.selected_version),
             Page::About => pages::about::view(ctx),
         }
     }
