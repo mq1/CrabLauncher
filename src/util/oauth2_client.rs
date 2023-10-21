@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuq01@pm.me>
+// SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
 use std::io;
