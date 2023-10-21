@@ -1,30 +1,11 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-2.0-only
 
+use crate::app::App;
 use eframe::egui;
 use egui_modal::Modal;
 
-use crate::app::App;
-use crate::pages::Page;
-use crate::types::instances::INSTANCES_DIR;
-
-pub fn view(ctx: &egui::Context, app: &mut App) {
-    egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
-        ui.add_space(8.);
-        ui.horizontal(|ui| {
-            if ui.button("📂 Open instances folder").clicked() {
-                open::that(&*INSTANCES_DIR).unwrap();
-            }
-            if ui.button("✨ New Instance").clicked() {
-                if app.vanilla_installer.versions.is_none() {
-                    app.vanilla_installer.fetch_versions();
-                }
-                app.page = Page::NewInstance;
-            }
-        });
-        ui.add_space(4.);
-    });
-
+pub fn instances(ctx: &egui::Context, app: &mut App) {
     egui::CentralPanel::default().show(ctx, |ui| {
         for instance in &app.instances.list {
             ui.group(|ui| {

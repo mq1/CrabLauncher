@@ -12,13 +12,15 @@ use once_cell::sync::Lazy;
 
 use crate::app::App;
 
-mod types;
-mod pages;
-mod components;
 pub mod app;
+mod components;
+mod types;
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    let dir = ProjectDirs::from("eu", "mq1", "CrabLauncher").unwrap().data_dir().to_path_buf();
+    let dir = ProjectDirs::from("eu", "mq1", "CrabLauncher")
+        .unwrap()
+        .data_dir()
+        .to_path_buf();
 
     fs::create_dir_all(&dir).unwrap();
 
