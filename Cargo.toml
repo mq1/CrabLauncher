@@ -9,7 +9,7 @@ description = "An unofficial launcher for Minecraft: Java Edition"
 
 [dependencies]
 iced = { version = "0.10", features = ["image", "svg"] }
-iced_aw = { version = "0.7", features = ["wrap", "floating_element", "spinner"] }
+iced_aw = { version = "0.7", features = ["wrap", "floating_element", "spinner", "card"] }
 rfd = "0.12"
 ureq = { version = "2.8", features = ["gzip", "json", "native-tls"] }
 anyhow = "1.0"

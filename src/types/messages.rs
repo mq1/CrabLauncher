@@ -17,6 +17,7 @@ pub enum Message {
     UpdateInstances,
     CreatedInstance(Result<(), String>),
     LaunchInstance(Instance),
+    OpenInstanceFolder(Instance),
     DeleteInstance(Instance),
     DownloadProgressed(download::Progress),
 

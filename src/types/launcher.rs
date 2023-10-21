@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::{clipboard, Command, Subscription};
 use iced::futures::TryFutureExt;
+use iced::{clipboard, Command, Subscription};
 use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
 
 use crate::pages::Page;
@@ -31,7 +31,12 @@ pub struct Launcher {
 }
 
 fn error_dialog(error: &str) {
-    MessageDialog::new().set_level(MessageLevel::Error).set_title("Error").set_description(error).set_buttons(MessageButtons::Ok).show();
+    MessageDialog::new()
+        .set_level(MessageLevel::Error)
+        .set_title("Error")
+        .set_description(error)
+        .set_buttons(MessageButtons::Ok)
+        .show();
 }
 
 impl Default for Launcher {
@@ -96,10 +101,7 @@ impl Launcher {
             ));
         }
 
-        (
-            launcher,
-            Command::batch(commands),
-        )
+        (launcher, Command::batch(commands))
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -134,10 +136,15 @@ impl Launcher {
                 }
             }
             Message::GotUpdate(Ok(Some((version, url)))) => {
-                let result = MessageDialog::new().set_level(MessageLevel::Info).set_title("Update available").set_description(format!("Version {} is available", version)).set_buttons(MessageButtons::OkCancelCustom(
-                    "Update".to_string(),
-                    "Cancel".to_string(),
-                )).show();
+                let result = MessageDialog::new()
+                    .set_level(MessageLevel::Info)
+                    .set_title("Update available")
+                    .set_description(format!("Version {} is available", version))
+                    .set_buttons(MessageButtons::OkCancelCustom(
+                        "Update".to_string(),
+                        "Cancel".to_string(),
+                    ))
+                    .show();
 
                 if result == MessageDialogResult::Ok {
                     self.update(Message::OpenURL(url))
@@ -149,9 +156,7 @@ impl Launcher {
                 println!("No updates available");
                 Command::none()
             }
-            Message::GotUpdate(Err(error)) => {
-                self.update(Message::Error(error, false))
-            }
+            Message::GotUpdate(Err(error)) => self.update(Message::Error(error, false)),
             Message::GotAccountHead(Ok(account)) => {
                 if let Err(error) = self.accounts.update_account(&account) {
                     return self.update(Message::Error(error.to_string(), false));
@@ -159,25 +164,19 @@ impl Launcher {
 
                 Command::none()
             }
-            Message::GotAccountHead(Err(error)) => {
-                self.update(Message::Error(error, false))
-            }
-            Message::UpdateInstances => {
-                match instances::list() {
-                    Ok(instances) => {
-                        self.instances = instances;
-                        Command::none()
-                    }
-                    Err(error) => self.update(Message::Error(error.to_string(), false))
+            Message::GotAccountHead(Err(error)) => self.update(Message::Error(error, false)),
+            Message::UpdateInstances => match instances::list() {
+                Ok(instances) => {
+                    self.instances = instances;
+                    Command::none()
                 }
-            }
+                Err(error) => self.update(Message::Error(error.to_string(), false)),
+            },
             Message::CreatedInstance(Ok(())) => {
                 self.page = Page::Instances;
                 self.update(Message::UpdateInstances)
             }
-            Message::CreatedInstance(Err(error)) => {
-                self.update(Message::Error(error, true))
-            }
+            Message::CreatedInstance(Err(error)) => self.update(Message::Error(error, true)),
             Message::LaunchInstance(instance) => {
                 if let Some(account) = &self.accounts.active {
                     if let Err(error) = instance.launch(account) {
@@ -189,6 +188,13 @@ impl Launcher {
                     self.update(Message::Error("No account selected".to_string(), false))
                 }
             }
+            Message::OpenInstanceFolder(instance) => {
+                if let Err(error) = instance.open_folder() {
+                    self.update(Message::Error(error.to_string(), false))
+                } else {
+                    Command::none()
+                }
+            }
             Message::DeleteInstance(instance) => {
                 if let Err(error) = instance.delete() {
                     self.update(Message::Error(error.to_string(), true))
@@ -196,19 +202,15 @@ impl Launcher {
                     self.update(Message::UpdateInstances)
                 }
             }
-            Message::GetVersions => {
-                Command::perform(
-                    util::vanilla_installer::get_versions().map_err(|e| e.to_string()),
-                    Message::GotVersions,
-                )
-            }
+            Message::GetVersions => Command::perform(
+                util::vanilla_installer::get_versions().map_err(|e| e.to_string()),
+                Message::GotVersions,
+            ),
             Message::GotVersions(Ok(versions)) => {
                 self.vanilla_installer.versions = versions;
                 Command::none()
             }
-            Message::GotVersions(Err(error)) => {
-                self.update(Message::Error(error, false))
-            }
+            Message::GotVersions(Err(error)) => self.update(Message::Error(error, false)),
             Message::ChangeName(name) => {
                 self.vanilla_installer.name = name;
                 Command::none()
@@ -301,10 +303,14 @@ impl Launcher {
                 }
             }
             Message::RemoveAccount(account) => {
-                let result = MessageDialog::new().set_title("Remove account").set_description(format!(
-                    "Are you sure you want to remove {}?",
-                    account.mc_username
-                )).set_buttons(MessageButtons::YesNo).show();
+                let result = MessageDialog::new()
+                    .set_title("Remove account")
+                    .set_description(format!(
+                        "Are you sure you want to remove {}?",
+                        account.mc_username
+                    ))
+                    .set_buttons(MessageButtons::YesNo)
+                    .show();
 
                 if result == MessageDialogResult::Yes {
                     if let Err(error) = self.accounts.remove_account(&account.mc_id) {
@@ -326,19 +332,15 @@ impl Launcher {
                     Command::none()
                 }
             }
-            Message::GetModpacks => {
-                Command::perform(
-                    util::modrinth::search_modpacks("").map_err(|e| e.to_string()),
-                    Message::GotModpacks,
-                )
-            }
+            Message::GetModpacks => Command::perform(
+                util::modrinth::search_modpacks("").map_err(|e| e.to_string()),
+                Message::GotModpacks,
+            ),
             Message::GotModpacks(Ok(projects)) => {
                 self.modrinth_modpacks.projects = projects.hits;
                 Command::none()
             }
-            Message::GotModpacks(Err(error)) => {
-                self.update(Message::Error(error, false))
-            }
+            Message::GotModpacks(Err(error)) => self.update(Message::Error(error, false)),
             Message::DownloadProgressed(progress) => {
                 self.download.update(progress);
                 Command::none()

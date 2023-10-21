@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use std::{fs, process};
 use std::path::PathBuf;
+use std::{fs, io, process};
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::util::{accounts::Account, adoptium, vanilla_installer};
 use crate::util::paths::{ASSETS_DIR, INSTANCES_DIR};
+use crate::util::{accounts::Account, adoptium, vanilla_installer};
 
 // https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks
 const OPTIMIZED_FLAGS: &str = " -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions -XX:+AlwaysActAsServerClassMachine -XX:+AlwaysPreTouch -XX:+DisableExplicitGC -XX:+UseNUMA -XX:NmethodSweepActivity=1 -XX:ReservedCodeCacheSize=400M -XX:NonNMethodCodeHeapSize=12M -XX:ProfiledCodeHeapSize=194M -XX:NonProfiledCodeHeapSize=194M -XX:-DontCompileHugeMethods -XX:MaxNodeLimit=240000 -XX:NodeLimitFudgeFactor=8000 -XX:+UseVectorCmov -XX:+PerfDisableSharedMem -XX:+UseFastUnorderedTimeStamps -XX:+UseCriticalJavaThreadPriority -XX:ThreadPriorityPolicy=1 -XX:AllocatePrefetchStyle=3 -XX:+UseShenandoahGC -XX:ShenandoahGCMode=iu -XX:ShenandoahGuaranteedGCInterval=1000000 -XX:AllocatePrefetchStyle=1";
@@ -103,6 +103,10 @@ impl Instance {
         Ok(())
     }
 
+    pub fn open_folder(&self) -> io::Result<()> {
+        open::that(&self.path)
+    }
+
     pub fn delete(&self) -> Result<()> {
         fs::remove_dir_all(&self.path).map_err(|e| e.into())
     }
@@ -132,11 +136,7 @@ pub fn list() -> Result<Vec<Instance>> {
     }
 
     // Sort by last played
-    list.sort_by(|a, b| {
-        b.info
-            .last_played
-            .cmp(&a.info.last_played)
-    });
+    list.sort_by(|a, b| b.info.last_played.cmp(&a.info.last_played));
 
     Ok(list)
 }
