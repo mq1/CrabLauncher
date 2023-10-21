@@ -48,7 +48,6 @@ No
 
 ## Thanks
 
-- Héctor Ramón for [iced](https://github.com/iced-rs/iced)
 - [Pictogrammers](https://pictogrammers.com) for Material Design Icons
 - [Crafatar](https://crafatar.com/)
 
