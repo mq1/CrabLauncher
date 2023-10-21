@@ -9,11 +9,15 @@ pub fn instances(ctx: &egui::Context, app: &mut App) {
     egui::CentralPanel::default().show(ctx, |ui| {
         for instance in &app.instances.list {
             ui.group(|ui| {
+                ui.set_max_width(128.);
+
                 let img = egui::include_image!("../../assets/grass-128x128.png");
                 let img = egui::Image::new(img).max_width(64.).max_height(64.);
 
                 ui.add(img);
                 ui.label(&instance.name);
+
+                ui.separator();
 
                 ui.button("▶ Play").clicked();
                 ui.button("⚙ Settings").clicked();
