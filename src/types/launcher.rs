@@ -3,7 +3,7 @@
 
 use iced::{clipboard, Command, Subscription};
 use iced::futures::TryFutureExt;
-use rfd::{MessageButtons, MessageDialog, MessageLevel};
+use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
 
 use crate::pages::Page;
 use crate::types::download::Download;
@@ -31,12 +31,7 @@ pub struct Launcher {
 }
 
 fn error_dialog(error: &str) {
-    MessageDialog::new()
-        .set_level(MessageLevel::Error)
-        .set_title("Error")
-        .set_description(error)
-        .set_buttons(MessageButtons::Ok)
-        .show();
+    MessageDialog::new().set_level(MessageLevel::Error).set_title("Error").set_description(error).set_buttons(MessageButtons::Ok).show();
 }
 
 impl Default for Launcher {
@@ -139,17 +134,12 @@ impl Launcher {
                 }
             }
             Message::GotUpdate(Ok(Some((version, url)))) => {
-                let yes = MessageDialog::new()
-                    .set_level(MessageLevel::Info)
-                    .set_title("Update available")
-                    .set_description(&format!("Version {} is available", version))
-                    .set_buttons(MessageButtons::OkCancelCustom(
-                        "Update".to_string(),
-                        "Cancel".to_string(),
-                    ))
-                    .show();
+                let result = MessageDialog::new().set_level(MessageLevel::Info).set_title("Update available").set_description(format!("Version {} is available", version)).set_buttons(MessageButtons::OkCancelCustom(
+                    "Update".to_string(),
+                    "Cancel".to_string(),
+                )).show();
 
-                if yes {
+                if result == MessageDialogResult::Ok {
                     self.update(Message::OpenURL(url))
                 } else {
                     Command::none()
@@ -311,16 +301,12 @@ impl Launcher {
                 }
             }
             Message::RemoveAccount(account) => {
-                let yes = MessageDialog::new()
-                    .set_title("Remove account")
-                    .set_description(&format!(
-                        "Are you sure you want to remove {}?",
-                        account.mc_username
-                    ))
-                    .set_buttons(MessageButtons::YesNo)
-                    .show();
+                let result = MessageDialog::new().set_title("Remove account").set_description(format!(
+                    "Are you sure you want to remove {}?",
+                    account.mc_username
+                )).set_buttons(MessageButtons::YesNo).show();
 
-                if yes {
+                if result == MessageDialogResult::Yes {
                     if let Err(error) = self.accounts.remove_account(&account.mc_id) {
                         return self.update(Message::Error(error.to_string(), false));
                     }
