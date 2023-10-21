@@ -62,7 +62,7 @@ impl Default for Launcher {
 
         Self {
             name: "CrabLauncher",
-            page: Page::LatestInstance,
+            page: Page::Instances,
             instances,
             settings,
             accounts,
@@ -172,7 +172,7 @@ impl Launcher {
                 }
             }
             Message::CreatedInstance(Ok(())) => {
-                self.page = Page::LatestInstance;
+                self.page = Page::Instances;
                 self.update(Message::UpdateInstances)
             }
             Message::CreatedInstance(Err(error)) => {
@@ -235,7 +235,7 @@ impl Launcher {
                 if let Err(error) = instances::new(name, version, None, optimize_jvm, memory) {
                     self.update(Message::Error(error.to_string(), true))
                 } else {
-                    self.page = Page::LatestInstance;
+                    self.page = Page::Instances;
                     self.vanilla_installer = VanillaInstaller::default();
                     self.update(Message::UpdateInstances)
                 }

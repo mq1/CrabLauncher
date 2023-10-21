@@ -4,7 +4,6 @@
 pub mod root;
 mod about;
 mod status;
-mod instance;
 mod error;
 mod no_instances;
 mod instances;
@@ -24,8 +23,6 @@ pub enum Page {
     Status(String),
     Error(String),
     Instances,
-    Instance(usize),
-    LatestInstance,
     NewInstance,
     VanillaInstaller,
     Settings,

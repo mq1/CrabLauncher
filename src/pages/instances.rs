@@ -7,7 +7,7 @@ use iced::{
 };
 use iced_aw::Wrap;
 
-use crate::{assets, components::icons, Message, pages::{no_instances, Page}, util::instances::Instance};
+use crate::{assets, components::icons, Message, pages::{no_instances, Page}, style, util::instances::Instance};
 
 pub fn view(instances: &Vec<Instance>) -> Element<Message> {
     if instances.is_empty() {
@@ -18,20 +18,19 @@ pub fn view(instances: &Vec<Instance>) -> Element<Message> {
     for (i, instance) in instances.iter().enumerate() {
         let logo = icons::view_png(assets::GRASS_PNG, 64);
 
-        let open_instance = button(
+        let col =
             Column::new()
-                .push(vertical_space(Length::Fill))
                 .push(logo)
                 .push(text(&instance.name))
-                .push(vertical_space(Length::Fill))
+                .push(button("Play").width(Length::Fill))
+                .push(button("Edit").width(Length::Fill))
+                .push(button("Delete").width(Length::Fill))
+                .push(button("Open Folder").width(Length::Fill))
                 .align_items(Alignment::Center)
                 .spacing(5)
-        )
-            .width(128)
-            .height(160)
-            .on_press(Message::ChangePage(Page::Instance(i)));
+                .width(128);
 
-        wrap = wrap.push(container(open_instance));
+        wrap = wrap.push(container(col).padding(10).style(style::card()));
     }
 
     let content = scrollable(wrap).width(Length::Fill).height(Length::Fill);

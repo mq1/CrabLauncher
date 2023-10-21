@@ -62,22 +62,16 @@ pub fn view<'a>(
 
     let col = Column::new()
         .push(change_view_button(
-            Page::LatestInstance,
+            Page::Instances,
             current_page,
-            icons::view_custom(icons::PACKAGE_VARIANT, 32),
-            "Latest Instance",
+            icons::view_custom(icons::VIEW_GRID_OUTLINE, 32),
+            "Instances",
         ))
         .push(change_view_button(
             Page::NewInstance,
             current_page,
             icons::view_custom(icons::VIEW_GRID_PLUS_OUTLINE, 32),
             "New Instance",
-        ))
-        .push(change_view_button(
-            Page::Instances,
-            current_page,
-            icons::view_custom(icons::VIEW_GRID_OUTLINE, 32),
-            "Instances",
         ))
         .push(vertical_space(Length::Fill))
         .push(change_view_button(
