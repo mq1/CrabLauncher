@@ -1,10 +1,8 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::{
-    Alignment,
-    Element, Length, widget::{button, Column, container, scrollable, text, vertical_space},
-};
+use iced::{Alignment, Element, Length, theme, widget::{button, Column, container, scrollable, text, vertical_space}};
+use iced::widget::Row;
 use iced_aw::Wrap;
 
 use crate::{assets, components::icons, Message, pages::{no_instances, Page}, style, util::instances::Instance};
@@ -15,20 +13,24 @@ pub fn view(instances: &Vec<Instance>) -> Element<Message> {
     }
 
     let mut wrap = Wrap::new().spacing(10.);
-    for (i, instance) in instances.iter().enumerate() {
+    for instance in instances {
         let logo = icons::view_png(assets::GRASS_PNG, 64);
+
+        let actions = Row::new()
+            .push(button(icons::view(icons::PLAY_OUTLINE)).style(style::circle_button(theme::Button::Secondary)))
+            .push(button(icons::view(icons::COG_OUTLINE)).style(style::circle_button(theme::Button::Secondary)))
+            .push(button(icons::view(icons::DELETE_OUTLINE)).style(style::circle_button(theme::Button::Secondary)))
+            .push(button(icons::view(icons::FOLDER_OPEN_OUTLINE)).style(style::circle_button(theme::Button::Secondary)))
+            .spacing(5);
 
         let col =
             Column::new()
                 .push(logo)
                 .push(text(&instance.name))
-                .push(button("Play").width(Length::Fill))
-                .push(button("Edit").width(Length::Fill))
-                .push(button("Delete").width(Length::Fill))
-                .push(button("Open Folder").width(Length::Fill))
+                .push(vertical_space(5))
+                .push(actions)
                 .align_items(Alignment::Center)
-                .spacing(5)
-                .width(128);
+                .spacing(5);
 
         wrap = wrap.push(container(col).padding(10).style(style::card()));
     }
