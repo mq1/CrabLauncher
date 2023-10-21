@@ -23,6 +23,7 @@ pub fn view(instances: &Vec<Instance>) -> Element<Message> {
             .push(horizontal_space(Length::Fill))
             .push(
                 button(icons::view(icons::PLAY_OUTLINE))
+                    .on_press(Message::LaunchInstance(instance.clone()))
                     .style(style::circle_button(theme::Button::Secondary)),
             )
             .push(
@@ -31,6 +32,7 @@ pub fn view(instances: &Vec<Instance>) -> Element<Message> {
             )
             .push(
                 button(icons::view(icons::DELETE_OUTLINE))
+                    .on_press(Message::DeleteInstance(instance.clone()))
                     .style(style::circle_button(theme::Button::Secondary)),
             )
             .push(

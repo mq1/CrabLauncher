@@ -117,7 +117,6 @@ impl Launcher {
                 }
 
                 self.page = page;
-                Command::none()
             }
             Message::Error(error, fatal) => {
                 if fatal {
@@ -125,14 +124,10 @@ impl Launcher {
                 } else {
                     error_dialog(&error);
                 }
-
-                Command::none()
             }
             Message::OpenURL(url) => {
                 if let Err(error) = open::that(url) {
-                    self.update(Message::Error(error.to_string(), false))
-                } else {
-                    Command::none()
+                    return self.update(Message::Error(error.to_string(), false));
                 }
             }
             Message::GotUpdate(Ok(Some((version, url)))) => {
@@ -147,85 +142,93 @@ impl Launcher {
                     .show();
 
                 if result == MessageDialogResult::Ok {
-                    self.update(Message::OpenURL(url))
-                } else {
-                    Command::none()
+                    return self.update(Message::OpenURL(url));
                 }
             }
             Message::GotUpdate(Ok(None)) => {
                 println!("No updates available");
-                Command::none()
             }
-            Message::GotUpdate(Err(error)) => self.update(Message::Error(error, false)),
+            Message::GotUpdate(Err(error)) => {
+                return self.update(Message::Error(error, false));
+            }
             Message::GotAccountHead(Ok(account)) => {
                 if let Err(error) = self.accounts.update_account(&account) {
                     return self.update(Message::Error(error.to_string(), false));
                 }
-
-                Command::none()
             }
-            Message::GotAccountHead(Err(error)) => self.update(Message::Error(error, false)),
+            Message::GotAccountHead(Err(error)) => {
+                return self.update(Message::Error(error, false));
+            }
             Message::UpdateInstances => match instances::list() {
                 Ok(instances) => {
                     self.instances = instances;
-                    Command::none()
                 }
-                Err(error) => self.update(Message::Error(error.to_string(), false)),
+                Err(error) => {
+                    return self.update(Message::Error(error.to_string(), false));
+                }
             },
             Message::CreatedInstance(Ok(())) => {
                 self.page = Page::Instances;
-                self.update(Message::UpdateInstances)
+                return self.update(Message::UpdateInstances);
             }
-            Message::CreatedInstance(Err(error)) => self.update(Message::Error(error, true)),
+            Message::CreatedInstance(Err(error)) => {
+                return self.update(Message::Error(error, true));
+            }
             Message::LaunchInstance(instance) => {
                 if let Some(account) = &self.accounts.active {
                     if let Err(error) = instance.launch(account) {
-                        self.update(Message::Error(error.to_string(), true))
-                    } else {
-                        Command::none()
+                        return self.update(Message::Error(error.to_string(), true));
                     }
                 } else {
-                    self.update(Message::Error("No account selected".to_string(), false))
+                    return self.update(Message::Error("No account selected".to_string(), false));
                 }
             }
             Message::OpenInstanceFolder(instance) => {
                 if let Err(error) = instance.open_folder() {
-                    self.update(Message::Error(error.to_string(), false))
-                } else {
-                    Command::none()
+                    return self.update(Message::Error(error.to_string(), false));
                 }
             }
             Message::DeleteInstance(instance) => {
-                if let Err(error) = instance.delete() {
-                    self.update(Message::Error(error.to_string(), true))
-                } else {
-                    self.update(Message::UpdateInstances)
+                let result = MessageDialog::new()
+                    .set_title("Delete instance")
+                    .set_description(format!(
+                        "Are you sure you want to delete {}?",
+                        instance.name
+                    ))
+                    .set_buttons(MessageButtons::YesNo)
+                    .show();
+
+                if result == MessageDialogResult::Yes {
+                    return if let Err(error) = instance.delete() {
+                        self.update(Message::Error(error.to_string(), true))
+                    } else {
+                        self.update(Message::UpdateInstances)
+                    };
                 }
             }
-            Message::GetVersions => Command::perform(
-                util::vanilla_installer::get_versions().map_err(|e| e.to_string()),
-                Message::GotVersions,
-            ),
+            Message::GetVersions => {
+                return Command::perform(
+                    util::vanilla_installer::get_versions().map_err(|e| e.to_string()),
+                    Message::GotVersions,
+                );
+            }
             Message::GotVersions(Ok(versions)) => {
                 self.vanilla_installer.versions = versions;
-                Command::none()
             }
-            Message::GotVersions(Err(error)) => self.update(Message::Error(error, false)),
+            Message::GotVersions(Err(error)) => {
+                return self.update(Message::Error(error, false));
+            }
             Message::ChangeName(name) => {
                 self.vanilla_installer.name = name;
-                Command::none()
             }
             Message::SetOptimizeJvm(optimize_jvm) => {
                 self.vanilla_installer.optimize_jvm = optimize_jvm;
-                Command::none()
             }
             Message::SetMemory(memory) => {
                 self.vanilla_installer.memory = memory;
-                Command::none()
             }
             Message::SelectVersion(index) => {
                 self.vanilla_installer.selected_version = Some(index);
-                Command::none()
             }
             Message::CreateInstance => {
                 let name = self.vanilla_installer.name.clone();
@@ -235,11 +238,11 @@ impl Launcher {
                 let memory = self.vanilla_installer.memory.clone();
 
                 if let Err(error) = instances::new(name, version, None, optimize_jvm, memory) {
-                    self.update(Message::Error(error.to_string(), true))
+                    return self.update(Message::Error(error.to_string(), true));
                 } else {
                     self.page = Page::Instances;
                     self.vanilla_installer = VanillaInstaller::default();
-                    self.update(Message::UpdateInstances)
+                    return self.update(Message::UpdateInstances);
                 }
             }
             Message::AddAccount => {
@@ -250,31 +253,29 @@ impl Launcher {
                 self.login.code = details.user_code().secret().to_string();
                 self.page = Page::AddingAccount;
 
-                Command::perform(
+                return Command::perform(
                     Accounts::get_account(client, details).map_err(|e| e.to_string()),
                     Message::LoggedIn,
-                )
+                );
             }
             Message::LoggedIn(Ok(account)) => {
                 self.login = Login::default();
 
                 if let Err(error) = self.accounts.add_account(account) {
-                    self.update(Message::Error(error.to_string(), false))
+                    return self.update(Message::Error(error.to_string(), false));
                 } else {
                     self.page = Page::Accounts;
-                    Command::none()
                 }
             }
             Message::LoggedIn(Err(error)) => {
                 self.login = Login::default();
                 self.page = Page::Accounts;
 
-                self.update(Message::Error(error, false))
+                return self.update(Message::Error(error, false));
             }
             #[cfg(feature = "offline-accounts")]
             Message::OfflineAccountUsernameChanged(username) => {
                 self.offline_account_username = username;
-                Command::none()
             }
             #[cfg(feature = "offline-accounts")]
             Message::AddOfflineAccount => {
@@ -282,24 +283,20 @@ impl Launcher {
 
                 if let Err(error) = self.accounts.add_account(account) {
                     return self.update(Message::Error(error.to_string(), false));
+                } else {
+                    self.page = Page::Accounts;
                 }
-
-                self.page = Page::Accounts;
-
-                Command::none()
             }
             Message::SelectAccount(account) => {
                 if let Err(error) = self.accounts.set_active_account(account) {
                     return self.update(Message::Error(error.to_string(), false));
                 }
-
-                Command::none()
             }
             Message::OpenLoginUrl => {
                 if let Err(error) = open::that(&self.login.url) {
-                    self.update(Message::Error(error.to_string(), false))
+                    return self.update(Message::Error(error.to_string(), false));
                 } else {
-                    clipboard::write(self.login.code.to_owned())
+                    return clipboard::write(self.login.code.to_owned());
                 }
             }
             Message::RemoveAccount(account) => {
@@ -317,35 +314,33 @@ impl Launcher {
                         return self.update(Message::Error(error.to_string(), false));
                     }
                 }
-
-                Command::none()
             }
             Message::SetCheckForUpdates(check_for_updates) => {
                 self.settings.check_for_updates = check_for_updates;
-
-                Command::none()
             }
             Message::SaveSettings => {
                 if let Err(error) = self.settings.save() {
-                    self.update(Message::Error(error.to_string(), false))
-                } else {
-                    Command::none()
+                    return self.update(Message::Error(error.to_string(), false));
                 }
             }
-            Message::GetModpacks => Command::perform(
-                util::modrinth::search_modpacks("").map_err(|e| e.to_string()),
-                Message::GotModpacks,
-            ),
+            Message::GetModpacks => {
+                return Command::perform(
+                    util::modrinth::search_modpacks("").map_err(|e| e.to_string()),
+                    Message::GotModpacks,
+                );
+            }
             Message::GotModpacks(Ok(projects)) => {
                 self.modrinth_modpacks.projects = projects.hits;
-                Command::none()
             }
-            Message::GotModpacks(Err(error)) => self.update(Message::Error(error, false)),
+            Message::GotModpacks(Err(error)) => {
+                return self.update(Message::Error(error, false));
+            }
             Message::DownloadProgressed(progress) => {
                 self.download.update(progress);
-                Command::none()
             }
         }
+
+        Command::none()
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
