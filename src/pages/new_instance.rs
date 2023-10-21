@@ -7,11 +7,11 @@ use crate::types::vanilla_installer::VanillaInstaller;
 
 pub fn view(ctx: &egui::Context, vanilla_installer: &VanillaInstaller, selected_version: &mut String) {
     egui::CentralPanel::default().show(ctx, |ui| {
-        ui.heading("New Instance");
+        ui.heading("Name");
 
         ui.separator();
 
-        ui.label("Version:");
+        ui.heading("Version");
 
         egui::ComboBox::from_id_source("version_selector").selected_text(selected_version.as_str()).show_ui(ui, move |ui| {
             if let Some(versions) = &vanilla_installer.versions {

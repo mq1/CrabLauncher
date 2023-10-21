@@ -3,23 +3,30 @@
 
 use eframe::egui;
 use egui_modal::Modal;
-use crate::types::instances::{Instances, INSTANCES_DIR};
 
-pub fn view(ctx: &egui::Context, instances: &Instances) {
+use crate::app::App;
+use crate::pages::Page;
+use crate::types::instances::INSTANCES_DIR;
+
+pub fn view(ctx: &egui::Context, app: &mut App) {
     egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
         ui.add_space(8.);
-        if ui.button("Open instances folder").clicked() {
-            open::that(&*INSTANCES_DIR).unwrap();
-        }
+        ui.horizontal(|ui| {
+            if ui.button("📂 Open instances folder").clicked() {
+                open::that(&*INSTANCES_DIR).unwrap();
+            }
+            if ui.button("✨ New Instance").clicked() {
+                if app.vanilla_installer.versions.is_none() {
+                    app.vanilla_installer.fetch_versions();
+                }
+                app.page = Page::NewInstance;
+            }
+        });
         ui.add_space(4.);
     });
 
     egui::CentralPanel::default().show(ctx, |ui| {
-        ui.heading("Instances");
-
-        ui.add_space(8.);
-
-        for instance in &instances.list {
+        for instance in &app.instances.list {
             ui.group(|ui| {
                 let img = egui::include_image!("../../assets/grass-128x128.png");
                 let img = egui::Image::new(img).max_width(64.).max_height(64.);
