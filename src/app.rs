@@ -12,7 +12,6 @@ use crate::types::vanilla_installer::VanillaInstaller;
 pub struct App {
     pub instances: Instances,
     pub vanilla_installer: VanillaInstaller,
-    pub selected_version: String,
 }
 
 impl App {
@@ -27,7 +26,6 @@ impl App {
         Self {
             instances: Instances::new().unwrap(),
             vanilla_installer: VanillaInstaller::new(),
-            selected_version: String::new(),
         }
     }
 }

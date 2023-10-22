@@ -9,12 +9,11 @@ const LICENSE: &str = concat!(env!("CARGO_PKG_LICENSE"), " Licensed");
 const COPYRIGHT: &str = concat!("Copyright © 2023 ", env!("CARGO_PKG_AUTHORS"));
 const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 
-pub fn about(ctx: &egui::Context) -> Modal {
+pub fn about_modal(ctx: &egui::Context) -> Modal {
     let modal = Modal::new(ctx, "about_modal");
     modal.show(|ui| {
+        modal.title(ui, APP_VERSION);
         modal.frame(ui, |ui| {
-            ui.heading(APP_VERSION);
-            ui.add_space(16.);
             ui.label(LICENSE);
             ui.add_space(8.);
             ui.label(COPYRIGHT);

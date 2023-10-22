@@ -7,3 +7,4 @@ pub mod instances;
 pub mod navbar;
 pub mod navigation_button;
 pub mod settings;
+pub mod vanilla_installer;

@@ -1,19 +1,19 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-2.0-only
 
-use crate::components::about::about;
+use crate::components::about::about_modal;
 use crate::components::navigation_button::navigation_button;
-use crate::components::settings::settings;
+use crate::components::settings::settings_modal;
 use eframe::egui;
 
 pub fn navbar(ctx: &egui::Context) {
+    let about_modal = about_modal(ctx);
+    let settings_modal = settings_modal(ctx);
+
     // disable panel separators
     ctx.style_mut(|style| {
         style.visuals.widgets.noninteractive.bg_stroke.color = egui::Color32::TRANSPARENT;
     });
-
-    let about_modal = about(ctx);
-    let settings_modal = settings(ctx);
 
     let mut navbar_frame = egui::Frame::none();
     navbar_frame.fill = egui::Color32::from_rgb(23, 23, 23);
