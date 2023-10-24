@@ -6,7 +6,6 @@ use std::{
     io::{self, BufReader, BufWriter, Read, Seek},
     path::PathBuf,
 };
-use std::sync::Arc;
 
 use anyhow::{anyhow, bail, Result};
 use digest::Digest;
@@ -24,18 +23,13 @@ mod adoptium;
 mod fabric;
 pub mod instances;
 pub mod modrinth;
+pub mod paths;
 pub mod settings;
 pub mod updater;
 pub mod vanilla_installer;
-pub mod paths;
-mod oauth2_client;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
-pub static AGENT: Lazy<Agent> = Lazy::new(|| {
-    AgentBuilder::new()
-        .user_agent(USER_AGENT)
-        .build()
-});
+pub static AGENT: Lazy<Agent> = Lazy::new(|| AgentBuilder::new().user_agent(USER_AGENT).build());
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HashAlgorithm {

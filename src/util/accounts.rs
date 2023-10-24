@@ -4,19 +4,19 @@
 use std::{fs, io, thread};
 
 use anyhow::Result;
-use chrono::{DateTime, Duration, Utc};
+use oauth2::ureq::http_client;
 use oauth2::{
-    AuthUrl, basic::BasicClient, ClientId, DeviceAuthorizationUrl,
-    devicecode::StandardDeviceAuthorizationResponse, ExtraTokenFields, RefreshToken, Scope, StandardTokenResponse, TokenResponse,
-    TokenType, TokenUrl, url,
+    basic::BasicClient, devicecode::StandardDeviceAuthorizationResponse, url, AuthUrl, ClientId,
+    DeviceAuthorizationUrl, ExtraTokenFields, RefreshToken, Scope, StandardTokenResponse,
+    TokenResponse, TokenType, TokenUrl,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_with::{base64::Base64, serde_as};
+use time::{Duration, OffsetDateTime};
 
-use crate::util::AGENT;
-use crate::util::oauth2_client::http_client;
 use crate::util::paths::ACCOUNTS_PATH;
+use crate::util::AGENT;
 
 pub const MSA_DEVICE_AUTH_ENDPOINT: &str =
     "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode";
@@ -39,12 +39,12 @@ pub struct Account {
     pub mc_id: String,
     pub mc_access_token: String,
     pub mc_username: String,
-    pub token_time: Option<DateTime<Utc>>,
+    pub token_time: Option<OffsetDateTime>,
 
     #[serde_as(as = "Option<Base64>")]
     pub cached_head: Option<Vec<u8>>,
 
-    cached_head_time: Option<DateTime<Utc>>,
+    cached_head_time: Option<OffsetDateTime>,
 }
 
 impl Account {
@@ -71,8 +71,10 @@ impl Account {
 }
 
 pub async fn get_head(mut account: Account) -> Result<Account> {
+    let now = OffsetDateTime::now_utc();
+
     if let Some(time) = &account.cached_head_time {
-        if Utc::now() < *time + Duration::minutes(5) {
+        if now < *time + Duration::minutes(5) {
             return Ok(account);
         }
     }
@@ -85,7 +87,7 @@ pub async fn get_head(mut account: Account) -> Result<Account> {
     io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
 
     account.cached_head = Some(bytes);
-    account.cached_head_time = Some(Utc::now());
+    account.cached_head_time = Some(now);
 
     Ok(account)
 }
@@ -171,9 +173,7 @@ impl Accounts {
         Ok(client)
     }
 
-    pub fn get_details(
-        client: &BasicClient,
-    ) -> Result<StandardDeviceAuthorizationResponse> {
+    pub fn get_details(client: &BasicClient) -> Result<StandardDeviceAuthorizationResponse> {
         let scopes = SCOPES
             .iter()
             .map(|s| Scope::new(s.to_string()))
@@ -197,7 +197,9 @@ impl Accounts {
             None,
         )?;
 
-        let account = get_minecraft_account_data(&token)?;
+        let now = OffsetDateTime::now_utc();
+
+        let account = get_minecraft_account_data(&token, now)?;
 
         Ok(account)
     }
@@ -223,8 +225,10 @@ impl Accounts {
     }
 
     pub fn refresh_account(&mut self, account: Account) -> Result<Account> {
+        let now = OffsetDateTime::now_utc();
+
         if let Some(token_time) = account.token_time {
-            if Utc::now() < token_time + Duration::minutes(30) {
+            if now < token_time + Duration::minutes(30) {
                 return Ok(account);
             }
         }
@@ -236,7 +240,7 @@ impl Accounts {
                 .exchange_refresh_token(&refresh_token)
                 .request(http_client)?;
 
-            let account = get_minecraft_account_data(&token)?;
+            let account = get_minecraft_account_data(&token, now)?;
 
             self.update_account(&account)?;
 
@@ -249,6 +253,7 @@ impl Accounts {
 
 pub fn get_minecraft_account_data<A: ExtraTokenFields, B: TokenType>(
     token: &StandardTokenResponse<A, B>,
+    now: OffsetDateTime,
 ) -> Result<Account, ureq::Error> {
     // Authenticate with Xbox Live
 
@@ -358,7 +363,7 @@ pub fn get_minecraft_account_data<A: ExtraTokenFields, B: TokenType>(
         mc_id: minecraft_profile.id,
         mc_access_token: minecraft_response.access_token,
         mc_username: minecraft_profile.name,
-        token_time: Some(Utc::now()),
+        token_time: Some(now),
         cached_head: None,
         cached_head_time: None,
     };

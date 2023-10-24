@@ -152,7 +152,7 @@ pub fn new(
     fs::create_dir(&path)?;
 
     let info = InstanceInfo {
-        last_played: OffsetDateTime::now_local()?,
+        last_played: OffsetDateTime::now_utc(),
         minecraft: minecraft_version,
         fabric: fabric_version,
         optimize_jvm,
