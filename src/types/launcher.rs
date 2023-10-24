@@ -188,6 +188,11 @@ impl Launcher {
                     return self.update(Message::Error(error.to_string(), false));
                 }
             }
+            Message::OpenInstanceConfig(instance) => {
+                if let Err(error) = instance.open_config() {
+                    return self.update(Message::Error(error.to_string(), false));
+                }
+            }
             Message::DeleteInstance(instance) => {
                 let result = MessageDialog::new()
                     .set_title("Delete instance")

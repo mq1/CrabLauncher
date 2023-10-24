@@ -28,6 +28,7 @@ pub fn view(instances: &Vec<Instance>) -> Element<Message> {
             )
             .push(
                 button(icons::view(icons::COG_OUTLINE))
+                    .on_press(Message::OpenInstanceConfig(instance.clone()))
                     .style(style::circle_button(theme::Button::Secondary)),
             )
             .push(

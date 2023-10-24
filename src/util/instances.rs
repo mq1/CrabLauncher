@@ -107,6 +107,10 @@ impl Instance {
         open::that(&self.path)
     }
 
+    pub fn open_config(&self) -> io::Result<()> {
+        open::that(self.path.join("instance.toml"))
+    }
+
     pub fn delete(&self) -> Result<()> {
         fs::remove_dir_all(&self.path).map_err(|e| e.into())
     }
