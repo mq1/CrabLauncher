@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use std::{fs, io, process};
 
 use anyhow::Result;
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 use crate::util::paths::{ASSETS_DIR, INSTANCES_DIR};
 use crate::util::{accounts::Account, adoptium, vanilla_installer};
@@ -16,7 +16,7 @@ const OPTIMIZED_FLAGS: &str = " -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiag
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct InstanceInfo {
-    last_played: DateTime<Utc>,
+    last_played: OffsetDateTime,
     pub minecraft: String,
     pub fabric: Option<String>,
     pub optimize_jvm: bool,
@@ -152,7 +152,7 @@ pub fn new(
     fs::create_dir(&path)?;
 
     let info = InstanceInfo {
-        last_played: Utc::now(),
+        last_played: OffsetDateTime::now_local()?,
         minecraft: minecraft_version,
         fabric: fabric_version,
         optimize_jvm,

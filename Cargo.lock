@@ -519,7 +519,6 @@ name = "crab-launcher"
 version = "1.0.0-alpha"
 dependencies = [
  "anyhow",
- "chrono",
  "digest",
  "directories",
  "flate2",
@@ -538,6 +537,7 @@ dependencies = [
  "tar",
  "tempfile",
  "thiserror",
+ "time",
  "toml",
  "ureq",
  "version-compare",
