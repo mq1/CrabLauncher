@@ -46,11 +46,7 @@ struct FabricMeta {
 }
 
 fn download(minecraft_version: &str, fabric_version: &str) -> Result<Vec<DownloadItem>> {
-    let url = format!(
-        "https://meta.fabricmc.net/v2/versions/loader/{}/{}/profile/json",
-        minecraft_version, fabric_version
-    );
-
+    let url = format!("https://meta.fabricmc.net/v2/versions/loader/{minecraft_version}/{fabric_version}/profile/json", );
     let meta = AGENT.get(&url).call()?.into_json::<FabricMeta>()?;
 
     meta.libraries
