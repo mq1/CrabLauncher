@@ -17,7 +17,7 @@ const OPTIMIZED_FLAGS: &str = " -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiag
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct InstanceInfo {
-    last_played: OffsetDateTime,
+    last_played: String,
     pub minecraft: String,
     pub fabric: Option<String>,
     pub optimize_jvm: bool,
@@ -151,8 +151,10 @@ pub fn new(
     let path = INSTANCES_DIR.join(&name);
     fs::create_dir(&path)?;
 
+    let last_played = OffsetDateTime::now_utc().to_string();
+
     let info = InstanceInfo {
-        last_played: OffsetDateTime::now_utc(),
+        last_played,
         minecraft: minecraft_version,
         fabric: fabric_version,
         optimize_jvm,
