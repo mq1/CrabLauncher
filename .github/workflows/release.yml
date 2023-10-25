@@ -27,11 +27,11 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: bundle
-          args: --release --no-default-features --features updater
+          args: --release
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --target aarch64-apple-darwin --release --no-default-features --features updater
+          args: --target aarch64-apple-darwin --release
       - run: |
           lipo target/release/bundle/osx/CrabLauncher.app/Contents/MacOS/crab-launcher target/aarch64-apple-darwin/release/crab-launcher -create -output target/release/bundle/osx/CrabLauncher.app/Contents/MacOS/crab-launcher
           ln -s /Applications target/release/bundle/osx/CrabLauncher.app/Applications
@@ -50,7 +50,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --no-default-features --features updater
+          args: --release
       - run: |
           mv target/release/crab-launcher CrabLauncher
           tar czf CrabLauncher-${{github.ref_name}}-linux-x86_64.tar.gz CrabLauncher
@@ -67,7 +67,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --no-default-features --features updater
+          args: --release
       - run: |
           Move-Item ./target/release/crab-launcher.exe ./CrabLauncher.exe
           Compress-Archive ./CrabLauncher.exe ./CrabLauncher-${{github.ref_name}}-windows-x86_64.zip
