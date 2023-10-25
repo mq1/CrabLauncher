@@ -11,8 +11,9 @@ use std::{
 use anyhow::Result;
 use serde::Deserialize;
 
-use crate::util::{adoptium, DownloadItem, DownloadQueue, Hash, HashAlgorithm};
-use crate::util::paths::{ASSETS_DIR, LIBRARIES_DIR, META_DIR};
+use crate::adoptium;
+use crate::paths::{ASSETS_DIR, LIBRARIES_DIR, META_DIR};
+use crate::{DownloadItem, DownloadQueue, Hash, HashAlgorithm};
 
 #[cfg(target_os = "windows")]
 const OS: &str = "windows";
@@ -48,7 +49,7 @@ pub async fn get_versions() -> Result<Vec<String>> {
         hash: None,
         extract: false,
     }
-        .download_json::<VersionManifest>()?;
+    .download_json::<VersionManifest>()?;
 
     fs::rename(
         META_DIR.join("version_manifest_v2.json.new"),
@@ -232,7 +233,7 @@ pub fn download_version(id: &str) -> Result<DownloadQueue> {
         }),
         extract: false,
     }
-        .download_json::<VersionMeta>()?;
+    .download_json::<VersionMeta>()?;
 
     let mut download_items = vec![];
 
@@ -260,7 +261,7 @@ pub fn download_version(id: &str) -> Result<DownloadQueue> {
         }),
         extract: false,
     }
-        .download_json::<AssetIndex>()?;
+    .download_json::<AssetIndex>()?;
 
     for value in asset_index.objects.into_values() {
         let hash = Hash {

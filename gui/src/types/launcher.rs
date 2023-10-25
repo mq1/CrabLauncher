@@ -11,11 +11,10 @@ use crate::types::login::Login;
 use crate::types::messages::Message;
 use crate::types::modrinth_modpacks::ModrinthModpacks;
 use crate::types::vanilla_installer::VanillaInstaller;
-use crate::util;
-use crate::util::accounts::{Account, Accounts};
-use crate::util::instances;
-use crate::util::instances::Instance;
-use crate::util::settings::Settings;
+use lib::accounts::{Account, Accounts};
+use lib::instances;
+use lib::instances::Instance;
+use lib::settings::Settings;
 
 pub struct Launcher {
     pub name: &'static str,
@@ -88,7 +87,7 @@ impl Launcher {
         // check for updates
         if cfg!(feature = "updater") && launcher.settings.check_for_updates {
             commands.push(Command::perform(
-                util::updater::check_for_updates().map_err(|e| e.to_string()),
+                lib::updater::check_for_updates().map_err(|e| e.to_string()),
                 Message::GotUpdate,
             ));
         }
@@ -96,7 +95,7 @@ impl Launcher {
         // fetch account head
         if let Some(account) = &launcher.accounts.active {
             commands.push(Command::perform(
-                util::accounts::get_head(account.to_owned()).map_err(|e| e.to_string()),
+                lib::accounts::get_head(account.to_owned()).map_err(|e| e.to_string()),
                 Message::GotAccountHead,
             ));
         }
@@ -111,7 +110,7 @@ impl Launcher {
                     self.vanilla_installer = VanillaInstaller::default();
                     self.page = page;
                     return Command::perform(
-                        util::vanilla_installer::get_versions().map_err(|e| e.to_string()),
+                        lib::vanilla_installer::get_versions().map_err(|e| e.to_string()),
                         Message::GotVersions,
                     );
                 }
@@ -184,12 +183,12 @@ impl Launcher {
                 }
             }
             Message::OpenInstanceFolder(instance) => {
-                if let Err(error) = instance.open_folder() {
+                if let Err(error) = open::that(instance.path) {
                     return self.update(Message::Error(error.to_string(), false));
                 }
             }
             Message::OpenInstanceConfig(instance) => {
-                if let Err(error) = instance.open_config() {
+                if let Err(error) = open::that(instance.get_config_path()) {
                     return self.update(Message::Error(error.to_string(), false));
                 }
             }
@@ -213,7 +212,7 @@ impl Launcher {
             }
             Message::GetVersions => {
                 return Command::perform(
-                    util::vanilla_installer::get_versions().map_err(|e| e.to_string()),
+                    lib::vanilla_installer::get_versions().map_err(|e| e.to_string()),
                     Message::GotVersions,
                 );
             }
@@ -330,7 +329,7 @@ impl Launcher {
             }
             Message::GetModpacks => {
                 return Command::perform(
-                    util::modrinth::search_modpacks("").map_err(|e| e.to_string()),
+                    lib::modrinth::search_modpacks("").map_err(|e| e.to_string()),
                     Message::GotModpacks,
                 );
             }

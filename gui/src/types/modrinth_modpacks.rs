@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use crate::util::modrinth::Project;
+use lib::modrinth::Project;
 
 pub struct ModrinthModpacks {
     pub projects: Vec<Project>,

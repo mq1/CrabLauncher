@@ -3,9 +3,9 @@
 
 use crate::pages::Page;
 use crate::subscriptions::download;
-use crate::util::accounts::Account;
-use crate::util::instances::Instance;
-use crate::util::modrinth::Projects;
+use lib::accounts::Account;
+use lib::instances::Instance;
+use lib::modrinth::Projects;
 
 #[derive(Debug, Clone)]
 pub enum Message {

@@ -26,7 +26,7 @@ pub static META_DIR: Lazy<PathBuf> = Lazy::new(|| {
 });
 
 pub static ASSETS_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    let dir = BASE_DIR.join("assets");
+    let dir = BASE_DIR.join("../../assets");
     fs::create_dir_all(&dir).unwrap();
 
     dir

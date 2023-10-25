@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::widget::{button, horizontal_space, scrollable, text, Column, Row};
-use iced::{theme, Alignment, Element, Length};
+use iced::{theme, Element, Length};
 use iced_aw::helpers::card;
 use iced_aw::{CardStyles, Wrap};
+use lib::instances::Instance;
 
-use crate::{
-    assets, components::icons, pages::no_instances, style, util::instances::Instance, Message,
-};
+use crate::{assets, components::icons, pages::no_instances, style, Message};
 
 pub fn view(instances: &Vec<Instance>) -> Element<Message> {
     if instances.is_empty() {

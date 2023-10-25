@@ -6,7 +6,7 @@ use std::fs;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::util::paths::SETTINGS_PATH;
+use crate::paths::SETTINGS_PATH;
 
 #[derive(Serialize, Deserialize)]
 pub struct Settings {

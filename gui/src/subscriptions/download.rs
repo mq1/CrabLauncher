@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use crate::util::DownloadQueue;
 use iced::{subscription, Subscription};
+use lib::DownloadQueue;
 
 enum State {
     Ready(DownloadQueue),

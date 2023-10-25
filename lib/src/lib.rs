@@ -1,6 +1,16 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
+pub mod accounts;
+pub mod adoptium;
+pub mod fabric;
+pub mod instances;
+pub mod modrinth;
+pub mod paths;
+pub mod settings;
+pub mod updater;
+pub mod vanilla_installer;
+
 use std::{
     fs::{self, File},
     io::{self, BufReader, BufWriter, Read, Seek},
@@ -17,16 +27,6 @@ use tar::Archive;
 use tempfile::NamedTempFile;
 use ureq::{Agent, AgentBuilder};
 use zip::ZipArchive;
-
-pub mod accounts;
-mod adoptium;
-mod fabric;
-pub mod instances;
-pub mod modrinth;
-pub mod paths;
-pub mod settings;
-pub mod updater;
-pub mod vanilla_installer;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
 pub static AGENT: Lazy<Agent> = Lazy::new(|| AgentBuilder::new().user_agent(USER_AGENT).build());

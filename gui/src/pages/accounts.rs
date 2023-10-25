@@ -2,18 +2,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    Alignment,
-    Element, Length, theme, widget::{button, Column, container, horizontal_space, Row, scrollable, text, vertical_space},
+    theme,
+    widget::{button, container, horizontal_space, scrollable, text, vertical_space, Column, Row},
+    Alignment, Element, Length,
 };
 use iced_aw::floating_element;
+use lib::accounts::Accounts;
 
-use crate::{
-    components::icons,
-    style,
-    util::accounts::Accounts,
-};
 use crate::pages::Page;
 use crate::types::messages::Message;
+use crate::{components::icons, style};
 
 pub fn view(accounts: &Accounts) -> Element<Message> {
     let mut content = Column::new()
@@ -47,9 +45,11 @@ pub fn view(accounts: &Accounts) -> Element<Message> {
             let row = Row::new()
                 .push(text(&account.mc_username))
                 .push(horizontal_space(Length::Fill))
-                .push(button(icons::view(icons::ACCOUNT_CHECK_OUTLINE))
-                    .on_press(Message::SelectAccount(account.clone()))
-                    .style(style::circle_button(theme::Button::Positive)))
+                .push(
+                    button(icons::view(icons::ACCOUNT_CHECK_OUTLINE))
+                        .on_press(Message::SelectAccount(account.clone()))
+                        .style(style::circle_button(theme::Button::Positive)),
+                )
                 .push(
                     button(icons::view(icons::DELETE_OUTLINE))
                         .on_press(Message::RemoveAccount(account.clone()))
@@ -80,10 +80,10 @@ pub fn view(accounts: &Accounts) -> Element<Message> {
                     .push(text(" Add offline account "))
                     .push(icons::view(icons::ACCOUNT_PLUS_OUTLINE))
                     .align_items(Alignment::Center)
-                    .padding(5)
+                    .padding(5),
             )
-                .on_press(Message::ChangePage(Page::AddingOfflineAccount))
-                .style(style::circle_button(theme::Button::Secondary));
+            .on_press(Message::ChangePage(Page::AddingOfflineAccount))
+            .style(style::circle_button(theme::Button::Secondary));
 
             row = row.push(add_offline_account_button);
         }
@@ -93,9 +93,10 @@ pub fn view(accounts: &Accounts) -> Element<Message> {
                 .push(text(" Add account "))
                 .push(icons::view(icons::ACCOUNT_PLUS_OUTLINE))
                 .align_items(Alignment::Center)
-                .padding(5))
-            .on_press(Message::AddAccount)
-            .style(style::circle_button(theme::Button::Primary));
+                .padding(5),
+        )
+        .on_press(Message::AddAccount)
+        .style(style::circle_button(theme::Button::Primary));
 
         row.push(add_account_button)
     });

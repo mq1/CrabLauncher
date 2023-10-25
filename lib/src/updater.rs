@@ -5,7 +5,7 @@ use anyhow::Result;
 use serde::Deserialize;
 use version_compare::Version;
 
-use crate::util::AGENT;
+use crate::AGENT;
 
 const LATEST_RELEASE_URL: &str = "https://api.github.com/repos/mq1/CrabLauncher/releases/latest";
 const RELEASES_BASE_URL: &str = "https://github.com/mq1/CrabLauncher/releases/tag/";

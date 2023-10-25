@@ -2,14 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use std::path::PathBuf;
-use std::{fs, io, process};
+use std::{fs, process};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
-use crate::util::paths::{ASSETS_DIR, INSTANCES_DIR};
-use crate::util::{accounts::Account, adoptium, vanilla_installer};
+use crate::accounts::Account;
+use crate::paths::{ASSETS_DIR, INSTANCES_DIR};
+use crate::{adoptium, vanilla_installer};
 
 // https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks
 const OPTIMIZED_FLAGS: &str = " -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions -XX:+AlwaysActAsServerClassMachine -XX:+AlwaysPreTouch -XX:+DisableExplicitGC -XX:+UseNUMA -XX:NmethodSweepActivity=1 -XX:ReservedCodeCacheSize=400M -XX:NonNMethodCodeHeapSize=12M -XX:ProfiledCodeHeapSize=194M -XX:NonProfiledCodeHeapSize=194M -XX:-DontCompileHugeMethods -XX:MaxNodeLimit=240000 -XX:NodeLimitFudgeFactor=8000 -XX:+UseVectorCmov -XX:+PerfDisableSharedMem -XX:+UseFastUnorderedTimeStamps -XX:+UseCriticalJavaThreadPriority -XX:ThreadPriorityPolicy=1 -XX:AllocatePrefetchStyle=3 -XX:+UseShenandoahGC -XX:ShenandoahGCMode=iu -XX:ShenandoahGuaranteedGCInterval=1000000 -XX:AllocatePrefetchStyle=1";
@@ -102,13 +103,8 @@ impl Instance {
 
         Ok(())
     }
-
-    pub fn open_folder(&self) -> io::Result<()> {
-        open::that(&self.path)
-    }
-
-    pub fn open_config(&self) -> io::Result<()> {
-        open::that(self.path.join("instance.toml"))
+    pub fn get_config_path(&self) -> PathBuf {
+        self.path.join("instance.toml")
     }
 
     pub fn delete(&self) -> Result<()> {

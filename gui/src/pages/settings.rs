@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    Alignment,
-    Element, Length, theme, widget::{
-        button, Column, container, horizontal_space, Row, text, toggler, vertical_space,
-    },
+    theme,
+    widget::{button, container, horizontal_space, text, toggler, vertical_space, Column, Row},
+    Alignment, Element, Length,
 };
+use lib::settings::Settings;
 
-use crate::{components::icons, style, util::settings::Settings};
 use crate::types::messages::Message;
+use crate::{components::icons, style};
 
 pub fn view(settings: &Settings) -> Element<Message> {
     let mut col = Column::new().padding(10);
@@ -26,18 +26,24 @@ pub fn view(settings: &Settings) -> Element<Message> {
     }
 
     let save_button = button(
-        Row::new().push(text(" Save ")).push(icons::view(icons::CONTENT_SAVE_OUTLINE))
+        Row::new()
+            .push(text(" Save "))
+            .push(icons::view(icons::CONTENT_SAVE_OUTLINE))
             .padding(5)
             .align_items(Alignment::Center),
     )
-        .style(style::circle_button(theme::Button::Positive))
-        .on_press(Message::SaveSettings);
+    .style(style::circle_button(theme::Button::Positive))
+    .on_press(Message::SaveSettings);
 
     Column::new()
         .push(text("Settings").size(30))
         .push(container(col).style(style::card()))
         .push(vertical_space(Length::Fill))
-        .push(Row::new().push(horizontal_space(Length::Fill)).push(save_button))
+        .push(
+            Row::new()
+                .push(horizontal_space(Length::Fill))
+                .push(save_button),
+        )
         .spacing(10)
         .padding(10)
         .into()

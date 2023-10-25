@@ -15,8 +15,8 @@ use serde_json::json;
 use serde_with::{base64::Base64, serde_as};
 use time::{Duration, OffsetDateTime};
 
-use crate::util::paths::ACCOUNTS_PATH;
-use crate::util::AGENT;
+use crate::paths::ACCOUNTS_PATH;
+use crate::AGENT;
 
 pub const MSA_DEVICE_AUTH_ENDPOINT: &str =
     "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode";
@@ -48,7 +48,6 @@ pub struct Account {
 }
 
 impl Account {
-    #[cfg(feature = "offline-accounts")]
     pub fn new_offline(username: String) -> Self {
         use md5::{Digest, Md5};
 
@@ -289,7 +288,7 @@ pub fn get_minecraft_account_data<A: ExtraTokenFields, B: TokenType>(
     let xbl_response = AGENT
         .post(XBOXLIVE_AUTH_ENDPOINT)
         .set("Accept", "application/json")
-        .send_json(&params)?
+        .send_json(params)?
         .into_json::<XBLResponse>()?;
     println!("Authenticated with Xbox Live!");
 
@@ -314,7 +313,7 @@ pub fn get_minecraft_account_data<A: ExtraTokenFields, B: TokenType>(
     let xsts_response = AGENT
         .post(XSTS_AUTHORIZATION_ENDPOINT)
         .set("Accept", "application/json")
-        .send_json(&params)?
+        .send_json(params)?
         .into_json::<XSTSResponse>()?;
     println!("Authenticated with XSTS!");
 
@@ -337,7 +336,7 @@ pub fn get_minecraft_account_data<A: ExtraTokenFields, B: TokenType>(
     let minecraft_response = AGENT
         .post(MINECRAFT_AUTH_ENDPOINT)
         .set("Accept", "application/json")
-        .send_json(&params)?
+        .send_json(params)?
         .into_json::<MinecraftResponse>()?;
     println!("Authenticated with Minecraft!");
 

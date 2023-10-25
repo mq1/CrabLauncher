@@ -3,18 +3,17 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use iced::{Application, Color, Command, Element, executor, Settings, Subscription, Theme, theme};
+use iced::{executor, theme, Application, Color, Command, Element, Settings, Subscription, Theme};
 
 use crate::types::launcher::Launcher;
 use crate::types::messages::Message;
 
+pub mod assets;
 mod components;
 mod pages;
 mod style;
 mod subscriptions;
 mod types;
-mod util;
-pub mod assets;
 
 pub fn main() -> iced::Result {
     let mut settings = Settings::default();

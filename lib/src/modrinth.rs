@@ -6,7 +6,7 @@ use std::{fs, io::BufReader, path::Path};
 use anyhow::Result;
 use serde::Deserialize;
 
-use crate::util::{AGENT, DownloadItem, Hash, HashAlgorithm};
+use crate::{DownloadItem, Hash, HashAlgorithm, AGENT};
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Project {
@@ -74,7 +74,7 @@ pub fn install_version(version: &Version, dest_dir: &Path) -> Result<Vec<Downloa
         hash: Some(hash),
         extract: true,
     }
-        .download_file()?;
+    .download_file()?;
 
     let mut items = Vec::new();
 

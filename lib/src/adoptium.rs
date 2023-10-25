@@ -6,8 +6,8 @@ use std::{fs, path::PathBuf};
 use anyhow::{anyhow, bail, Result};
 use serde::Deserialize;
 
-use crate::util::{AGENT, DownloadItem, Hash, HashAlgorithm};
-use crate::util::paths::RUNTIMES_DIR;
+use crate::paths::RUNTIMES_DIR;
+use crate::{DownloadItem, Hash, HashAlgorithm, AGENT};
 
 #[cfg(target_os = "windows")]
 const OS: &str = "windows";

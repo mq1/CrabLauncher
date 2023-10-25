@@ -1,17 +1,17 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::{
-    Alignment,
-    Element,
-    Length, theme, widget::{button, Column, container, tooltip, vertical_space},
-};
 use iced::widget::image;
+use iced::{
+    theme,
+    widget::{button, container, tooltip, vertical_space, Column},
+    Alignment, Element, Length,
+};
 use iced_aw::Spinner;
 
-use crate::{components::icons, Message, style};
 use crate::pages::Page;
-use crate::util::accounts::Accounts;
+use crate::{components::icons, style, Message};
+use lib::accounts::Accounts;
 
 fn change_view_button<'a>(
     page: Page,
@@ -33,9 +33,9 @@ fn change_view_button<'a>(
         tooltip_text,
         tooltip::Position::Right,
     )
-        .gap(10)
-        .style(theme::Container::Box)
-        .into()
+    .gap(10)
+    .style(theme::Container::Box)
+    .into()
 }
 
 pub fn view<'a>(
@@ -48,10 +48,7 @@ pub fn view<'a>(
             if let Some(cached_head) = account.cached_head.to_owned() {
                 let handle = image::Handle::from_memory(cached_head);
 
-                image(handle)
-                    .width(32)
-                    .height(32)
-                    .into()
+                image(handle).width(32).height(32).into()
             } else {
                 Spinner::new().into()
             }

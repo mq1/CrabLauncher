@@ -6,8 +6,9 @@ use std::path::PathBuf;
 use anyhow::Result;
 use serde::Deserialize;
 
-use crate::util::{AGENT, DownloadItem, paths::LIBRARIES_DIR};
-use crate::util::instances::Instance;
+use crate::instances::Instance;
+use crate::paths::LIBRARIES_DIR;
+use crate::{DownloadItem, AGENT};
 
 #[derive(Deserialize)]
 struct FabricLibrary {
@@ -24,20 +25,12 @@ impl FabricLibrary {
 
         format!(
             "{}/{}/{}/{}-{}.jar",
-            parent_dir,
-            artifact,
-            version,
-            artifact,
-            version
+            parent_dir, artifact, version, artifact, version
         )
     }
 
     pub fn get_download_url(&self) -> String {
-        format!(
-            "{}{}",
-            self.url,
-            self.get_path()
-        )
+        format!("{}{}", self.url, self.get_path())
     }
 
     pub fn get_full_path(&self) -> PathBuf {
@@ -52,20 +45,13 @@ struct FabricMeta {
     main_class: String,
 }
 
-fn download(
-    minecraft_version: &str,
-    fabric_version: &str,
-) -> Result<Vec<DownloadItem>> {
+fn download(minecraft_version: &str, fabric_version: &str) -> Result<Vec<DownloadItem>> {
     let url = format!(
         "https://meta.fabricmc.net/v2/versions/loader/{}/{}/profile/json",
-        minecraft_version,
-        fabric_version
+        minecraft_version, fabric_version
     );
 
-    let meta = AGENT
-        .get(&url)
-        .call()?
-        .into_json::<FabricMeta>()?;
+    let meta = AGENT.get(&url).call()?.into_json::<FabricMeta>()?;
 
     meta.libraries
         .into_iter()

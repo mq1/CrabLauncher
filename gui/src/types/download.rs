@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::Subscription;
 use crate::subscriptions::download;
 use crate::types::messages::Message;
-use crate::util::DownloadQueue;
+use iced::Subscription;
+use lib::DownloadQueue;
 
 pub enum State {
     Idle,
@@ -19,9 +19,7 @@ pub struct Download {
 
 impl Default for Download {
     fn default() -> Self {
-        Self {
-            state: State::Idle
-        }
+        Self { state: State::Idle }
     }
 }
 
