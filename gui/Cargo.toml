@@ -16,7 +16,7 @@ rfd = "0.12"
 open = "5.0"
 
 [features]
-default = ["updater", "offline-accounts"]
+default = ["updater"]
 updater = []
 offline-accounts = []
 
