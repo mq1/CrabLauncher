@@ -66,6 +66,7 @@ fn download(minecraft_version: &str, fabric_version: &str) -> Result<Vec<Downloa
         .collect()
 }
 
+/*
 pub fn install(instance: &mut Instance, fabric_version: &str) -> Result<Vec<DownloadItem>> {
     let minecraft_version = &instance.info.minecraft;
 
@@ -76,3 +77,4 @@ pub fn install(instance: &mut Instance, fabric_version: &str) -> Result<Vec<Down
 
     Ok(downloads)
 }
+*/

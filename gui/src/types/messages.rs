@@ -14,12 +14,11 @@ pub enum Message {
     OpenURL(String),
     GotUpdate(Result<Option<(String, String)>, String>),
     GotAccountHead(Result<Account, String>),
-    UpdateInstances,
     CreatedInstance(Result<(), String>),
-    LaunchInstance(Instance),
-    OpenInstanceFolder(Instance),
-    OpenInstanceConfig(Instance),
-    DeleteInstance(Instance),
+    LaunchInstance(String),
+    OpenInstanceFolder(String),
+    OpenInstanceConfig(String),
+    DeleteInstance(String),
     DownloadProgressed(download::Progress),
 
     // Vanilla installer

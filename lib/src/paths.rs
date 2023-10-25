@@ -45,14 +45,6 @@ pub static RUNTIMES_DIR: Lazy<PathBuf> = Lazy::new(|| {
 
     dir
 });
-
-pub static INSTANCES_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    let dir = BASE_DIR.join("instances");
-    fs::create_dir_all(&dir).unwrap();
-
-    dir
-});
-
 pub static SETTINGS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("settings.toml"));
 
 pub static ACCOUNTS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("accounts.toml"));

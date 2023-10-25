@@ -12,14 +12,13 @@ use crate::types::messages::Message;
 use crate::types::modrinth_modpacks::ModrinthModpacks;
 use crate::types::vanilla_installer::VanillaInstaller;
 use lib::accounts::{Account, Accounts};
-use lib::instances;
-use lib::instances::Instance;
+use lib::instances::Instances;
 use lib::settings::Settings;
 
 pub struct Launcher {
     pub name: &'static str,
     pub page: Page,
-    pub instances: Vec<Instance>,
+    pub instances: Instances,
     pub settings: Settings,
     pub accounts: Accounts,
     pub login: Login,
@@ -40,7 +39,7 @@ fn error_dialog(error: &str) {
 
 impl Default for Launcher {
     fn default() -> Self {
-        let instances = match instances::list() {
+        let instances = match Instances::load() {
             Ok(instances) => instances,
             Err(error) => {
                 error_dialog(&error.to_string());
@@ -158,56 +157,46 @@ impl Launcher {
             Message::GotAccountHead(Err(error)) => {
                 return self.update(Message::Error(error, false));
             }
-            Message::UpdateInstances => match instances::list() {
-                Ok(instances) => {
-                    self.instances = instances;
-                }
-                Err(error) => {
-                    return self.update(Message::Error(error.to_string(), false));
-                }
-            },
             Message::CreatedInstance(Ok(())) => {
                 self.page = Page::Instances;
-                return self.update(Message::UpdateInstances);
             }
             Message::CreatedInstance(Err(error)) => {
                 return self.update(Message::Error(error, true));
             }
-            Message::LaunchInstance(instance) => {
+            Message::LaunchInstance(name) => {
                 if let Some(account) = &self.accounts.active {
-                    if let Err(error) = instance.launch(account) {
+                    if let Err(error) = self.instances.launch(&name, account) {
                         return self.update(Message::Error(error.to_string(), true));
                     }
                 } else {
                     return self.update(Message::Error("No account selected".to_string(), false));
                 }
             }
-            Message::OpenInstanceFolder(instance) => {
-                if let Err(error) = open::that(instance.path) {
+            Message::OpenInstanceFolder(name) => {
+                let path = self.instances.get_dir(&name);
+
+                if let Err(error) = open::that(path) {
                     return self.update(Message::Error(error.to_string(), false));
                 }
             }
-            Message::OpenInstanceConfig(instance) => {
-                if let Err(error) = open::that(instance.get_config_path()) {
+            Message::OpenInstanceConfig(name) => {
+                let path = self.instances.get_config_path(&name);
+
+                if let Err(error) = open::that(path) {
                     return self.update(Message::Error(error.to_string(), false));
                 }
             }
-            Message::DeleteInstance(instance) => {
+            Message::DeleteInstance(name) => {
                 let result = MessageDialog::new()
                     .set_title("Delete instance")
-                    .set_description(format!(
-                        "Are you sure you want to delete {}?",
-                        instance.name
-                    ))
+                    .set_description(format!("Are you sure you want to delete {name}?"))
                     .set_buttons(MessageButtons::YesNo)
                     .show();
 
                 if result == MessageDialogResult::Yes {
-                    return if let Err(error) = instance.delete() {
-                        self.update(Message::Error(error.to_string(), true))
-                    } else {
-                        self.update(Message::UpdateInstances)
-                    };
+                    if let Err(error) = self.instances.delete(&name) {
+                        return self.update(Message::Error(error.to_string(), true));
+                    }
                 }
             }
             Message::GetVersions => {
@@ -241,12 +230,15 @@ impl Launcher {
                 let optimize_jvm = self.vanilla_installer.optimize_jvm;
                 let memory = self.vanilla_installer.memory.clone();
 
-                if let Err(error) = instances::new(name, version, None, optimize_jvm, memory) {
+                if let Err(error) = self
+                    .instances
+                    .create(name, version, None, optimize_jvm, memory)
+                {
                     return self.update(Message::Error(error.to_string(), true));
                 } else {
                     self.page = Page::Instances;
                     self.vanilla_installer = VanillaInstaller::default();
-                    return self.update(Message::UpdateInstances);
+                    //return self.update(Message::UpdateInstances);
                 }
             }
             Message::AddAccount => {
