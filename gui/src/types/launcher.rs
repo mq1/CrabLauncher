@@ -269,11 +269,9 @@ impl Launcher {
 
                 return self.update(Message::Error(error, false));
             }
-            #[cfg(feature = "offline-accounts")]
             Message::OfflineAccountUsernameChanged(username) => {
                 self.offline_account_username = username;
             }
-            #[cfg(feature = "offline-accounts")]
             Message::AddOfflineAccount => {
                 let account = Account::new_offline(self.offline_account_username.clone());
 

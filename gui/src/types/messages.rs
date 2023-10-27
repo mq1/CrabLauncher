@@ -36,9 +36,7 @@ pub enum Message {
     SelectAccount(Account),
     RemoveAccount(Account),
     OpenLoginUrl,
-    #[cfg(feature = "offline-accounts")]
     AddOfflineAccount,
-    #[cfg(feature = "offline-accounts")]
     OfflineAccountUsernameChanged(String),
 
     // Settings
