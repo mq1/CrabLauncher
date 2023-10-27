@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "*.*.*"
 
 permissions:
   contents: write
@@ -30,10 +30,10 @@ jobs:
       - run: |
           cargo build --release --bin crab-launcher
           mv target/release/crab-launcher CrabLauncher
-          tar czf CrabLauncher-${{github.ref_name}}-linux-x86_64.tar.gz CrabLauncher
+          tar czf CrabLauncher-${{github.ref_name}}-Linux-x86_64.tar.gz CrabLauncher
       - uses: softprops/action-gh-release@v1
         with:
-          files: CrabLauncher-${{github.ref_name}}-linux-x86_64.tar.gz
+          files: CrabLauncher-${{github.ref_name}}-Linux-x86_64.tar.gz
 
   build-windows:
     runs-on: windows-latest
@@ -43,7 +43,7 @@ jobs:
       - run: |
           cargo build --release --bin crab-launcher
           Move-Item ./target/release/crab-launcher.exe ./CrabLauncher.exe
-          Compress-Archive ./CrabLauncher.exe ./CrabLauncher-${{github.ref_name}}-windows-x86_64.zip
+          Compress-Archive ./CrabLauncher.exe ./CrabLauncher-${{github.ref_name}}-Windows-x86_64.zip
       - uses: softprops/action-gh-release@v1
         with:
-          files: CrabLauncher-${{github.ref_name}}-windows-x86_64.zip
+          files: CrabLauncher-${{github.ref_name}}-Windows-x86_64.zip

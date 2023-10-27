@@ -19,10 +19,3 @@ open = "5.0"
 default = ["updater"]
 updater = []
 offline-accounts = []
-
-[package.metadata.bundle]
-name = "CrabLauncher"
-identifier = "eu.mq1.CrabLauncher"
-icon = ["../assets/logo-128x128.png"]
-copyright = "Copyright (c) 2023 Manuel Quarneti"
-category = "Games"
