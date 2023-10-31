@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::widget::{button, horizontal_space, scrollable, text, Column, Row};
+use iced::widget::{button, horizontal_space, image, scrollable, text, Column, Row};
 use iced::{theme, Element, Length};
 use iced_aw::helpers::card;
 use iced_aw::{CardStyles, Wrap};
 use lib::instances::Instances;
 
-use crate::{assets, components::icons, pages::no_instances, style, Message};
+use crate::components::icon::Icon;
+use crate::{pages::no_instances, style, Message, LOGO_PNG};
 
 pub fn view(instances: &Instances) -> Element<Message> {
     if instances.list.is_empty() {
@@ -16,27 +17,28 @@ pub fn view(instances: &Instances) -> Element<Message> {
 
     let mut wrap = Wrap::new().spacing(10.);
     for (name, _) in &instances.list {
-        let logo = icons::view_png(assets::GRASS_PNG, 100);
+        let logo = image::Handle::from_memory(LOGO_PNG);
+        let logo = image(logo).width(100).height(100);
 
         let actions = Row::new()
             .push(horizontal_space(Length::Fill))
             .push(
-                button(icons::view(icons::PLAY_OUTLINE))
+                button(Icon::PlayOutline.view(24))
                     .on_press(Message::LaunchInstance(name.clone()))
                     .style(style::circle_button(theme::Button::Secondary)),
             )
             .push(
-                button(icons::view(icons::COG_OUTLINE))
+                button(Icon::CogOutline.view(24))
                     .on_press(Message::OpenInstanceConfig(name.clone()))
                     .style(style::circle_button(theme::Button::Secondary)),
             )
             .push(
-                button(icons::view(icons::DELETE_OUTLINE))
+                button(Icon::DeleteOutline.view(24))
                     .on_press(Message::DeleteInstance(name.clone()))
                     .style(style::circle_button(theme::Button::Secondary)),
             )
             .push(
-                button(icons::view(icons::FOLDER_OPEN_OUTLINE))
+                button(Icon::FolderOpenOutline.view(24))
                     .on_press(Message::OpenInstanceFolder(name.clone()))
                     .style(style::circle_button(theme::Button::Secondary)),
             )

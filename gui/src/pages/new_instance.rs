@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use iced::{
-    Alignment,
-    Element, Length, widget::{button, Button, Column, text, vertical_space},
+    widget::{button, text, vertical_space, Button, Column},
+    Alignment, Element, Length,
 };
 use iced_aw::Wrap;
 
-use crate::{assets, components::icons, Message, pages::Page};
+use crate::{components::icon::Icon, pages::Page, Message};
 
 fn installer_button(
     name: &str,
@@ -34,19 +34,12 @@ pub fn view() -> Element<'static, Message> {
     let mut wrap = Wrap::new().spacing(10.);
 
     // Vanilla
-    let vanilla_btn = installer_button(
-        "Vanilla",
-        Page::VanillaInstaller,
-        icons::view_png(assets::GRASS_PNG, 64),
-    );
+    let vanilla_btn = installer_button("Vanilla", Page::VanillaInstaller, Icon::Minecraft.view(64));
     wrap = wrap.push(vanilla_btn);
 
     // Modrinth
-    let modrinth_btn = installer_button(
-        "Modrinth",
-        Page::ModrinthModpacks,
-        icons::view_custom(icons::MODRINTH, 64),
-    );
+    let modrinth_btn =
+        installer_button("Modrinth", Page::ModrinthModpacks, Icon::Modrinth.view(64));
     wrap = wrap.push(modrinth_btn);
 
     Column::new()

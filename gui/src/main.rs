@@ -8,16 +8,17 @@ use iced::{executor, theme, Application, Color, Command, Element, Settings, Subs
 use crate::types::launcher::Launcher;
 use crate::types::messages::Message;
 
-pub mod assets;
 mod components;
 mod pages;
 mod style;
 mod subscriptions;
 mod types;
 
+pub const LOGO_PNG: &[u8] = include_bytes!("../../assets/logo-128x128.png");
+
 pub fn main() -> iced::Result {
     let mut settings = Settings::default();
-    let icon = iced::window::icon::from_file_data(assets::LOGO_PNG, None).unwrap();
+    let icon = iced::window::icon::from_file_data(LOGO_PNG, None).unwrap();
     settings.window.icon = Some(icon);
 
     Launcher::run(settings)

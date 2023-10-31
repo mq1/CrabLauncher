@@ -9,8 +9,9 @@ use iced::{
 };
 use iced_aw::Spinner;
 
+use crate::components::icon::Icon;
 use crate::pages::Page;
-use crate::{components::icons, style, Message};
+use crate::{style, Message};
 use lib::accounts::Accounts;
 
 fn change_view_button<'a>(
@@ -53,7 +54,7 @@ pub fn view<'a>(
                 Spinner::new().into()
             }
         } else {
-            icons::view_custom(icons::ACCOUNT_ALERT_OUTLINE, 32)
+            Icon::AccountAlertOutline.view(32)
         }
     };
 
@@ -61,13 +62,13 @@ pub fn view<'a>(
         .push(change_view_button(
             Page::Instances,
             current_page,
-            icons::view_custom(icons::VIEW_GRID_OUTLINE, 32),
+            Icon::ViewGridOutline.view(32),
             "Instances",
         ))
         .push(change_view_button(
             Page::NewInstance,
             current_page,
-            icons::view_custom(icons::VIEW_GRID_PLUS_OUTLINE, 32),
+            Icon::ViewGridPlusOutline.view(32),
             "New Instance",
         ))
         .push(vertical_space(Length::Fill))
@@ -80,13 +81,13 @@ pub fn view<'a>(
         .push(change_view_button(
             Page::Settings,
             current_page,
-            icons::view_custom(icons::COG_OUTLINE, 32),
+            Icon::CogOutline.view(32),
             "Settings",
         ))
         .push(change_view_button(
             Page::About,
             current_page,
-            icons::view_custom(icons::INFORMATION_OUTLINE, 32),
+            Icon::InformationOutline.view(32),
             &format!("About {}", launcher_name),
         ))
         .align_items(Alignment::Center);

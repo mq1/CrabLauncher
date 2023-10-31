@@ -9,7 +9,7 @@ use iced::{
 use lib::settings::Settings;
 
 use crate::types::messages::Message;
-use crate::{components::icons, style};
+use crate::{components::icon::Icon, style};
 
 pub fn view(settings: &Settings) -> Element<Message> {
     let mut col = Column::new().padding(10);
@@ -28,7 +28,7 @@ pub fn view(settings: &Settings) -> Element<Message> {
     let save_button = button(
         Row::new()
             .push(text(" Save "))
-            .push(icons::view(icons::CONTENT_SAVE_OUTLINE))
+            .push(Icon::ContentSaveOutline.view(24))
             .padding(5)
             .align_items(Alignment::Center),
     )

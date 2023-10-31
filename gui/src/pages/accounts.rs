@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use crate::components::icon::Icon;
 use iced::{
     theme,
     widget::{button, container, horizontal_space, scrollable, text, vertical_space, Column, Row},
@@ -10,8 +11,8 @@ use iced_aw::floating_element;
 use lib::accounts::Accounts;
 
 use crate::pages::Page;
+use crate::style;
 use crate::types::messages::Message;
-use crate::{components::icons, style};
 
 pub fn view(accounts: &Accounts) -> Element<Message> {
     let mut content = Column::new()
@@ -24,7 +25,7 @@ pub fn view(accounts: &Accounts) -> Element<Message> {
             .push(text(&active_account.mc_username))
             .push(horizontal_space(Length::Fill))
             .push(
-                button(icons::view(icons::DELETE_OUTLINE))
+                button(Icon::DeleteOutline.view(24))
                     .on_press(Message::RemoveAccount(active_account.clone()))
                     .style(style::circle_button(theme::Button::Destructive)),
             )
@@ -46,12 +47,12 @@ pub fn view(accounts: &Accounts) -> Element<Message> {
                 .push(text(&account.mc_username))
                 .push(horizontal_space(Length::Fill))
                 .push(
-                    button(icons::view(icons::ACCOUNT_CHECK_OUTLINE))
+                    button(Icon::AccountCheckOutline.view(24))
                         .on_press(Message::SelectAccount(account.clone()))
                         .style(style::circle_button(theme::Button::Positive)),
                 )
                 .push(
-                    button(icons::view(icons::DELETE_OUTLINE))
+                    button(Icon::DeleteOutline.view(24))
                         .on_press(Message::RemoveAccount(account.clone()))
                         .style(style::circle_button(theme::Button::Destructive)),
                 )
@@ -78,7 +79,7 @@ pub fn view(accounts: &Accounts) -> Element<Message> {
             let add_offline_account_button = button(
                 Row::new()
                     .push(text(" Add offline account "))
-                    .push(icons::view(icons::ACCOUNT_PLUS_OUTLINE))
+                    .push(Icon::AccountPlusOutline.view(24))
                     .align_items(Alignment::Center)
                     .padding(5),
             )
@@ -91,7 +92,7 @@ pub fn view(accounts: &Accounts) -> Element<Message> {
         let add_account_button = button(
             Row::new()
                 .push(text(" Add account "))
-                .push(icons::view(icons::ACCOUNT_PLUS_OUTLINE))
+                .push(Icon::AccountPlusOutline.view(24))
                 .align_items(Alignment::Center)
                 .padding(5),
         )
