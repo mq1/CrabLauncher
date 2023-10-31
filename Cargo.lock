@@ -1687,6 +1687,7 @@ dependencies = [
  "digest",
  "directories",
  "flate2",
+ "hex",
  "md-5",
  "oauth2",
  "once_cell",

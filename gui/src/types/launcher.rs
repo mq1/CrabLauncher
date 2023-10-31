@@ -117,6 +117,11 @@ impl Launcher {
                 self.page = page;
             }
             Message::Error(error, fatal) => {
+                // if debug build, panic
+                if cfg!(debug_assertions) {
+                    panic!("{}", error);
+                }
+
                 if fatal {
                     self.page = Page::Error(error.to_string());
                 } else {
