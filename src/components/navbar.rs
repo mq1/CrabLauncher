@@ -1,15 +1,12 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-2.0-only
 
-use crate::components::about::about_modal;
-use crate::components::navigation_button::navigation_button;
-use crate::components::settings::settings_modal;
+use crate::app::App;
+use crate::components::navigation_button;
+use crate::pages::Page;
 use eframe::egui;
 
-pub fn navbar(ctx: &egui::Context) {
-    let about_modal = about_modal(ctx);
-    let settings_modal = settings_modal(ctx);
-
+pub fn navbar(ctx: &egui::Context, app: &mut App) {
     // disable panel separators
     ctx.style_mut(|style| {
         style.visuals.widgets.noninteractive.bg_stroke.color = egui::Color32::TRANSPARENT;
@@ -18,9 +15,10 @@ pub fn navbar(ctx: &egui::Context) {
     let mut navbar_frame = egui::Frame::none();
     navbar_frame.fill = egui::Color32::from_rgb(23, 23, 23);
 
-    egui::TopBottomPanel::top("navbar")
-        .exact_height(48.)
+    egui::SidePanel::left("navbar")
+        .exact_width(48.)
         .frame(navbar_frame)
+        .resizable(false)
         .show(ctx, |ui| {
             // disable item spacing
             ui.spacing_mut().item_spacing = egui::Vec2::new(0., 0.);
@@ -36,37 +34,19 @@ pub fn navbar(ctx: &egui::Context) {
             ui.style_mut().visuals.widgets.active.rounding = egui::Rounding::ZERO;
             ui.style_mut().visuals.widgets.hovered.rounding = egui::Rounding::ZERO;
 
-            // set button background color
-            ui.style_mut().visuals.widgets.active.bg_fill = egui::Color32::from_rgb(23, 23, 23);
-            ui.style_mut().visuals.widgets.hovered.bg_fill = egui::Color32::from_rgb(23, 23, 23);
+            navigation_button::show(
+                ui,
+                app,
+                egui::include_image!("../../assets/mdi/view-grid-outline.svg"),
+                Page::Instances,
+            );
 
-            ui.horizontal_centered(|ui| {
-                ui.add_space(8.);
-
-                ui.heading("Instances");
-
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                    if ui
-                        .add(navigation_button(egui::include_image!(
-                            "../../assets/mdi/information-outline.svg"
-                        )))
-                        .on_hover_cursor(egui::CursorIcon::PointingHand)
-                        .clicked()
-                    {
-                        about_modal.open();
-                    }
-
-                    if ui
-                        .add(navigation_button(egui::include_image!(
-                            "../../assets/mdi/cog-outline.svg"
-                        )))
-                        .on_hover_cursor(egui::CursorIcon::PointingHand)
-                        .clicked()
-                    {
-                        settings_modal.open();
-                    }
-                });
-            });
+            navigation_button::show(
+                ui,
+                app,
+                egui::include_image!("../../assets/mdi/cog-outline.svg"),
+                Page::Settings,
+            );
         });
 
     // re-enable separators

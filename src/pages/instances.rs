@@ -5,7 +5,7 @@ use crate::app::App;
 use eframe::egui;
 use egui_modal::Modal;
 
-pub fn instances(ctx: &egui::Context, app: &mut App) {
+pub fn show(ctx: &egui::Context, app: &mut App) {
     egui::CentralPanel::default().show(ctx, |ui| {
         for instance in &app.instances.list {
             ui.group(|ui| {

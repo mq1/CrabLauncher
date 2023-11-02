@@ -1,12 +1,13 @@
+// SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
+// SPDX-License-Identifier: GPL-2.0-only
+
 use std::fs;
 use std::path::PathBuf;
 
-use once_cell::sync::Lazy;
 use anyhow::Result;
+use once_cell::sync::Lazy;
 
 use crate::BASE_DIR;
-// SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
-// SPDX-License-Identifier: GPL-2.0-only
 
 use crate::types::instance::Instance;
 
@@ -34,8 +35,6 @@ impl Instances {
             }
         }
 
-        Ok(Self {
-            list,
-        })
+        Ok(Self { list })
     }
 }

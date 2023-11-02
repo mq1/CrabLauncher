@@ -15,6 +15,7 @@ use crate::app::App;
 pub mod app;
 mod components;
 mod types;
+mod pages;
 
 pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     let dir = ProjectDirs::from("eu", "mq1", "CrabLauncher")
