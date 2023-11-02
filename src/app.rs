@@ -26,7 +26,7 @@ impl App {
         });
 
         Self {
-            page: Page::Settings,
+            page: Page::Instances,
             instances: Instances::new().unwrap(),
             vanilla_installer: VanillaInstaller::new(),
         }
@@ -36,11 +36,14 @@ impl App {
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         navbar(ctx, self);
-        footer(ctx, self);
 
         match self.page {
-            Page::Instances => pages::instances::show(ctx, self),
+            Page::Instances => {
+                footer(ctx, self);
+                pages::instances::show(ctx, self);
+            }
             Page::Settings => pages::settings::show(ctx, self),
+            Page::VanillaInstaller => pages::vanilla_installer::show(ctx, self),
         }
     }
 }

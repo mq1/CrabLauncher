@@ -7,6 +7,9 @@ use egui_modal::Modal;
 
 pub fn show(ctx: &egui::Context, app: &mut App) {
     egui::CentralPanel::default().show(ctx, |ui| {
+        ui.heading("Instances");
+        ui.separator();
+
         for instance in &app.instances.list {
             ui.group(|ui| {
                 ui.set_max_width(128.);

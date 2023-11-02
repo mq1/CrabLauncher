@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 pub mod instances;
 pub mod settings;
+pub mod vanilla_installer;
 
 #[derive(PartialEq)]
 pub enum Page {
     Instances,
     Settings,
+    VanillaInstaller,
 }

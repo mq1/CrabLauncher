@@ -5,5 +5,3 @@ pub mod about;
 pub mod footer;
 pub mod navbar;
 pub mod navigation_button;
-pub mod settings;
-pub mod vanilla_installer;

@@ -44,6 +44,13 @@ pub fn navbar(ctx: &egui::Context, app: &mut App) {
             navigation_button::show(
                 ui,
                 app,
+                egui::include_image!("../../assets/mdi/view-grid-plus-outline.svg"),
+                Page::VanillaInstaller,
+            );
+
+            navigation_button::show(
+                ui,
+                app,
                 egui::include_image!("../../assets/mdi/cog-outline.svg"),
                 Page::Settings,
             );
