@@ -43,7 +43,7 @@ impl button::StyleSheet for NavbarButtonStyle {
                 ..Appearance::default()
             },
             NavbarButtonStyle::Selected => Appearance {
-                background: Some(Background::Color(Color::from_rgb8(63, 63, 70))),
+                background: Some(Background::Color(Color::from_rgb8(249, 115, 22))),
                 text_color: Color::WHITE,
                 ..Appearance::default()
             },

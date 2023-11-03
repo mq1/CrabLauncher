@@ -17,6 +17,7 @@ mod navbar;
 mod pages;
 mod style;
 mod vanilla_installer;
+mod version_manifest;
 
 #[tokio::main]
 async fn main() -> iced::Result {
