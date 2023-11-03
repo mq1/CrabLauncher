@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use crate::pages::PageImpl;
 use iced::widget::image::Handle;
 use iced::widget::{text, vertical_space, Column, Image};
 use iced::{Alignment, Length};
@@ -24,10 +23,8 @@ impl Info {
             license: env!("CARGO_PKG_LICENSE").to_string(),
         }
     }
-}
 
-impl PageImpl for Info {
-    fn view(&self) -> iced::Element<'_, crate::Message> {
+    pub fn view(&self) -> iced::Element<'_, crate::Message> {
         let icon = Handle::from_memory(self.icon);
 
         Column::new()
@@ -44,6 +41,4 @@ impl PageImpl for Info {
             .spacing(8)
             .into()
     }
-
-    fn update(&mut self, message: crate::Message) {}
 }

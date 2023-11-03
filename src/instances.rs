@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use crate::pages::PageImpl;
 use iced::widget::{text, Column};
 
 pub struct Instance {
@@ -25,15 +24,11 @@ impl Instances {
 
         Self { list: test_list }
     }
-}
 
-impl PageImpl for Instances {
-    fn view(&self) -> iced::Element<'_, crate::Message> {
+    pub fn view(&self) -> iced::Element<'_, crate::Message> {
         Column::new()
             .push(text("Instances").size(50))
             .push(text("test"))
             .into()
     }
-
-    fn update(&mut self, message: crate::Message) {}
 }

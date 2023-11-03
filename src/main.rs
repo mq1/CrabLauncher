@@ -5,12 +5,13 @@
 
 use crate::info::Info;
 use iced::widget::{text, Row};
-use iced::{theme, Color, Element, Sandbox, Settings, Theme};
+use iced::{executor, theme, Application, Color, Command, Element, Settings, Theme};
 
 use crate::instances::Instances;
 use crate::message::Message;
 use crate::navbar::navbar;
-use crate::pages::{Page, PageImpl};
+use crate::pages::Page;
+use crate::vanilla_installer::VanillaInstaller;
 
 mod icon;
 mod info;
@@ -19,8 +20,9 @@ mod message;
 mod navbar;
 mod pages;
 mod style;
+mod vanilla_installer;
 
-pub fn main() -> iced::Result {
+fn main() -> iced::Result {
     Launcher::run(Settings::default())
 }
 
@@ -28,17 +30,25 @@ struct Launcher {
     page: Page,
     instances: Instances,
     info: Info,
+    vanilla_installer: VanillaInstaller,
 }
 
-impl Sandbox for Launcher {
+impl Application for Launcher {
+    type Executor = executor::Default;
+    type Flags = ();
     type Message = Message;
+    type Theme = Theme;
 
-    fn new() -> Self {
-        Self {
-            page: Page::Instances,
-            instances: Instances::new(),
-            info: Info::new(),
-        }
+    fn new(_flags: ()) -> (Self, Command<Message>) {
+        (
+            Self {
+                page: Page::Instances,
+                instances: Instances::new(),
+                info: Info::new(),
+                vanilla_installer: VanillaInstaller::new(),
+            },
+            Command::none(),
+        )
     }
 
     fn title(&self) -> String {
@@ -52,10 +62,13 @@ impl Sandbox for Launcher {
         })
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ChangePage(page) => self.page = page,
+            Message::VanillaInstaller(message) => self.vanilla_installer.update(message),
         }
+
+        Command::none()
     }
 
     fn view(&self) -> Element<Message> {
