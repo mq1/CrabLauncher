@@ -4,6 +4,7 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum Page {
     Instances,
+    VanillaInstaller,
     Settings,
     Info,
 }

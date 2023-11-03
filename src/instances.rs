@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::widget::{text, Column};
+use crate::icon::Icon;
+use iced::widget::{text, vertical_space, Column, Row};
+use iced::Alignment;
 
 pub struct Instance {
     pub name: String,
@@ -27,8 +29,15 @@ impl Instances {
 
     pub fn view(&self) -> iced::Element<'_, crate::Message> {
         Column::new()
-            .push(text("Instances").size(50))
-            .push(text("test"))
+            .push(vertical_space(48))
+            .push(
+                Row::new()
+                    .push(Icon::ArrowLeft.view(24))
+                    .push(text("You don't have any instances yet. Create one!").size(25))
+                    .align_items(Alignment::Center)
+                    .spacing(10),
+            )
+            .padding(10)
             .into()
     }
 }

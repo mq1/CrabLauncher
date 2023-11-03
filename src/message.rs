@@ -6,10 +6,5 @@ use crate::pages::Page;
 #[derive(Debug, Clone)]
 pub enum Message {
     ChangePage(Page),
-    VanillaInstaller(VanillaInstallerMessage),
-}
-
-#[derive(Debug, Clone)]
-pub enum VanillaInstallerMessage {
-    ChangeName(String),
+    ChangeVanillaInstallerName(String),
 }

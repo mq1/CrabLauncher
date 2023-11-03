@@ -1,12 +1,16 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use crate::message::VanillaInstallerMessage;
+use crate::message::Message;
+use crate::style;
+use iced::widget::{container, text, text_input, Column};
+use iced::{Element, Length};
+use iced_aw::{card, CardStyles};
 
 pub struct VanillaInstaller {
-    available_versions: Vec<String>,
-    selected_version: String,
-    name: String,
+    pub available_versions: Vec<String>,
+    pub selected_version: String,
+    pub name: String,
 }
 
 impl VanillaInstaller {
@@ -18,11 +22,20 @@ impl VanillaInstaller {
         }
     }
 
-    pub fn update(&mut self, vanilla_installer_message: VanillaInstallerMessage) {
-        match vanilla_installer_message {
-            VanillaInstallerMessage::ChangeName(name) => {
-                self.name = name;
-            }
-        }
+    pub fn view(&self) -> Element<Message> {
+        let title = text("Vanilla Installer").size(30);
+
+        let name_chooser = card(
+            text("Instance name"),
+            text_input("", &self.name).on_input(Message::ChangeVanillaInstallerName),
+        )
+        .style(CardStyles::Secondary);
+
+        Column::new()
+            .push(title)
+            .push(name_chooser)
+            .padding(16)
+            .spacing(16)
+            .into()
     }
 }

@@ -22,6 +22,18 @@ pub fn navbar(current_page: &Page) -> Element<'static, Message> {
                 .on_press(Message::ChangePage(Page::Instances)),
         )
         .push(
+            button(Icon::ViewGridPlusOutline.view(32))
+                .style(style::navbar_button(
+                    if current_page == &Page::VanillaInstaller {
+                        NavbarButtonStyle::Selected
+                    } else {
+                        NavbarButtonStyle::Normal
+                    },
+                ))
+                .padding(8)
+                .on_press(Message::ChangePage(Page::VanillaInstaller)),
+        )
+        .push(
             button(Icon::CogOutline.view(32))
                 .style(style::navbar_button(if current_page == &Page::Settings {
                     NavbarButtonStyle::Selected
