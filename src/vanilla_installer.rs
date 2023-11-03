@@ -8,7 +8,7 @@ use iced::{Element, Length};
 use iced_aw::{card, CardStyles};
 
 use crate::message::Message;
-use crate::version_manifest::{Version, VersionManifest};
+use crate::version_manifest::VersionManifest;
 
 pub struct VanillaInstaller {
     pub version_manifest: Option<VersionManifest>,
@@ -60,7 +60,7 @@ impl VanillaInstaller {
             .height(Length::Fill)
             .style(CardStyles::Secondary);
 
-        let create_button = button("Create").padding(10);
+        let create_button = button("Create").padding(8);
         let footer = Row::new()
             .push(horizontal_space(Length::Fill))
             .push(create_button);

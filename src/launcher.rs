@@ -68,7 +68,15 @@ impl Application for Launcher {
             Message::ChangeVanillaInstallerName(name) => self.vanilla_installer.name = name,
             Message::VersionManifestFetched(result) => match result {
                 Ok(version_manifest) => {
+                    // find the index of the latest version
+                    let latest_version = version_manifest
+                        .versions
+                        .iter()
+                        .position(|version| version.id == version_manifest.latest.release)
+                        .unwrap_or(0);
+
                     self.vanilla_installer.version_manifest = Some(version_manifest);
+                    self.vanilla_installer.selected_version = Some(latest_version);
                 }
                 Err(error) => {
                     return Command::perform(async move { error.to_string() }, Message::Error);

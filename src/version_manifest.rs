@@ -8,9 +8,9 @@ const VERSION_MANIFEST_URL: &str =
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
 
 #[derive(Deserialize, Debug, Clone)]
-struct Latest {
-    release: String,
-    snapshot: String,
+pub struct Latest {
+    pub release: String,
+    pub snapshot: String,
 }
 
 #[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -33,7 +33,7 @@ impl std::fmt::Display for Version {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct VersionManifest {
-    latest: Latest,
+    pub latest: Latest,
     pub versions: Vec<Version>,
 }
 
