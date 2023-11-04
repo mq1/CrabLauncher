@@ -38,12 +38,16 @@ pub struct VersionManifest {
 }
 
 impl VersionManifest {
-    pub async fn fetch() -> Result<Self, Arc<reqwest::Error>> {
+    async fn _fetch() -> Result<Self, anyhow::Error> {
         let resp = reqwest::get(VERSION_MANIFEST_URL)
             .await?
             .json::<VersionManifest>()
             .await?;
 
         Ok(resp)
+    }
+
+    pub async fn fetch() -> Result<Self, Arc<anyhow::Error>> {
+        Self::_fetch().await.map_err(|err| Arc::new(err).into())
     }
 }

@@ -1,12 +1,20 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use crate::icon::Icon;
+use std::fs;
+use std::sync::Arc;
+
 use iced::widget::{text, vertical_space, Column, Row};
 use iced::Alignment;
+use serde::Serialize;
 
+use crate::icon::Icon;
+use crate::BASE_DIR;
+
+#[derive(Serialize)]
 pub struct Instance {
     pub name: String,
+    pub minecraft_version: String,
 }
 
 pub struct Instances {
@@ -15,16 +23,7 @@ pub struct Instances {
 
 impl Instances {
     pub fn new() -> Self {
-        let test_list = vec![
-            Instance {
-                name: String::from("test"),
-            },
-            Instance {
-                name: String::from("test2"),
-            },
-        ];
-
-        Self { list: test_list }
+        Self { list: Vec::new() }
     }
 
     pub fn view(&self) -> iced::Element<'_, crate::Message> {
@@ -39,5 +38,24 @@ impl Instances {
             )
             .padding(10)
             .into()
+    }
+
+    fn _create(name: &str, minecraft_version: &str) -> Result<(), anyhow::Error> {
+        let dir = BASE_DIR.join("instances").join(name);
+        fs::create_dir_all(&dir)?;
+
+        let instance = Instance {
+            name: name.to_string(),
+            minecraft_version: minecraft_version.to_string(),
+        };
+
+        let text = toml::to_string_pretty(&instance)?;
+        fs::write(dir.join("instance.toml"), text)?;
+
+        Ok(())
+    }
+
+    pub fn create(&self, name: &str, minecraft_version: &str) -> Result<(), Arc<anyhow::Error>> {
+        Self::_create(name, minecraft_version).map_err(|err| Arc::new(err).into())
     }
 }

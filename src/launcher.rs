@@ -3,13 +3,14 @@
 
 use iced::widget::{text, Row};
 use iced::{executor, theme, Application, Color, Command, Element, Theme};
-use rfd::MessageDialog;
+use std::ops::Deref;
 
 use crate::info::Info;
 use crate::instances::Instances;
 use crate::message::Message;
 use crate::navbar::navbar;
 use crate::pages::Page;
+use crate::show_error;
 use crate::vanilla_installer::VanillaInstaller;
 use crate::version_manifest::VersionManifest;
 
@@ -44,15 +45,6 @@ impl Application for Launcher {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Error(error) => {
-                println!("{}", error);
-
-                MessageDialog::new()
-                    .set_level(rfd::MessageLevel::Error)
-                    .set_title("Error")
-                    .set_description(&error)
-                    .show();
-            }
             Message::ChangePage(page) => {
                 self.page = page;
 
@@ -79,11 +71,25 @@ impl Application for Launcher {
                     self.vanilla_installer.selected_version = Some(latest_version);
                 }
                 Err(error) => {
-                    return Command::perform(async move { error.to_string() }, Message::Error);
+                    show_error(error);
                 }
             },
             Message::ChangeVanillaInstallerVersion(version) => {
                 self.vanilla_installer.selected_version = Some(version);
+            }
+            Message::CreateVanillaInstance => {
+                let version_manifest = self.vanilla_installer.version_manifest.as_ref().unwrap();
+                let selected_version = self.vanilla_installer.selected_version.unwrap();
+
+                let version = &version_manifest.versions[selected_version];
+
+                let name = self.vanilla_installer.name.clone();
+
+                if let Err(error) = self.instances.create(&name, &version.id) {
+                    show_error(error);
+                }
+
+                self.page = Page::Instances;
             }
         }
 

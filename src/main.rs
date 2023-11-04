@@ -3,7 +3,14 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::error::Error;
+use std::fs;
+use std::path::PathBuf;
+use std::sync::Arc;
+
+use directories::ProjectDirs;
 use iced::{Application, Settings};
+use once_cell::sync::Lazy;
 
 use crate::launcher::Launcher;
 use crate::message::Message;
@@ -18,6 +25,25 @@ mod pages;
 mod style;
 mod vanilla_installer;
 mod version_manifest;
+
+pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
+    let dir = ProjectDirs::from("eu", "mq1", "CrabLauncher")
+        .unwrap()
+        .data_dir()
+        .to_path_buf();
+
+    fs::create_dir_all(&dir).unwrap();
+
+    dir
+});
+
+pub fn show_error(err: Arc<anyhow::Error>) {
+    rfd::MessageDialog::new()
+        .set_level(rfd::MessageLevel::Error)
+        .set_title("Error")
+        .set_description(&err.to_string())
+        .show();
+}
 
 #[tokio::main]
 async fn main() -> iced::Result {
