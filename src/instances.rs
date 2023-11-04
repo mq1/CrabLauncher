@@ -56,6 +56,6 @@ impl Instances {
     }
 
     pub fn create(&self, name: &str, minecraft_version: &str) -> Result<(), Arc<anyhow::Error>> {
-        Self::_create(name, minecraft_version).map_err(|err| Arc::new(err).into())
+        Self::_create(name, minecraft_version).map_err(Arc::new)
     }
 }
