@@ -28,10 +28,17 @@ impl Application for Launcher {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
+        let res = Instances::load();
+        if let Err(error) = res {
+            show_error(error.into());
+            std::process::exit(1);
+        }
+        let instances = res.unwrap();
+
         (
             Self {
                 page: Page::Instances,
-                instances: Instances::new(),
+                instances,
                 info: Info::new(),
                 vanilla_installer: VanillaInstaller::new(),
             },

@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use crate::BASE_DIR;
 use serde::Deserialize;
+use std::fs;
+use std::io::Write;
 use std::sync::Arc;
 
 const VERSION_MANIFEST_URL: &str =
@@ -39,10 +42,15 @@ pub struct VersionManifest {
 
 impl VersionManifest {
     async fn _fetch() -> Result<Self, anyhow::Error> {
-        let resp = reqwest::get(VERSION_MANIFEST_URL)
-            .await?
-            .json::<VersionManifest>()
-            .await?;
+        let resp = reqwest::get(VERSION_MANIFEST_URL).await?;
+
+        // write the response to a file
+        let path = BASE_DIR.join("meta").join("version_manifest_v2.json");
+        fs::create_dir_all(path.parent().unwrap())?;
+        let bytes = resp.bytes().await?;
+        fs::write(path, &bytes)?;
+
+        let resp = serde_json::from_slice(&bytes)?;
 
         Ok(resp)
     }

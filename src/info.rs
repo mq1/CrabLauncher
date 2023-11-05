@@ -5,6 +5,7 @@ use iced::widget::image::Handle;
 use iced::widget::{text, vertical_space, Column, Image};
 use iced::{Alignment, Length};
 
+pub const LOGO_PNG: &[u8] = include_bytes!("../assets/logo-128x128.png");
 pub struct Info {
     icon: &'static [u8],
     name: String,
@@ -16,7 +17,7 @@ pub struct Info {
 impl Info {
     pub fn new() -> Self {
         Self {
-            icon: include_bytes!("../assets/logo-128x128.png"),
+            icon: LOGO_PNG,
             name: "CrabLauncher".to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
             author: env!("CARGO_PKG_AUTHORS").to_string(),

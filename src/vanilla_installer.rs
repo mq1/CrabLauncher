@@ -60,7 +60,10 @@ impl VanillaInstaller {
             .height(Length::Fill)
             .style(CardStyles::Secondary);
 
-        let create_button = button("Create").padding(8);
+        let create_button = button("Create")
+            .padding(8)
+            .on_press(Message::CreateVanillaInstance);
+
         let footer = Row::new()
             .push(horizontal_space(Length::Fill))
             .push(create_button);
