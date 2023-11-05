@@ -34,9 +34,9 @@ impl Instances {
                     .push(Icon::ArrowLeft.view(24))
                     .push(text("You don't have any instances yet. Create one!").size(25))
                     .align_items(Alignment::Center)
-                    .spacing(10),
+                    .spacing(8),
             )
-            .padding(10)
+            .padding(8)
             .into()
     }
 
