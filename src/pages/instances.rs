@@ -21,46 +21,50 @@ pub fn show(ctx: &egui::Context, app: &mut App) {
         ui.heading("Instances");
         ui.separator();
 
-        for instance in &app.instances.list {
-            ui.group(|ui| {
-                ui.set_max_width(128.);
+        ui.horizontal(|ui| {
+            for instance in &app.instances.list {
+                ui.group(|ui| {
+                    ui.set_max_width(128.);
 
-                let img = egui::include_image!("../../assets/grass-128x128.png");
-                let img = egui::Image::new(img).max_width(64.).max_height(64.);
+                    ui.vertical_centered(|ui| {
+                        let img = egui::include_image!("../../assets/grass-128x128.png");
+                        let img = egui::Image::new(img).fit_to_exact_size(egui::vec2(64., 64.));
 
-                ui.add(img);
-                ui.label(&instance.name);
+                        ui.add(img);
+                        ui.label(&instance.name);
 
-                ui.separator();
+                        ui.separator();
 
-                ui.button("▶ Play").clicked();
-                ui.button("⚙ Settings").clicked();
+                        ui.button("▶ Play").clicked();
+                        ui.button("⚙ Settings").clicked();
 
-                let modal = Modal::new(ctx, "delete_instance_modal");
-                modal.show(|ui| {
-                    modal.frame(ui, |ui| {
-                        ui.heading("Delete instance");
-                        ui.add_space(8.);
-                        ui.label("Are you sure you want to delete this instance?");
-                    });
-                    modal.buttons(ui, |ui| {
-                        if ui.button("Cancel").clicked() {
-                            modal.close();
-                        }
+                        let modal = Modal::new(ctx, "delete_instance_modal");
+                        modal.show(|ui| {
+                            modal.frame(ui, |ui| {
+                                ui.heading("Delete instance");
+                                ui.add_space(8.);
+                                ui.label("Are you sure you want to delete this instance?");
+                            });
+                            modal.buttons(ui, |ui| {
+                                if ui.button("Cancel").clicked() {
+                                    modal.close();
+                                }
+                                if ui.button("🗑 Delete").clicked() {
+                                    instance.delete().unwrap();
+                                    modal.close();
+                                }
+                            });
+                        });
                         if ui.button("🗑 Delete").clicked() {
-                            instance.delete().unwrap();
-                            modal.close();
+                            modal.open();
+                        }
+
+                        if ui.button("📂 Open folder").clicked() {
+                            instance.open_dir().unwrap();
                         }
                     });
                 });
-                if ui.button("🗑 Delete").clicked() {
-                    modal.open();
-                }
-
-                if ui.button("📂 Open folder").clicked() {
-                    instance.open_dir().unwrap();
-                }
-            });
-        }
+            }
+        });
     });
 }
