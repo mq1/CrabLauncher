@@ -4,10 +4,11 @@
 use iced::widget::{
     button, horizontal_space, radio, scrollable, text, text_input, vertical_space, Column, Row,
 };
-use iced::{Element, Length};
+use iced::{theme, Element, Length};
 use iced_aw::{card, CardStyles};
 
 use crate::message::Message;
+use crate::style;
 use crate::version_manifest::VersionManifest;
 
 pub struct VanillaInstaller {
@@ -61,6 +62,7 @@ impl VanillaInstaller {
             .style(CardStyles::Secondary);
 
         let create_button = button("Create")
+            .style(style::circle_button(theme::Button::Primary))
             .padding(8)
             .on_press(Message::CreateVanillaInstance);
 

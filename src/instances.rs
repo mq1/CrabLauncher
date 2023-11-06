@@ -8,13 +8,13 @@ use anyhow::Result;
 use iced::widget::{
     button, horizontal_space, image, scrollable, text, vertical_space, Column, Row,
 };
-use iced::{Alignment, Length};
+use iced::{theme, Alignment, Length};
 use iced_aw::{card, CardStyles, Wrap};
 use serde::{Deserialize, Serialize};
 
 use crate::icon::Icon;
 use crate::info::LOGO_PNG;
-use crate::BASE_DIR;
+use crate::{style, BASE_DIR};
 
 #[derive(Serialize, Deserialize)]
 pub struct Instance {
@@ -74,10 +74,22 @@ impl Instances {
 
             let actions = Row::new()
                 .push(horizontal_space(Length::Fill))
-                .push(button(Icon::PlayOutline.view(24)))
-                .push(button(Icon::CogOutline.view(24)))
-                .push(button(Icon::DeleteOutline.view(24)))
-                .push(button(Icon::FolderOpenOutline.view(24)))
+                .push(
+                    button(Icon::PlayOutline.view(24))
+                        .style(style::circle_button(theme::Button::Primary)),
+                )
+                .push(
+                    button(Icon::CogOutline.view(24))
+                        .style(style::circle_button(theme::Button::Primary)),
+                )
+                .push(
+                    button(Icon::DeleteOutline.view(24))
+                        .style(style::circle_button(theme::Button::Primary)),
+                )
+                .push(
+                    button(Icon::FolderOpenOutline.view(24))
+                        .style(style::circle_button(theme::Button::Primary)),
+                )
                 .push(horizontal_space(Length::Fill))
                 .spacing(5);
 
