@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-2.0-only
 
-use crate::components::footer::footer;
 use crate::components::navbar::navbar;
 use crate::pages;
 use crate::pages::Page;
@@ -38,12 +37,10 @@ impl eframe::App for App {
         navbar(ctx, self);
 
         match self.page {
-            Page::Instances => {
-                footer(ctx, self);
-                pages::instances::show(ctx, self);
-            }
+            Page::Instances => pages::instances::show(ctx, self),
             Page::Settings => pages::settings::show(ctx, self),
             Page::VanillaInstaller => pages::vanilla_installer::show(ctx, self),
+            Page::Info => pages::info::show(ctx, self),
         }
     }
 }

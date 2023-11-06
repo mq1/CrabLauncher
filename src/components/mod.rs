@@ -2,6 +2,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 pub mod about;
-pub mod footer;
 pub mod navbar;
 pub mod navigation_button;

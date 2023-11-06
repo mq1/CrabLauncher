@@ -54,6 +54,13 @@ pub fn navbar(ctx: &egui::Context, app: &mut App) {
                 egui::include_image!("../../assets/mdi/cog-outline.svg"),
                 Page::Settings,
             );
+
+            navigation_button::show(
+                ui,
+                app,
+                egui::include_image!("../../assets/mdi/information-outline.svg"),
+                Page::Info,
+            );
         });
 
     // re-enable separators
