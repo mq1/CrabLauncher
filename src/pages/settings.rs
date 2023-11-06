@@ -47,11 +47,16 @@ pub fn show(ctx: &egui::Context, app: &mut App) {
                 .striped(true)
                 .show(ui, |ui| {
                     ui.label("Java path");
-                    ui.text_edit_singleline(&mut app.settings.java_path);
+                    let java_path_editor = egui::TextEdit::singleline(&mut app.settings.java_path)
+                        .min_size(egui::vec2(512., 0.));
+                    ui.add(java_path_editor);
                     ui.end_row();
 
                     ui.label("Java memory");
-                    ui.text_edit_singleline(&mut app.settings.java_memory);
+                    let java_memory_editor =
+                        egui::TextEdit::singleline(&mut app.settings.java_memory)
+                            .min_size(egui::vec2(512., 0.));
+                    ui.add(java_memory_editor);
                     ui.end_row();
                 });
         });
