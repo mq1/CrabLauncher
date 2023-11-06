@@ -12,9 +12,9 @@ pub static SETTINGS_PATH: Lazy<PathBuf> = Lazy::new(|| BASE_DIR.join("settings.t
 
 #[derive(Serialize, Deserialize)]
 pub struct Settings {
-    check_for_updates: bool,
-    java_path: String,
-    java_memory: String,
+    pub check_for_updates: bool,
+    pub java_path: String,
+    pub java_memory: String,
 }
 
 impl Default for Settings {

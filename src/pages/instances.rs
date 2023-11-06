@@ -19,7 +19,9 @@ pub fn show(ctx: &egui::Context, app: &mut App) {
 
     egui::CentralPanel::default().show(ctx, |ui| {
         ui.heading("Instances");
+
         ui.separator();
+        ui.add_space(16.);
 
         ui.horizontal(|ui| {
             for instance in &app.instances.list {
