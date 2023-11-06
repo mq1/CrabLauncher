@@ -12,4 +12,8 @@ pub enum Message {
     VersionManifestFetched(Result<VersionManifest, Arc<anyhow::Error>>),
     ChangeVanillaInstallerVersion(usize),
     CreateVanillaInstance,
+    SaveSettings,
+    SetAutoUpdateCheck(bool),
+    ChangeJavaPath(String),
+    ChangeJavaMemory(String),
 }

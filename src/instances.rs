@@ -106,8 +106,8 @@ impl Instances {
         Column::new()
             .push(text("Instances").size(30))
             .push(content)
-            .spacing(10)
-            .padding(10)
+            .spacing(8)
+            .padding(8)
             .into()
     }
 

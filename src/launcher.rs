@@ -3,13 +3,13 @@
 
 use iced::widget::{text, Row};
 use iced::{executor, theme, Application, Color, Command, Element, Theme};
-use std::ops::Deref;
 
 use crate::info::Info;
 use crate::instances::Instances;
 use crate::message::Message;
 use crate::navbar::navbar;
 use crate::pages::Page;
+use crate::settings::Settings;
 use crate::show_error;
 use crate::vanilla_installer::VanillaInstaller;
 use crate::version_manifest::VersionManifest;
@@ -19,6 +19,7 @@ pub struct Launcher {
     instances: Instances,
     info: Info,
     vanilla_installer: VanillaInstaller,
+    settings: Settings,
 }
 
 impl Application for Launcher {
@@ -41,6 +42,7 @@ impl Application for Launcher {
                 instances,
                 info: Info::new(),
                 vanilla_installer: VanillaInstaller::new(),
+                settings: Settings::load(),
             },
             Command::none(),
         )
@@ -98,6 +100,20 @@ impl Application for Launcher {
 
                 self.page = Page::Instances;
             }
+            Message::SaveSettings => {
+                if let Err(error) = self.settings.save() {
+                    show_error(error.into());
+                }
+            }
+            Message::SetAutoUpdateCheck(auto_update_check) => {
+                self.settings.auto_update_check = auto_update_check;
+            }
+            Message::ChangeJavaPath(java_path) => {
+                self.settings.java_path = java_path;
+            }
+            Message::ChangeJavaMemory(java_memory) => {
+                self.settings.java_memory = java_memory;
+            }
         }
 
         Command::none()
@@ -109,7 +125,7 @@ impl Application for Launcher {
         let content = match self.page {
             Page::Instances => self.instances.view(),
             Page::VanillaInstaller => self.vanilla_installer.view(),
-            Page::Settings => text("Settings").into(),
+            Page::Settings => self.settings.view(),
             Page::Info => self.info.view(),
         };
 

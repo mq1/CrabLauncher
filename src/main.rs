@@ -21,6 +21,7 @@ mod launcher;
 mod message;
 mod navbar;
 mod pages;
+mod settings;
 mod style;
 mod vanilla_installer;
 mod version_manifest;
