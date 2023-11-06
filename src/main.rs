@@ -3,7 +3,6 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;

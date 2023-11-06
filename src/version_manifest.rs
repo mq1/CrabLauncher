@@ -56,6 +56,6 @@ impl VersionManifest {
     }
 
     pub async fn fetch() -> Result<Self, Arc<anyhow::Error>> {
-        Self::_fetch().await.map_err(|err| Arc::new(err).into())
+        Self::_fetch().await.map_err(Arc::new)
     }
 }
