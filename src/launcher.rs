@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use iced::widget::{text, Row};
+use iced::widget::Row;
 use iced::{executor, theme, Application, Color, Command, Element, Theme};
 
 use crate::info::Info;
@@ -113,6 +113,11 @@ impl Application for Launcher {
             }
             Message::ChangeJavaMemory(java_memory) => {
                 self.settings.java_memory = java_memory;
+            }
+            Message::OpenInstanceFolder(instance) => {
+                if let Err(error) = self.instances.open_instance_dir(&instance) {
+                    show_error(error.into());
+                }
             }
         }
 

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use crate::instances::Instance;
 use crate::pages::Page;
 use crate::version_manifest::VersionManifest;
 use std::sync::Arc;
@@ -16,4 +17,5 @@ pub enum Message {
     SetAutoUpdateCheck(bool),
     ChangeJavaPath(String),
     ChangeJavaMemory(String),
+    OpenInstanceFolder(Instance),
 }

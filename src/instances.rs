@@ -16,7 +16,7 @@ use crate::icon::Icon;
 use crate::info::LOGO_PNG;
 use crate::{style, BASE_DIR};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Instance {
     pub name: String,
     pub minecraft_version: String,
@@ -88,7 +88,8 @@ impl Instances {
                 )
                 .push(
                     button(Icon::FolderOpenOutline.view(24))
-                        .style(style::circle_button(theme::Button::Primary)),
+                        .style(style::circle_button(theme::Button::Primary))
+                        .on_press(crate::Message::OpenInstanceFolder(instance.clone())),
                 )
                 .push(horizontal_space(Length::Fill))
                 .spacing(5);
@@ -128,5 +129,11 @@ impl Instances {
 
     pub fn create(&self, name: &str, minecraft_version: &str) -> Result<(), Arc<anyhow::Error>> {
         Self::_create(name, minecraft_version).map_err(Arc::new)
+    }
+
+    pub fn open_instance_dir(&self, instance: &Instance) -> Result<()> {
+        let path = BASE_DIR.join("instances").join(&instance.name);
+        open::that(path)?;
+        Ok(())
     }
 }
