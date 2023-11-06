@@ -1,17 +1,19 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use crate::components::navbar::navbar;
-use crate::pages;
-use crate::pages::Page;
 use eframe::egui;
 
+use crate::components::navbar;
+use crate::pages;
+use crate::pages::Page;
 use crate::types::instances::Instances;
+use crate::types::settings::Settings;
 use crate::types::vanilla_installer::VanillaInstaller;
 
 pub struct App {
     pub page: Page,
     pub instances: Instances,
+    pub settings: Settings,
     pub vanilla_installer: VanillaInstaller,
 }
 
@@ -27,6 +29,7 @@ impl App {
         Self {
             page: Page::Instances,
             instances: Instances::new().unwrap(),
+            settings: Settings::load().unwrap(),
             vanilla_installer: VanillaInstaller::new(),
         }
     }
@@ -34,7 +37,7 @@ impl App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        navbar(ctx, self);
+        navbar::show(ctx, self);
 
         match self.page {
             Page::Instances => pages::instances::show(ctx, self),

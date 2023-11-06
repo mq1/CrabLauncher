@@ -6,7 +6,7 @@ use crate::components::navigation_button;
 use crate::pages::Page;
 use eframe::egui;
 
-pub fn navbar(ctx: &egui::Context, app: &mut App) {
+pub fn show(ctx: &egui::Context, app: &mut App) {
     // disable panel separators
     ctx.style_mut(|style| {
         style.visuals.widgets.noninteractive.bg_stroke.color = egui::Color32::TRANSPARENT;

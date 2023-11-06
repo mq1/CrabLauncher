@@ -20,6 +20,7 @@ directories = "5.0"
 open = "5.0"
 egui-modal = "0.2"
 poll-promise = "0.3"
+toml = "0.8"
 
 [package.metadata.bundle]
 name = "CrabLauncher"

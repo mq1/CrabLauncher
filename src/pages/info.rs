@@ -6,8 +6,8 @@ use eframe::egui;
 
 const LOGO: egui::ImageSource = egui::include_image!("../../assets/logo-128x128.png");
 
-pub fn show(ctx: &egui::Context, app: &mut App) {
-    egui::CentralPanel::default().show(ctx, |ui| {
+pub fn show(ctx: &egui::Context, _app: &mut App) {
+    egui::CentralPanel::default().show(ctx, |_ui| {
         egui::Area::new("info")
             .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
             .show(ctx, |ui| {
