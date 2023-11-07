@@ -4,13 +4,21 @@
 use poll_promise::Promise;
 use serde::Deserialize;
 
-#[derive(Default)]
 pub struct VanillaInstaller {
     pub versions: Option<Promise<Vec<String>>>,
     pub selected_version: String,
     pub name: String,
 }
 
+impl Default for VanillaInstaller {
+    fn default() -> Self {
+        Self {
+            versions: None,
+            selected_version: "".to_string(),
+            name: "My new instance".to_string(),
+        }
+    }
+}
 #[derive(Deserialize)]
 struct Version {
     id: String,
