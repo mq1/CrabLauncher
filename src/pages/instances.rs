@@ -38,7 +38,6 @@ pub fn show(ctx: &egui::Context, app: &mut App) {
                         ui.separator();
 
                         ui.button("▶ Play").clicked();
-                        ui.button("⚙ Settings").clicked();
 
                         let modal = Modal::new(ctx, "delete_instance_modal");
                         modal.show(|ui| {
