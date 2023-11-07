@@ -9,6 +9,7 @@ use std::path::PathBuf;
 
 use directories::ProjectDirs;
 use once_cell::sync::Lazy;
+use ureq::{Agent, AgentBuilder};
 
 use crate::app::App;
 
@@ -27,6 +28,9 @@ pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
 
     dir
 });
+
+const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+pub static AGENT: Lazy<Agent> = Lazy::new(|| AgentBuilder::new().user_agent(USER_AGENT).build());
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
