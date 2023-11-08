@@ -23,7 +23,7 @@ pub fn show(ctx: &egui::Context, app: &mut App) {
         ui.separator();
         ui.add_space(16.);
 
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             for instance in &app.instances.list {
                 ui.group(|ui| {
                     ui.set_max_width(128.);
