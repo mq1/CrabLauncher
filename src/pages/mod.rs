@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
+pub mod accounts;
 pub mod info;
 pub mod instances;
 pub mod settings;
@@ -12,4 +13,5 @@ pub enum Page {
     Settings,
     VanillaInstaller,
     Info,
+    Accounts,
 }

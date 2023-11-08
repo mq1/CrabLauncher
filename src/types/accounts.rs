@@ -5,6 +5,9 @@ use std::path::PathBuf;
 use std::{fs, io, thread};
 
 use anyhow::Result;
+use base64::{engine::general_purpose, Engine as _};
+use eframe::egui::Key::O;
+use md5::{Digest, Md5};
 use oauth2::ureq::http_client;
 use oauth2::{
     basic::BasicClient, devicecode::StandardDeviceAuthorizationResponse, url, AuthUrl, ClientId,
@@ -14,7 +17,6 @@ use oauth2::{
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use serde_with::{base64::Base64, serde_as};
 use time::{Duration, OffsetDateTime};
 
 use crate::{AGENT, BASE_DIR};
@@ -35,25 +37,19 @@ const MINECRAFT_PROFILE_ENDPOINT: &str = "https://api.minecraftservices.com/mine
 pub const CLIENT_ID: &str = "543a897a-0694-435b-a147-11de17aacd1f";
 pub const SCOPES: &[&str] = &["XboxLive.signin"];
 
-#[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct Account {
     pub ms_refresh_token: Option<String>,
     pub mc_id: String,
-    pub mc_access_token: String,
+    pub mc_access_token: Option<String>,
     pub mc_username: String,
     pub token_time: Option<OffsetDateTime>,
-
-    #[serde_as(as = "Option<Base64>")]
-    pub cached_head: Option<Vec<u8>>,
-
-    cached_head_time: Option<OffsetDateTime>,
+    pub cached_head_base64: Option<String>,
+    pub cached_head_time: Option<OffsetDateTime>,
 }
 
 impl Account {
     pub fn new_offline(username: String) -> Self {
-        use md5::{Digest, Md5};
-
         let mc_id = {
             let text = format!("OfflinePlayer:{}", username);
             let hash = Md5::digest(text.as_bytes());
@@ -63,56 +59,56 @@ impl Account {
         Self {
             ms_refresh_token: None,
             mc_id,
-            mc_access_token: "".to_string(),
+            mc_access_token: None,
             mc_username: username,
             token_time: None,
-            cached_head: None,
+            cached_head_base64: None,
             cached_head_time: None,
         }
     }
-}
 
-pub async fn get_head(mut account: Account) -> Result<Account> {
-    let now = OffsetDateTime::now_utc();
+    pub async fn get_head(&self) -> Result<Account> {
+        let mut account = self.clone();
 
-    if let Some(time) = &account.cached_head_time {
-        if now < *time + Duration::minutes(5) {
-            return Ok(account);
+        let now = OffsetDateTime::now_utc();
+
+        if let Some(time) = &account.cached_head_time {
+            if now < *time + Duration::minutes(5) {
+                return Ok(account);
+            }
         }
+
+        let resp = AGENT
+            .get(&format!("https://crafatar.com/avatars/{}", account.mc_id))
+            .call()?;
+
+        let mut bytes =
+            Vec::with_capacity(resp.header("Content-Length").unwrap().parse::<usize>()?);
+        io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
+
+        account.cached_head_base64 = Some(general_purpose::STANDARD_NO_PAD.encode(&bytes));
+        account.cached_head_time = Some(now);
+
+        Ok(account)
     }
-
-    let resp = AGENT
-        .get(&format!("https://crafatar.com/avatars/{}", account.mc_id))
-        .call()?;
-
-    let mut bytes = Vec::with_capacity(resp.header("Content-Length").unwrap().parse::<usize>()?);
-    io::copy(&mut resp.into_reader(), &mut bytes).unwrap();
-
-    account.cached_head = Some(bytes);
-    account.cached_head_time = Some(now);
-
-    Ok(account)
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct Accounts {
-    pub active: Option<Account>,
-    pub others: Vec<Account>,
+    pub active_mc_id: String,
+    pub accounts: Vec<Account>,
 }
 
 impl Accounts {
     pub fn load() -> Result<Self> {
-        if ACCOUNTS_PATH.exists() {
-            let content = fs::read_to_string(&*ACCOUNTS_PATH)?;
-            let doc = toml::from_str(&content)?;
-
-            Ok(doc)
-        } else {
-            let doc: Accounts = Self::default();
-            doc.save()?;
-
-            Ok(doc)
+        if !ACCOUNTS_PATH.exists() {
+            return Ok(Self::default());
         }
+
+        let content = fs::read_to_string(&*ACCOUNTS_PATH)?;
+        let accounts = toml::from_str(&content)?;
+
+        Ok(accounts)
     }
 
     fn save(&self) -> Result<()> {
@@ -123,41 +119,21 @@ impl Accounts {
     }
 
     pub fn remove_account(&mut self, id: &str) -> Result<()> {
-        if let Some(account) = &self.active {
-            if account.mc_id == id {
-                self.active = None;
-            }
-        } else {
-            self.others.retain(|a| a.mc_id != id);
-        }
-
+        self.accounts.retain(|a| a.mc_id != id);
         self.save()?;
 
         Ok(())
     }
 
     pub fn add_account(&mut self, account: Account) -> Result<()> {
-        if self.active.is_none() {
-            self.active = Some(account);
-        } else {
-            self.others.push(account);
-        }
-
+        self.accounts.push(account);
         self.save()?;
 
         Ok(())
     }
 
-    pub fn set_active_account(&mut self, account: Account) -> Result<()> {
-        if let Some(account) = &self.active {
-            self.others.push(account.clone());
-        }
-
-        // Remove the account from the others list
-        self.others.retain(|a| a.mc_id != account.mc_id);
-
-        self.active = Some(account);
-
+    pub fn set_active_account(&mut self, mc_id: &str) -> Result<()> {
+        self.active_mc_id = mc_id.to_string();
         self.save()?;
 
         Ok(())
@@ -206,22 +182,15 @@ impl Accounts {
         Ok(account)
     }
 
-    pub fn update_account(&mut self, account: &Account) -> Result<()> {
-        if let Some(active) = &mut self.active {
-            if active.mc_id == account.mc_id {
-                *active = account.to_owned();
-                self.save()?;
-                return Ok(());
+    pub fn update_account(&mut self, account: Account) -> Result<()> {
+        for a in &mut self.accounts {
+            if a.mc_id == account.mc_id {
+                *a = account;
+                break;
             }
         }
 
-        for other in &mut self.others {
-            if other.mc_id == account.mc_id {
-                *other = account.to_owned();
-                self.save()?;
-                return Ok(());
-            }
-        }
+        self.save()?;
 
         Ok(())
     }
@@ -244,12 +213,12 @@ impl Accounts {
 
             let account = get_minecraft_account_data(&token, now)?;
 
-            self.update_account(&account)?;
+            self.update_account(account.clone())?;
 
-            Ok(account)
-        } else {
-            Ok(account)
+            return Ok(account);
         }
+
+        Ok(account)
     }
 }
 
@@ -363,10 +332,10 @@ pub fn get_minecraft_account_data<A: ExtraTokenFields, B: TokenType>(
     let account = Account {
         ms_refresh_token: Some(token.refresh_token().unwrap().secret().to_string()),
         mc_id: minecraft_profile.id,
-        mc_access_token: minecraft_response.access_token,
+        mc_access_token: Some(minecraft_response.access_token),
         mc_username: minecraft_profile.name,
         token_time: Some(now),
-        cached_head: None,
+        cached_head_base64: None,
         cached_head_time: None,
     };
 

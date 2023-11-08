@@ -23,7 +23,7 @@ pub struct Instances {
 }
 
 impl Instances {
-    pub fn new() -> Result<Self> {
+    pub fn load() -> Result<Self> {
         let mut list = Vec::new();
 
         for entry in fs::read_dir(&*INSTANCES_DIR)? {

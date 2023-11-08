@@ -6,6 +6,7 @@ use eframe::egui;
 use crate::components::navbar;
 use crate::pages;
 use crate::pages::Page;
+use crate::types::accounts::Accounts;
 use crate::types::instances::Instances;
 use crate::types::settings::Settings;
 use crate::types::vanilla_installer::VanillaInstaller;
@@ -15,6 +16,7 @@ pub struct App {
     pub instances: Instances,
     pub settings: Settings,
     pub vanilla_installer: VanillaInstaller,
+    pub accounts: Accounts,
 }
 
 impl App {
@@ -28,9 +30,10 @@ impl App {
 
         Self {
             page: Page::Instances,
-            instances: Instances::new().unwrap(),
+            instances: Instances::load().unwrap(),
             settings: Settings::load().unwrap(),
             vanilla_installer: VanillaInstaller::new(),
+            accounts: Accounts::load().unwrap(),
         }
     }
 }
@@ -44,6 +47,7 @@ impl eframe::App for App {
             Page::Settings => pages::settings::show(ctx, self),
             Page::VanillaInstaller => pages::vanilla_installer::show(ctx, self),
             Page::Info => pages::info::show(ctx, self),
+            Page::Accounts => pages::accounts::show(ctx, self),
         }
     }
 }
