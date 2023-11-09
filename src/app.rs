@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use eframe::egui;
+use poll_promise::Promise;
 
 use crate::components::navbar;
 use crate::pages;
 use crate::pages::Page;
-use crate::types::accounts::Accounts;
+use crate::types::accounts::{Account, Accounts};
 use crate::types::instances::Instances;
 use crate::types::settings::Settings;
 use crate::types::vanilla_installer::VanillaInstaller;
@@ -17,6 +18,8 @@ pub struct App {
     pub settings: Settings,
     pub vanilla_installer: VanillaInstaller,
     pub accounts: Accounts,
+    pub adding_account_details: (String, String),
+    pub adding_account: Option<Promise<Account>>,
 }
 
 impl App {
@@ -34,6 +37,8 @@ impl App {
             settings: Settings::load().unwrap(),
             vanilla_installer: VanillaInstaller::new(),
             accounts: Accounts::load().unwrap(),
+            adding_account_details: (String::new(), String::new()),
+            adding_account: None,
         }
     }
 }

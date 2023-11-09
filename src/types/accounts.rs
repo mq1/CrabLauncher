@@ -6,7 +6,6 @@ use std::{fs, io, thread};
 
 use anyhow::Result;
 use base64::{engine::general_purpose, Engine as _};
-use eframe::egui::Key::O;
 use md5::{Digest, Md5};
 use oauth2::ureq::http_client;
 use oauth2::{
@@ -165,7 +164,7 @@ impl Accounts {
         Ok(details)
     }
 
-    pub async fn get_account(
+    pub fn get_account(
         client: BasicClient,
         details: StandardDeviceAuthorizationResponse,
     ) -> Result<Account> {
