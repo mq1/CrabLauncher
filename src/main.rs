@@ -3,9 +3,9 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use anyhow::Error;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use directories::ProjectDirs;
 use iced::{Application, Settings};
@@ -37,7 +37,7 @@ pub static BASE_DIR: Lazy<PathBuf> = Lazy::new(|| {
     dir
 });
 
-pub fn show_error(err: Arc<anyhow::Error>) {
+pub fn show_error(err: &Error) {
     rfd::MessageDialog::new()
         .set_level(rfd::MessageLevel::Error)
         .set_title("Error")

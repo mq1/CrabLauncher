@@ -31,7 +31,7 @@ impl Application for Launcher {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         let res = Instances::load();
         if let Err(error) = res {
-            show_error(error.into());
+            show_error(&error);
             std::process::exit(1);
         }
         let instances = res.unwrap();
@@ -80,7 +80,7 @@ impl Application for Launcher {
                     self.vanilla_installer.selected_version = Some(latest_version);
                 }
                 Err(error) => {
-                    show_error(error);
+                    show_error(&error);
                 }
             },
             Message::ChangeVanillaInstallerVersion(version) => {
@@ -95,14 +95,14 @@ impl Application for Launcher {
                 let name = self.vanilla_installer.name.clone();
 
                 if let Err(error) = self.instances.create(&name, &version.id) {
-                    show_error(error);
+                    show_error(&error);
                 }
 
                 self.page = Page::Instances;
             }
             Message::SaveSettings => {
                 if let Err(error) = self.settings.save() {
-                    show_error(error.into());
+                    show_error(&error);
                 }
             }
             Message::SetAutoUpdateCheck(auto_update_check) => {
@@ -116,7 +116,7 @@ impl Application for Launcher {
             }
             Message::OpenInstanceFolder(instance) => {
                 if let Err(error) = self.instances.open_instance_dir(&instance) {
-                    show_error(error.into());
+                    show_error(&error);
                 }
             }
         }

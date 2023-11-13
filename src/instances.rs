@@ -112,7 +112,7 @@ impl Instances {
             .into()
     }
 
-    fn _create(name: &str, minecraft_version: &str) -> Result<()> {
+    pub fn create(&mut self, name: &str, minecraft_version: &str) -> Result<()> {
         let dir = BASE_DIR.join("instances").join(name);
         fs::create_dir_all(&dir)?;
 
@@ -124,11 +124,10 @@ impl Instances {
         let text = toml::to_string_pretty(&instance)?;
         fs::write(dir.join("instance.toml"), text)?;
 
-        Ok(())
-    }
+        // add instance to list
+        self.list.push(instance);
 
-    pub fn create(&self, name: &str, minecraft_version: &str) -> Result<(), Arc<anyhow::Error>> {
-        Self::_create(name, minecraft_version).map_err(Arc::new)
+        Ok(())
     }
 
     pub fn open_instance_dir(&self, instance: &Instance) -> Result<()> {
