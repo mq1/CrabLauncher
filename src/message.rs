@@ -17,5 +17,6 @@ pub enum Message {
     SetAutoUpdateCheck(bool),
     ChangeJavaPath(String),
     ChangeJavaMemory(String),
-    OpenInstanceFolder(Instance),
+    OpenInstanceFolder(String),
+    DeleteInstance(String),
 }

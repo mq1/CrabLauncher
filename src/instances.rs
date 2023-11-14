@@ -10,6 +10,7 @@ use iced::widget::{
 };
 use iced::{theme, Alignment, Length};
 use iced_aw::{card, CardStyles, Wrap};
+use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
 use serde::{Deserialize, Serialize};
 
 use crate::icon::Icon;
@@ -84,12 +85,13 @@ impl Instances {
                 )
                 .push(
                     button(Icon::DeleteOutline.view(24))
-                        .style(style::circle_button(theme::Button::Primary)),
+                        .style(style::circle_button(theme::Button::Primary))
+                        .on_press(crate::Message::DeleteInstance(instance.name.clone())),
                 )
                 .push(
                     button(Icon::FolderOpenOutline.view(24))
                         .style(style::circle_button(theme::Button::Primary))
-                        .on_press(crate::Message::OpenInstanceFolder(instance.clone())),
+                        .on_press(crate::Message::OpenInstanceFolder(instance.name.clone())),
                 )
                 .push(horizontal_space(Length::Fill))
                 .spacing(5);
@@ -130,9 +132,33 @@ impl Instances {
         Ok(())
     }
 
-    pub fn open_instance_dir(&self, instance: &Instance) -> Result<()> {
-        let path = BASE_DIR.join("instances").join(&instance.name);
+    pub fn open_instance_dir(&self, name: &str) -> Result<()> {
+        let path = BASE_DIR.join("instances").join(name);
         open::that(path)?;
+        Ok(())
+    }
+
+    pub fn delete_instance(&mut self, name: &str) -> Result<()> {
+        let result = MessageDialog::new()
+            .set_level(MessageLevel::Warning)
+            .set_title("Delete instance")
+            .set_description(format!(
+                "Are you sure you want to delete the instance \"{}\"?",
+                name
+            ))
+            .set_buttons(MessageButtons::OkCancel)
+            .show();
+
+        if result == MessageDialogResult::Cancel {
+            return Ok(());
+        }
+
+        let path = BASE_DIR.join("instances").join(name);
+        fs::remove_dir_all(path)?;
+
+        // remove instance from list
+        self.list.retain(|i| i.name != name);
+
         Ok(())
     }
 }

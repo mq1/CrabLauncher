@@ -119,6 +119,11 @@ impl Application for Launcher {
                     show_error(&error);
                 }
             }
+            Message::DeleteInstance(instance) => {
+                if let Err(error) = self.instances.delete_instance(&instance) {
+                    show_error(&error);
+                }
+            }
         }
 
         Command::none()
