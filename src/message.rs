@@ -18,5 +18,6 @@ pub enum Message {
     ChangeJavaPath(String),
     ChangeJavaMemory(String),
     OpenInstanceFolder(String),
+    OpenInstanceSettings(String),
     DeleteInstance(String),
 }

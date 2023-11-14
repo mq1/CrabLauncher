@@ -1,8 +1,10 @@
 // SPDX-FileCopyrightText: 2023 Manuel Quarneti <manuelquarneti@protonmail.com>
 // SPDX-License-Identifier: GPL-3.0-only
 
+use iced::futures::TryFutureExt;
 use iced::widget::Row;
 use iced::{executor, theme, Application, Color, Command, Element, Theme};
+use std::sync::Arc;
 
 use crate::info::Info;
 use crate::instances::Instances;
@@ -61,7 +63,7 @@ impl Application for Launcher {
                     && self.vanilla_installer.version_manifest.is_none()
                 {
                     return Command::perform(
-                        VersionManifest::fetch(),
+                        VersionManifest::fetch().map_err(Arc::new),
                         Message::VersionManifestFetched,
                     );
                 }
@@ -69,15 +71,10 @@ impl Application for Launcher {
             Message::ChangeVanillaInstallerName(name) => self.vanilla_installer.name = name,
             Message::VersionManifestFetched(result) => match result {
                 Ok(version_manifest) => {
-                    // find the index of the latest version
-                    let latest_version = version_manifest
-                        .versions
-                        .iter()
-                        .position(|version| version.id == version_manifest.latest.release)
-                        .unwrap_or(0);
+                    let latest_version_index = version_manifest.get_latest_version_index();
 
                     self.vanilla_installer.version_manifest = Some(version_manifest);
-                    self.vanilla_installer.selected_version = Some(latest_version);
+                    self.vanilla_installer.selected_version = Some(latest_version_index);
                 }
                 Err(error) => {
                     show_error(&error);
@@ -116,6 +113,11 @@ impl Application for Launcher {
             }
             Message::OpenInstanceFolder(instance) => {
                 if let Err(error) = self.instances.open_instance_dir(&instance) {
+                    show_error(&error);
+                }
+            }
+            Message::OpenInstanceSettings(instance) => {
+                if let Err(error) = self.instances.open_instance_settings(&instance) {
                     show_error(&error);
                 }
             }

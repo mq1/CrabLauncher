@@ -138,6 +138,12 @@ impl Instances {
         Ok(())
     }
 
+    pub fn open_instance_settings(&self, name: &str) -> Result<()> {
+        let path = BASE_DIR.join("instances").join(name).join("instance.toml");
+        open::that(path)?;
+        Ok(())
+    }
+
     pub fn delete_instance(&mut self, name: &str) -> Result<()> {
         let result = MessageDialog::new()
             .set_level(MessageLevel::Warning)

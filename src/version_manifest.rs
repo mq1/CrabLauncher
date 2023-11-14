@@ -41,7 +41,7 @@ pub struct VersionManifest {
 }
 
 impl VersionManifest {
-    async fn _fetch() -> Result<Self, anyhow::Error> {
+    pub async fn fetch() -> Result<Self, anyhow::Error> {
         let resp = reqwest::get(VERSION_MANIFEST_URL).await?;
 
         // write the response to a file
@@ -55,7 +55,10 @@ impl VersionManifest {
         Ok(resp)
     }
 
-    pub async fn fetch() -> Result<Self, Arc<anyhow::Error>> {
-        Self::_fetch().await.map_err(Arc::new)
+    pub fn get_latest_version_index(&self) -> usize {
+        self.versions
+            .iter()
+            .position(|v| v.id == self.latest.release)
+            .unwrap_or_default()
     }
 }
