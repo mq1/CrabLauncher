@@ -6,6 +6,8 @@
 
 mod app;
 mod data_dir;
+mod instances;
+mod notifications;
 mod ui;
 
 use crate::app::App;
@@ -24,7 +26,7 @@ fn main() -> Result<()> {
     env_logger::init();
 
     let data_dir = data_dir::get_data_dir()?;
-    let app = App::new(data_dir);
+    let mut app = App::new(data_dir);
 
     // Initialize UI
 
@@ -61,6 +63,8 @@ fn main() -> Result<()> {
 
                 style.spacing.button_padding = vec2(5., 2.5);
             });
+
+            app.refresh_instances(&cc.egui_ctx);
 
             Ok(Box::new(app))
         }),
