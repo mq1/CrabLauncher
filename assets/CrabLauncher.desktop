@@ -1,0 +1,8 @@
+[Desktop Entry]
+Categories=Game;Utility;
+Comment=A lightweight unofficial launcher for Minecraft
+Exec=CrabLauncher
+Icon=CrabLauncher
+Name=CrabLauncher
+Terminal=false
+Type=Application

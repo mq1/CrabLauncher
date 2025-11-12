@@ -1,13 +1,91 @@
-[workspace]
-resolver = "2"
-members = [
-    "gui",
-    "lib"
-]
+[package]
+name = "CrabLauncher"
+version = "0.4.0"
+rust-version = "1.90"
+edition = "2024"
+authors = ["Manuel Quarneti <mq1@ik.me>"]
+license = "GPL-3.0-only"
+repository = "https://github.com/mq1/CrabLauncher"
+homepage = "https://github.com/mq1/CrabLauncher"
+description = "A lightweight unofficial launcher for Minecraft"
+
+[package.metadata.packager]
+product-name = "CrabLauncher"
+identifier = "it.mq1.CrabLauncher"
+icons = ["assets/CrabLauncher.png", "assets/CrabLauncher@2x.png"]
+copyright = "Copyright © 2025 Manuel Quarneti. Licensed under GPL-3.0-only."
+category = "Utility"
+
+[package.metadata.winres]
+FileDescription = "A lightweight unofficial launcher for Minecraft"
+ProductName = "TinyWiiBackupManager"
+OriginalFilename = "TinyWiiBackupManager.exe"
+LegalCopyright = "Copyright © 2025 Manuel Quarneti. Licensed under GPL-3.0-only."
+
+[dependencies]
+egui_extras = { version = "0.33", features = ["image", "file"] }
+egui-theme-switch = "0.5"
+image = { version = "0.25", default-features = false, features = ["png"] }
+egui-notify = "0.21"
+egui-file-dialog = "0.12"
+crossbeam-channel = "0.5"
+ureq = { version = "3.1", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+directories = "6.0"
+anyhow = "1.0"
+size = "0.5"
+zip = { version = "6.0", default-features = false, features = [
+    "deflate-flate2-zlib-rs",
+] }
+open = "5.3"
+semver = "1.0"
+log = "0.4"
+env_logger = { version = "0.11", default-features = false, features = [
+    "auto-color",
+    "humantime",
+] }
+smallvec = "1.15"
+
+[target.'cfg(any(target_os = "linux", target_vendor = "win7"))'.dependencies]
+eframe = "0.33"
+
+[target.'cfg(any(target_os = "macos", target_vendor = "pc"))'.dependencies]
+eframe = { version = "0.33", default-features = false, features = [
+    "accesskit",
+    "default_fonts",
+    "wgpu",
+] }
+
+[target.'cfg(target_vendor = "pc")'.dependencies]
+wgpu = { version = "*", default-features = false, features = [
+    "dx12",
+    "std",
+    "parking_lot",
+] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+wgpu = { version = "*", default-features = false, features = [
+    "metal",
+    "std",
+    "parking_lot",
+] }
+
+[features]
+default = ["native-tls"]
+native-tls = ["ureq/native-tls", "ureq/platform-verifier"]
+bundled-tls = ["ureq/rustls"]
+offline-accounts = []
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
 
 [profile.release]
-opt-level = "z"
+opt-level = 3
 lto = true
 codegen-units = 1
-panic = "abort"
 strip = true
+panic = "abort"
+
+[profile.dev.package."*"]
+opt-level = 2

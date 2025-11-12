@@ -3,7 +3,6 @@
         "./Cargo.toml"
     ],
     "rust-analyzer.cargo.features": [
-        "updater",
         "offline-accounts"
     ]
 }

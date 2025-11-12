@@ -2,48 +2,232 @@ name: Release
 
 on:
   push:
+    branches:
+      - main
     tags:
-      - "*.*.*"
+      - '*'
+  pull_request:
 
 permissions:
   contents: write
 
-jobs:
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-apple-darwin,aarch64-apple-darwin
-      - run: ./build-macos.sh ${{github.ref_name}}
-      - uses: softprops/action-gh-release@v1
-        with:
-          files: CrabLauncher-${{github.ref_name}}-MacOS-Universal2.dmg
+env:
+  VERSION_NAME: ${{ github.event_name == 'pull_request' && format('PR-{0}', github.event.pull_request.number) || github.ref_name }}
 
-  build-ubuntu:
-    runs-on: ubuntu-20.04
+jobs:
+  # ==================================================================================
+  #  Build & Bundle Jobs: Run the platform-specific build scripts.
+  # ==================================================================================
+  build-linux:
+    name: Build for Linux
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-24.04
+            arch: x86_64
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-24.04-arm
+            arch: aarch64
+
     steps:
-      - uses: actions/checkout@v4
-      - run: sudo apt-get update -y && sudo apt-get install -y libgtk-3-dev
-      - uses: dtolnay/rust-toolchain@stable
-      - run: |
-          cargo build --release --bin crab-launcher
-          mv target/release/crab-launcher CrabLauncher
-          tar czf CrabLauncher-${{github.ref_name}}-Linux-x86_64.tar.gz CrabLauncher
-      - uses: softprops/action-gh-release@v1
+      - name: Checkout
+        uses: actions/checkout@v5
         with:
-          files: CrabLauncher-${{github.ref_name}}-Linux-x86_64.tar.gz
+          fetch-depth: 1
+
+      - name: Install Rust toolchain
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
+
+      - name: Download LinuxDeploy
+        run: |
+          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${{ matrix.arch }}.AppImage"
+          wget -c "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-${{ matrix.arch }}.AppImage"
+          chmod +x linuxdeploy*.AppImage
+
+      - name: Build binary
+        run: cargo build --release --locked --target ${{ matrix.target }} --no-default-features --features "bundled-tls"
+
+      - name: Package binary as tar.gz
+        run: |
+          mkdir dist
+          cp "target/${{ matrix.target }}/release/TinyWiiBackupManager" TinyWiiBackupManager
+          chmod 755 TinyWiiBackupManager
+          tar -I 'gzip -9' -cvf "dist/TinyWiiBackupManager-${{ env.VERSION_NAME }}-linux-${{ matrix.arch }}.tar.gz" TinyWiiBackupManager
+
+      - name: Package binary as AppImage
+        run: |
+          ./linuxdeploy-${{ matrix.arch }}.AppImage --appdir TinyWiiBackupManager.AppDir -e target/${{ matrix.target }}/release/TinyWiiBackupManager -d assets/TinyWiiBackupManager.desktop -i assets/TinyWiiBackupManager.png --output appimage
+          mv TinyWiiBackupManager*.AppImage "dist/TinyWiiBackupManager-${{ env.VERSION_NAME }}-linux-${{ matrix.arch }}.AppImage"
+          mv TinyWiiBackupManager*.AppImage.zsync "dist/TinyWiiBackupManager-${{ env.VERSION_NAME }}-linux-${{ matrix.arch }}.AppImage.zsync"
+        env:
+          LDAI_UPDATE_INFORMATION: "gh-releases-zsync|mq1|TinyWiiBackupManager|latest|*${{ matrix.arch }}.AppImage.zsync"
+
+      - name: Upload Linux distributables
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/*
 
   build-windows:
-    runs-on: windows-latest
+    name: Build for Windows
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            arch: x64
+            setup: true
+          - target: aarch64-pc-windows-msvc
+            arch: arm64
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: |
-          cargo build --release --bin crab-launcher
-          Move-Item ./target/release/crab-launcher.exe ./CrabLauncher.exe
-          Compress-Archive ./CrabLauncher.exe ./CrabLauncher-${{github.ref_name}}-Windows-x86_64.zip
-      - uses: softprops/action-gh-release@v1
+      - name: Checkout
+        uses: actions/checkout@v5
         with:
-          files: CrabLauncher-${{github.ref_name}}-Windows-x86_64.zip
+          fetch-depth: 1
+
+      - name: Install Rust toolchain
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install dependencies
+        if: matrix.setup
+        run: cargo install cargo-packager --version ^0.11 --locked
+
+      - name: Build binary
+        run: cargo build --release --locked --target ${{ matrix.target }} --no-default-features --features "native-tls"
+
+      - name: Package binary as zip
+        shell: pwsh
+        run: |
+          New-Item -Path "dist" -ItemType "directory"
+          Copy-Item -Path "target/${{ matrix.target }}/release/TinyWiiBackupManager.exe" -Destination TinyWiiBackupManager.exe
+          7z a -tzip -mx=9 "dist/TinyWiiBackupManager-${{ env.VERSION_NAME }}-windows-${{ matrix.arch }}.zip" TinyWiiBackupManager.exe
+
+      - name: Package binary as installer (only x64 for now)
+        if: matrix.setup
+        shell: pwsh
+        run: |
+          cargo packager --release --target ${{ matrix.target }} --formats nsis
+          Move-Item -Path "target/${{ matrix.target }}/release/TinyWiiBackupManager*-setup.exe" -Destination "dist/TinyWiiBackupManager-${{ env.VERSION_NAME }}-windows-${{ matrix.arch }}-setup.exe"
+
+      - name: Upload Windows distributables
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/*
+
+  build-macos:
+    name: Build for macOS
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            arch: arm64
+          - target: x86_64-apple-darwin
+            arch: x86_64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Install Rust toolchain
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install dependencies
+        run: |
+          cargo install cargo-packager --version ^0.11 --locked
+          npm i -g appdmg@0.6.6
+
+      - name: Build binary
+        run: cargo build --release --locked --target ${{ matrix.target }} --no-default-features --features "native-tls"
+
+      - name: Create app with cargo-packager
+        run: cargo packager --release --target ${{ matrix.target }} --formats app
+
+      - name: Create dmg (assets from sindresorhus/create-dmg)
+        run: |
+          mkdir dist
+          appdmg assets/appdmg-${{ matrix.arch }}.json "dist/TinyWiiBackupManager-${{ env.VERSION_NAME }}-macos-${{ matrix.arch }}.dmg"
+
+      - name: Upload macOS distributables
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/*
+
+  # ==================================================================================
+  #  Release Job: Collects all artifacts and creates a single GitHub Release.
+  # ==================================================================================
+  release:
+    name: Create GitHub Release
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    needs: [ build-linux, build-windows, build-macos ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Download distributables
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: '*dist*' # This pattern will match all final distributable artifacts
+          merge-multiple: true # This places all matching artifacts into a single 'dist' directory
+
+      - name: Create version.txt
+        run: echo -n "${{ env.VERSION_NAME }}" > version.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ env.VERSION_NAME }}
+          files: |
+            dist/*
+            version.txt
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate downloads table
+        run: sed 's/VERSION/${{ env.VERSION_NAME }}/g' assets/downloads-template.md > downloads.md
+    
+      - name: Append downloads table to release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ env.VERSION_NAME }}
+          append_body: true
+          body_path: downloads.md
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
